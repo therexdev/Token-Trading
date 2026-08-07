@@ -7,5 +7,5 @@ build/
 .DS_Store
 
 # delivery zip for the landing site
-trade-koinos-website.zip
-trade-koinos-website.zip
+*.zip
+*.zip
