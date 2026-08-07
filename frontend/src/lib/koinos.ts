@@ -287,7 +287,11 @@ async function sendOperations(
     id,
     wait: async () => {
       try {
-        const receipt = await transaction.wait("byBlock", 60000);
+        // poll our own RPC for confirmation. transaction.wait() would go
+        // through the wait function Kondor attaches, which keeps a request
+        // pending on the extension's message channel and wedges the next
+        // popup at "Loading transaction..." until a browser restart
+        const receipt = await provider.wait(id, "byBlock", 60000);
         return { blockNumber: (receipt as any)?.blockNumber };
       } catch {
         return {};
