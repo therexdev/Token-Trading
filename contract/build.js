@@ -70,31 +70,22 @@ run(bin("protoc"), [
   "assembly/proto/orderbook.proto",
 ]);
 
-// the generated index.ts ends with a top-level `main();` call, which
-// AssemblyScript compiles into the wasm start section. The Koinos node
-// instantiates the module first and then calls the exported main itself;
-// executing the contract during instantiation makes its exit unwind
-// surface as "start function failed to execute". Strip the call so the
-// start section only performs static initialization.
-{
-  const indexPath = path.join(root, "assembly", "index.ts");
-  const source = fs.readFileSync(indexPath, "utf8");
-  const stripped = source.replace(/^main\(\);\s*$/m, "");
-  if (stripped !== source) {
-    fs.writeFileSync(indexPath, stripped);
-    console.log("    (removed top-level main() call from generated index.ts)");
-  }
-}
-
 console.log(`4/6 compiling contract (${mode})...`);
-// the Koinos VM (Fizzy) implements WebAssembly MVP only, so every
-// post-MVP feature AssemblyScript enables by default must be disabled
+// The Koinos node instantiates the module and then calls its exported
+// _start function (which must contain static initialization plus the
+// generated top-level main() call). --exportStart produces exactly that
+// instead of a wasm start section, which would wrongly execute the
+// contract during instantiation.
+// The VM also only implements WebAssembly MVP, so every post-MVP feature
+// AssemblyScript enables by default must be disabled (and what asc cannot
+// disable is lowered by wasm-opt in the next step).
 run("node", [
   path.join(root, "node_modules", "assemblyscript", "bin", "asc"),
   "assembly/index.ts",
   "--target", mode,
   "--use", "abort=",
   "--use", "BUILD_FOR_TESTING=0",
+  "--exportStart", "_start",
   "--disable", "sign-extension,bulk-memory,nontrapping-f2i,multi-value",
   "--config", "asconfig.json",
 ], 1);
