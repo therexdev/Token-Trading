@@ -67,6 +67,10 @@ jobs:
           protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
           # trailing slash matters: uploads the CONTENTS of dist, not the folder
           local-dir: ./frontend/dist/
-          server-dir: ${{ vars.FTP_SERVER_DIR || './public_html/' }}
+          # Hostinger FTP accounts land INSIDE the web root (public_html), so
+          # upload to the FTP root itself. Override with an FTP_SERVER_DIR
+          # variable only if your FTP account lands at the account home
+          # (then use ./public_html/).
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
           # keep the server tidy but never touch unrelated files
           dangerous-clean-slate: false
