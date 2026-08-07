@@ -120,6 +120,17 @@ export async function fetchMarkets(): Promise<MarketInfo[]> {
       quoteVolume: asBigInt(raw.quoteVolume ?? raw.quote_volume),
     });
   }
+  // display order: rank by each token's position in TOKENS (KOIN first), so
+  // the KOIN pairs lead and KOIN/vUSDT sorts to the top
+  const rank = (symbol: string) => {
+    const index = TOKENS.findIndex((token) => token.symbol === symbol);
+    return index === -1 ? TOKENS.length : index;
+  };
+  markets.sort((a, b) => {
+    const baseDiff = rank(a.base.symbol) - rank(b.base.symbol);
+    if (baseDiff !== 0) return baseDiff;
+    return rank(a.quote.symbol) - rank(b.quote.symbol);
+  });
   return markets;
 }
 

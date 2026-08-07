@@ -58,7 +58,9 @@ interface AppState {
 
 let toastCounter = 1;
 const STORAGE_ACCOUNT = "koinoskit-trade:account";
-const STORAGE_MARKET = "koinoskit-trade:market";
+// bumped to v2 so any stale saved selection is dropped and the app lands on
+// the KOIN/vUSDT default
+const STORAGE_MARKET = "koinoskit-trade:market:v2";
 
 export const useStore = create<AppState>((set, get) => ({
   initialized: false,
@@ -90,9 +92,18 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }
       const markets = await fetchMarkets();
-      const savedMarket = Number(localStorage.getItem(STORAGE_MARKET));
+      const savedRaw = localStorage.getItem(STORAGE_MARKET);
+      const savedMarket = savedRaw ? Number(savedRaw) : NaN;
+      // prefer a previously chosen market; otherwise land on KOIN/vUSDT
+      const defaultMarket =
+        markets.find(
+          (market) =>
+            market.base.symbol === "KOIN" && market.quote.symbol === "vUSDT"
+        ) || markets[0];
       const selected =
-        markets.find((market) => market.marketId === savedMarket) || markets[0];
+        (savedRaw
+          ? markets.find((market) => market.marketId === savedMarket)
+          : null) || defaultMarket;
       set({
         markets,
         selectedMarketId: selected ? selected.marketId : null,
