@@ -105,7 +105,7 @@ are handled as `BigInt` in the tokens' smallest units.
 
 ### 0. Prerequisites
 
-- Node.js 20+ (22 recommended) and Yarn (`npm i -g yarn`)
+- Node.js 20+ (22 recommended) — npm is enough, Yarn is optional
 - A little KOIN for mana on the deploying account
 
 > **Windows users:** the commands below are written for bash. Windows
@@ -120,8 +120,8 @@ are handled as `BigInt` in the tokens' smallest units.
 
 ```bash
 cd contract
-yarn install
-yarn build            # produces build/release/contract.wasm + abi/
+npm install
+npm run build         # produces build/release/contract.wasm + abi/
 ```
 
 (The build pins the `asconfig.json` output for AssemblyScript 0.27 and
@@ -207,8 +207,8 @@ folder where you cloned the repository:
 ```powershell
 # 1. build the contract
 cd contract
-yarn install
-yarn build
+npm install
+npm run build
 
 # 2. create the contract account
 cd ..\scripts
@@ -243,7 +243,7 @@ If you change `contract/assembly/proto/orderbook.proto`, rebuild the
 contract and re-sync the frontend copy:
 
 ```bash
-cd contract && yarn build
+cd contract && npm run build
 cd ../frontend && npm run sync-abi
 ```
 
