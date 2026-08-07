@@ -5,3 +5,6 @@ build/
 .env
 .env.local
 .DS_Store
+
+# delivery zip for the landing site
+trade-koinos-website.zip
