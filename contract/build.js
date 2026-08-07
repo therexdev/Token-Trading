@@ -8,9 +8,11 @@
  *
  * Usage: node build.js [debug|release]
  */
-const { execFileSync } = require("child_process");
+const { execFileSync, execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+
+const isWindows = process.platform === "win32";
 
 const mode = process.argv[2] === "debug" ? "debug" : "release";
 const root = __dirname;
@@ -27,7 +29,17 @@ const env = {
 function run(cmd, args, attempts = 5) {
   for (let i = 1; i <= attempts; i++) {
     try {
-      execFileSync(cmd, args, { cwd: root, stdio: "inherit", env });
+      if (isWindows) {
+        // Node 20+ refuses to spawn .cmd shims directly (CVE-2024-27980),
+        // so on Windows the command goes through the shell with each part
+        // quoted to survive paths containing spaces
+        const command = [cmd, ...args]
+          .map((part) => (/[\s]/.test(part) ? `"${part}"` : part))
+          .join(" ");
+        execSync(command, { cwd: root, stdio: "inherit", env });
+      } else {
+        execFileSync(cmd, args, { cwd: root, stdio: "inherit", env });
+      }
       return;
     } catch (error) {
       if (i === attempts) throw error;

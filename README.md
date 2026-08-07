@@ -108,6 +108,14 @@ are handled as `BigInt` in the tokens' smallest units.
 - Node.js 20+ (22 recommended) and Yarn (`npm i -g yarn`)
 - A little KOIN for mana on the deploying account
 
+> **Windows users:** the commands below are written for bash. Windows
+> PowerShell 5.1 does not understand `&&` between commands, and the
+> `NAME=value command` env-var prefix is bash-only. Run each command on
+> its own line and set environment variables with `$env:` — the full
+> PowerShell sequence is in
+> [Windows (PowerShell) quick reference](#windows-powershell-quick-reference)
+> below.
+
 ### 1. Build the contract
 
 ```bash
@@ -168,6 +176,44 @@ The repo ships a GitHub Pages workflow (`.github/workflows/deploy.yml`):
 `frontend/dist` is a fully static site, so Cloudflare Pages, Netlify or
 any static host works just as well — set the same `VITE_*` variables at
 build time.
+
+### Windows (PowerShell) quick reference
+
+Everything works on Windows; only the shell syntax differs. From the
+folder where you cloned the repository:
+
+```powershell
+# 1. build the contract
+cd contract
+yarn install
+yarn build
+
+# 2. create the contract account
+cd ..\scripts
+npm install
+npm run generate-key
+
+# send ~1 KOIN to the printed address for mana, then deploy.
+# $env: variables persist for the rest of the PowerShell session.
+$env:KOINOS_WIF = "paste the WIF here"
+npm run deploy
+npm run create-markets
+
+# sanity check
+$env:ORDERBOOK_ADDRESS = "paste the contract address here"
+npm run show-state
+
+# 3. frontend
+cd ..\frontend
+npm install
+Copy-Item .env.example .env
+# edit .env and set VITE_ORDERBOOK_ADDRESS, then:
+npm run dev        # local development at http://localhost:5173
+npm run build      # production build in dist/
+```
+
+When you are done, clear the key from the session with
+`Remove-Item Env:KOINOS_WIF` (closing the terminal also discards it).
 
 ### Updating the contract ABI
 
