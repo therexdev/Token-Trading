@@ -34,12 +34,14 @@ export const EXPLORER_TX = (id: string) =>
 
 export const TOKENS: TokenConfig[] = [
   {
+    // 19GYj... is the LIVE KOIN token contract. The widely-cited 15DJN...
+    // address is the retired pre-migration contract whose storage is
+    // system-locked (calls fail with "user code cannot access system space").
     symbol: "KOIN",
     name: "Koin",
-    address: "15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL",
+    address: "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
     decimals: 8,
-    allowances: false,
-    restName: "koin",
+    allowances: true,
     color: "#4f8cff",
   },
   {

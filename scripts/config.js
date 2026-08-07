@@ -11,9 +11,13 @@ export const RPC_URLS = {
 // transaction signature.
 export const TOKENS = {
   mainnet: {
+    // NOTE: the widely-cited 15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL address is the
+    // RETIRED pre-migration KOIN contract (its storage is system-locked and
+    // calling it fails with "user code cannot access system space"). The live
+    // KOIN token contract is 19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK.
     KOIN: {
-      address: "15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL",
-      allowances: false,
+      address: "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
+      allowances: true,
     },
     vUSDT: {
       address: "12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh",

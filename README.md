@@ -13,7 +13,7 @@ price-time priority.
 
 | Market | Base | Quote |
 | --- | --- | --- |
-| KOIN/vUSDT | `15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL` | `12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh` |
+| KOIN/vUSDT | `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK` | `12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh` |
 | KOIN/vUSDC | KOIN | `1N8iYrYEJdCVK1rhbqv3qZUzHcpoeKmFnj` |
 | KOIN/vETH | KOIN | `1Tf1QKv3gVYLjq34yURSHw5ErTYbFjqTG` |
 | vETH/vUSDT | vETH | vUSDT |
@@ -74,15 +74,16 @@ Design properties worth knowing:
 
 ### Tokens and authority
 
-KOIN authorizes transfers through the transaction signature. The three
-v-tokens are KCS-4 tokens with allowances, so the UI automatically bundles
-an exact-amount `approve` operation in the same transaction before the
-contract pulls escrow. Nothing to do manually — Kondor shows both
+All four tokens (KOIN at `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK` and the
+three v-tokens) are KCS-4 tokens with allowances, so the UI automatically
+bundles an exact-amount `approve` operation in the same transaction before
+the contract pulls escrow. Nothing to do manually — Kondor shows both
 operations in the confirmation popup.
 
-KOIN balances cannot be read through `chain.read_contract` (its storage is
-in system space), so the UI reads them from the REST endpoint
-`/v1/token/koin/balance/{account}`; the other tokens are read normally.
+> ⚠️ The widely-cited `15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL` KOIN address is
+> the **retired pre-migration contract**: its storage is system-locked and
+> any call to it fails with "user code cannot access system space". Always
+> use the `19GYj…` address above.
 
 ### The frontend (`frontend/`)
 
