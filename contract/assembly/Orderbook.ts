@@ -92,6 +92,16 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): bool {
   return true;
 }
 
+/** lexicographic byte comparison (shorter prefix sorts first) */
+function compareBytes(a: Uint8Array, b: Uint8Array): i32 {
+  const n = a.length < b.length ? a.length : b.length;
+  for (let i = 0; i < n; i++) {
+    if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1;
+  }
+  if (a.length == b.length) return 0;
+  return a.length < b.length ? -1 : 1;
+}
+
 /**
  * floor(a * b / den) with 128-bit intermediate math
  */
@@ -253,15 +263,39 @@ export class Orderbook {
   }
 
   /**
+   * First key in a space that is >= target, or null.
+   *
+   * The chain's get_next_object returns the true successor only when the
+   * seek key EXISTS; for a missing key it can land anywhere in the space
+   * (observed on mainnet: the space's first key). Walk forward until the
+   * target is reached so prefix scans stay correct either way.
+   */
+  private seekFirstAtOrAfter(
+    space: chain.object_space,
+    target: Uint8Array
+  ): Uint8Array | null {
+    let cursor: Uint8Array = target;
+    // bound the walk; book/user spaces are small and this only guards
+    // against a pathological cursor that never advances
+    for (let i = 0; i < 512; i++) {
+      const obj = System.getNextBytes(space, cursor);
+      if (!obj) return null;
+      const key = obj.key;
+      if (!key) return null;
+      if (compareBytes(key, target) >= 0) return key;
+      cursor = key;
+    }
+    return null;
+  }
+
+  /**
    * Best resting order id of a side, or 0 when the side is empty.
    * The book key encodes price-time priority so the first key of the
    * side prefix is always the best order.
    */
   private bestOrderId(marketId: u32, side: u32): u64 {
     const prefix = this.bookPrefix(marketId, side);
-    const obj = System.getNextBytes(this.space(SPACE_BOOK), prefix);
-    if (!obj) return 0;
-    const key = obj.key;
+    const key = this.seekFirstAtOrAfter(this.space(SPACE_BOOK), prefix);
     if (!key) return 0;
     if (key.length != 21 || !startsWith(key, prefix)) return 0;
     return bytesToU64BE(key, 13);
@@ -732,13 +766,12 @@ export class Orderbook {
 
     for (let s: u32 = 0; s <= 1; s++) {
       const prefix = this.bookPrefix(args.market_id, s);
-      let cursor: Uint8Array = prefix;
+      // the first key needs a tolerant seek; afterwards every cursor is an
+      // existing key, for which get_next_object is reliable
+      let nextKey = this.seekFirstAtOrAfter(this.space(SPACE_BOOK), prefix);
       let count: u32 = 0;
-      while (count < limit) {
-        const obj = System.getNextBytes(this.space(SPACE_BOOK), cursor);
-        if (!obj) break;
-        const key = obj.key;
-        if (!key) break;
+      while (nextKey != null && count < limit) {
+        const key: Uint8Array = nextKey;
         if (key.length != 21 || !startsWith(key, prefix)) break;
         const order = this.getOrderById(bytesToU64BE(key, 13));
         if (order) {
@@ -748,8 +781,9 @@ export class Orderbook {
             result.asks.push(order);
           }
         }
-        cursor = key;
         count += 1;
+        const obj = System.getNextBytes(this.space(SPACE_BOOK), key);
+        nextKey = obj ? obj.key : null;
       }
     }
     return result;
@@ -772,18 +806,25 @@ export class Orderbook {
     let limit = args.limit == 0 ? DEFAULT_USER_ORDERS_LIMIT : args.limit;
     if (limit > MAX_USER_ORDERS_LIMIT) limit = MAX_USER_ORDERS_LIMIT;
 
-    let cursor = this.userOrderKey(owner, args.start);
+    const target = this.userOrderKey(owner, args.start);
+    let nextKey = this.seekFirstAtOrAfter(this.space(SPACE_USER_ORDERS), target);
+    // the caller asks for ids strictly greater than start
+    if (nextKey != null) {
+      const startKey: Uint8Array = nextKey;
+      if (compareBytes(startKey, target) == 0) {
+        const obj = System.getNextBytes(this.space(SPACE_USER_ORDERS), startKey);
+        nextKey = obj ? obj.key : null;
+      }
+    }
     let count: u32 = 0;
-    while (count < limit) {
-      const obj = System.getNextBytes(this.space(SPACE_USER_ORDERS), cursor);
-      if (!obj) break;
-      const key = obj.key;
-      if (!key) break;
+    while (nextKey != null && count < limit) {
+      const key: Uint8Array = nextKey;
       if (key.length != owner.length + 8 || !startsWith(key, owner)) break;
       const order = this.getOrderById(bytesToU64BE(key, owner.length));
       if (order) result.orders.push(order);
-      cursor = key;
       count += 1;
+      const obj = System.getNextBytes(this.space(SPACE_USER_ORDERS), key);
+      nextKey = obj ? obj.key : null;
     }
     return result;
   }
