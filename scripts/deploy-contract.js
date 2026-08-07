@@ -29,7 +29,31 @@ async function main() {
 
   console.log(`network  : ${network}`);
   console.log(`contract : ${signer.getAddress()}`);
-  console.log(`bytecode : ${bytecode.length} bytes`);
+  console.log(`bytecode : ${bytecode.length} bytes (+${abi.length} bytes ABI)`);
+
+  // preflight: contract uploads are disk-heavy, so estimate the mana cost
+  // from live resource pricing before broadcasting anything
+  const available =
+    Number(await provider.getAccountRc(signer.getAddress())) / 1e8;
+  const { resource_limit_data: limits } = await provider.call(
+    "chain.get_resource_limits",
+    {}
+  );
+  const storedBytes = bytecode.length + abi.length + 1024;
+  const estimate =
+    (storedBytes * Number(limits.disk_storage_cost) +
+      (storedBytes + 2048) * Number(limits.network_bandwidth_cost)) /
+      1e8 +
+    2; // ~2 KOIN margin for compute
+  console.log(`mana     : ${available.toFixed(2)} KOIN available`);
+  console.log(`estimate : ~${estimate.toFixed(1)} KOIN of mana for this upload`);
+  if (available < estimate) {
+    throw new Error(
+      `not enough mana: hold at least ${Math.ceil(estimate + 5)} KOIN on ` +
+        `${signer.getAddress()} and retry. The KOIN is not spent - consumed ` +
+        `mana recharges fully within 5 days.`
+    );
+  }
 
   const contract = new Contract({
     id: signer.getAddress(),
