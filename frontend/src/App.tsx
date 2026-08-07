@@ -19,7 +19,7 @@ function SetupNotice() {
     <div className="flex min-h-screen items-center justify-center bg-ink-950 p-6">
       <div className="max-w-xl rounded-lg border border-ink-600 bg-ink-850 p-8">
         <h1 className="mb-3 text-lg font-bold text-white">
-          KoinosKit Trade needs configuration
+          Trade Koinos needs configuration
         </h1>
         <p className="mb-4 text-sm leading-relaxed text-ink-300">
           The orderbook contract address is not configured. Deploy the contract

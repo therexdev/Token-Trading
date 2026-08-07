@@ -24,7 +24,7 @@ export function Header() {
         </svg>
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-wide text-white">
-            KoinosKit <span className="text-accent">Trade</span>
+            Trade <span className="text-accent">Koinos</span>
           </div>
           <div className="text-[10px] uppercase tracking-widest text-ink-400">
             on-chain orderbook · {NETWORK}
