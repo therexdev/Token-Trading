@@ -35,6 +35,9 @@ export function PriceChart() {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#8b98b0",
         fontSize: 11,
+        // hide the TradingView attribution logo (it overlaps the chart on
+        // mobile); lightweight-charts offers this toggle officially
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: "#151a23" },
