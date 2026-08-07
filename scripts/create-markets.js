@@ -12,6 +12,7 @@ import { loadOrderbookAbi } from "./abi-utils.js";
 async function main() {
   const network = getNetwork();
   const provider = new Provider(RPC_URLS[network]);
+  console.log(`rpc      : ${RPC_URLS[network][0]}`);
   const signer = Signer.fromWif(requireWif());
   signer.provider = provider;
   const tokens = TOKENS[network];
