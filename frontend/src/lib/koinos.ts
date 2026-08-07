@@ -257,7 +257,23 @@ async function sendOperations(
   operations: { pushTo: (tx: Transaction) => Promise<void> }[]
 ): Promise<TxHandle> {
   const signer = getKondorSigner(owner);
-  const transaction = new Transaction({ signer, provider });
+  // request a modest rc limit instead of koilib's default (the account's
+  // entire mana): the mempool reserves the full limit until a transaction
+  // is included, which made a second order submitted right away fail with
+  // "insufficient pending account resources"
+  let rcLimit = "1000000000"; // 10 KOIN of mana, plenty for any order
+  try {
+    const available = BigInt(await provider.getAccountRc(owner));
+    const budget = (available * 8n) / 10n;
+    if (budget < BigInt(rcLimit)) rcLimit = budget.toString();
+  } catch {
+    // keep the default on transient RPC errors
+  }
+  const transaction = new Transaction({
+    signer,
+    provider,
+    options: { rcLimit },
+  });
   for (const operation of operations) {
     await operation.pushTo(transaction);
   }
