@@ -1,0 +1,65 @@
+# Auto-deploy the frontend to Hostinger over FTP.
+#
+# Every push that touches frontend/ (or a manual run from the Actions tab)
+# builds the site and uploads frontend/dist to Hostinger's web root, so you
+# never have to zip and upload by hand again.
+#
+# One-time setup in GitHub -> repo Settings:
+#   Secrets and variables -> Actions -> New repository secret:
+#     FTP_SERVER     e.g. ftp://82.x.x.x  (or the host hPanel shows, no https)
+#     FTP_USERNAME   the FTP account username from hPanel
+#     FTP_PASSWORD   the FTP account password
+#   (optional) Variables tab:
+#     FTP_SERVER_DIR   web root to upload into (default ./public_html/)
+#     ORDERBOOK_ADDRESS   contract address baked into the build
+#
+# Find the FTP details in hPanel -> Files -> FTP Accounts.
+name: Deploy frontend to Hostinger
+
+on:
+  push:
+    branches: [claude/koinos-orderbook-dex-mdkvf6, main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-hostinger.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: hostinger-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_ORDERBOOK_ADDRESS: ${{ vars.ORDERBOOK_ADDRESS || '1Bke72aGbpq4brDY3m1UQxRCGBB9GPTJQz' }}
+          VITE_KOINOS_RPC: ${{ vars.KOINOS_RPC || 'https://api.koinos.io' }}
+          VITE_KOINOS_NETWORK: ${{ vars.KOINOS_NETWORK || 'mainnet' }}
+        run: npm run build
+
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # trailing slash matters: uploads the CONTENTS of dist, not the folder
+          local-dir: ./frontend/dist/
+          server-dir: ${{ vars.FTP_SERVER_DIR || './public_html/' }}
+          # keep the server tidy but never touch unrelated files
+          dangerous-clean-slate: false

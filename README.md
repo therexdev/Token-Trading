@@ -175,22 +175,39 @@ Koinos RPC directly, so any static file host works. Two important rules:
 - Serve the site over **HTTPS** (wallet extensions and clipboard APIs
   behave best on secure origins).
 
-#### Hostinger
+#### Hostinger — automatic deploy (recommended)
 
-1. In hPanel, create the subdomain `trade.koinoskit.site` (if the
-   domain's DNS is hosted elsewhere, point the subdomain's A/CNAME
-   record at Hostinger as instructed by hPanel).
+The repo ships `.github/workflows/deploy-hostinger.yml`, which builds the
+site and uploads it over FTP on every push to the frontend. Set it up once
+and you never touch File Manager again:
+
+1. In hPanel go to **Files → FTP Accounts** and note the **FTP hostname**,
+   **username**, and **password** (create an FTP account if there isn't
+   one). Also note the web root path — usually `public_html`.
+2. In GitHub: **repo Settings → Secrets and variables → Actions → Secrets**,
+   add three repository secrets:
+   - `FTP_SERVER` — the FTP hostname (e.g. `ftp://82.29.x.x` or the host
+     shown in hPanel; no `https://`)
+   - `FTP_USERNAME`
+   - `FTP_PASSWORD`
+3. (Optional) On the **Variables** tab add `FTP_SERVER_DIR` if your web
+   root is not `./public_html/`, and `ORDERBOOK_ADDRESS` to change the
+   contract the build points at.
+4. Push any change under `frontend/`, or run the workflow manually from the
+   **Actions** tab. It builds and uploads `frontend/dist` for you.
+
+#### Hostinger — manual upload (fallback)
+
+1. In hPanel create the subdomain / confirm the domain's web root.
 2. Build locally: `cd frontend`, set `.env`, `npm run build`.
 3. Upload the **contents** of `frontend/dist/` (index.html, `assets/`,
-   favicon.svg) into the subdomain's document root (e.g.
-   `public_html/` of the subdomain) using File Manager or FTP —
-   `index.html` must sit directly in the document root, not inside a
-   `dist` folder.
-4. Enable the free SSL certificate for the subdomain in hPanel.
+   favicon.svg) into the web root — `index.html` must sit directly in the
+   web root, not inside a `dist` folder.
+4. Enable the free SSL certificate in hPanel.
 
-No Node.js hosting, `.htaccess` rules or database are needed — the app
-is a single page with no server routes. To update the site, rebuild and
-re-upload; the hashed asset filenames make caching safe.
+No Node.js hosting, `.htaccess` rules or database are needed — the app is
+a single page with no server routes. The hashed asset filenames make
+caching safe across updates.
 
 #### GitHub Pages (optional alternative)
 
