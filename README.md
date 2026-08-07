@@ -186,8 +186,9 @@ and you never touch File Manager again:
    one). Also note the web root path — usually `public_html`.
 2. In GitHub: **repo Settings → Secrets and variables → Actions → Secrets**,
    add three repository secrets:
-   - `FTP_SERVER` — the FTP hostname (e.g. `ftp://82.29.x.x` or the host
-     shown in hPanel; no `https://`)
+   - `FTP_SERVER` — a **bare hostname or IP**, e.g. `82.29.123.45` or
+     `ftp.koinoskit.site`. NO `ftp://` scheme, no path, no slash. Using
+     `ftp://…` causes `getaddrinfo ENOTFOUND`.
    - `FTP_USERNAME`
    - `FTP_PASSWORD`
 3. (Optional) On the **Variables** tab add `FTP_SERVER_DIR` if your web

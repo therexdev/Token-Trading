@@ -55,9 +55,16 @@ jobs:
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
+          # FTP_SERVER must be a BARE hostname or IP - no ftp://, no path,
+          # no trailing slash. e.g. 82.29.123.45 or ftp.yourdomain.com
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ vars.FTP_PORT || 21 }}
+          # Hostinger supports plain ftp and explicit ftps on port 21.
+          # If a run fails with a TLS/connection error, set an FTP_PROTOCOL
+          # repository variable to ftps.
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
           # trailing slash matters: uploads the CONTENTS of dist, not the folder
           local-dir: ./frontend/dist/
           server-dir: ${{ vars.FTP_SERVER_DIR || './public_html/' }}
