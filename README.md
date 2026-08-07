@@ -163,19 +163,41 @@ npm run build               # production build in dist/
 
 ### 4. Host at trade.koinoskit.site
 
-The repo ships a GitHub Pages workflow (`.github/workflows/deploy.yml`):
+`npm run build` produces a **fully static site** in `frontend/dist/` —
+plain HTML/JS/CSS with no server-side code. The browser talks to the
+Koinos RPC directly, so any static file host works. Two important rules:
 
-1. Repo **Settings → Pages → Source: GitHub Actions**
-2. **Settings → Secrets and variables → Actions → Variables**: add
-   `ORDERBOOK_ADDRESS` (and optionally `KOINOS_RPC`, `KOINOS_NETWORK`)
-3. Add a DNS `CNAME` record for `trade.koinoskit.site` pointing to
-   `<your-github-user>.github.io`, and set the custom domain in the Pages
-   settings
-4. Push to `main` (or run the workflow manually)
+- The contract address is **baked in at build time**: `.env` (or the
+  build environment) must contain `VITE_ORDERBOOK_ADDRESS` *before*
+  running `npm run build`. Changing it later means rebuilding and
+  re-uploading.
+- Serve the site over **HTTPS** (wallet extensions and clipboard APIs
+  behave best on secure origins).
 
-`frontend/dist` is a fully static site, so Cloudflare Pages, Netlify or
-any static host works just as well — set the same `VITE_*` variables at
-build time.
+#### Hostinger
+
+1. In hPanel, create the subdomain `trade.koinoskit.site` (if the
+   domain's DNS is hosted elsewhere, point the subdomain's A/CNAME
+   record at Hostinger as instructed by hPanel).
+2. Build locally: `cd frontend`, set `.env`, `npm run build`.
+3. Upload the **contents** of `frontend/dist/` (index.html, `assets/`,
+   favicon.svg) into the subdomain's document root (e.g.
+   `public_html/` of the subdomain) using File Manager or FTP —
+   `index.html` must sit directly in the document root, not inside a
+   `dist` folder.
+4. Enable the free SSL certificate for the subdomain in hPanel.
+
+No Node.js hosting, `.htaccess` rules or database are needed — the app
+is a single page with no server routes. To update the site, rebuild and
+re-upload; the hashed asset filenames make caching safe.
+
+#### GitHub Pages (optional alternative)
+
+`.github/workflows/deploy.yml` can deploy to GitHub Pages instead. It is
+manual-only: enable **Settings → Pages → Source: GitHub Actions**, add an
+`ORDERBOOK_ADDRESS` repository variable, and run the workflow from the
+Actions tab. Cloudflare Pages / Netlify also work — set the same
+`VITE_*` variables at build time.
 
 ### Windows (PowerShell) quick reference
 

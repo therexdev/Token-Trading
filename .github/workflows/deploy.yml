@@ -1,11 +1,9 @@
+# Optional alternative to static hosting (Hostinger etc.): deploys the
+# frontend to GitHub Pages. Manual trigger only - run it from the Actions
+# tab if you ever want to use it, after enabling Pages in the repo settings.
 name: Deploy frontend to GitHub Pages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 permissions:
