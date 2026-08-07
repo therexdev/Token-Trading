@@ -1,0 +1,19 @@
+{
+  "name": "koinos-orderbook-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deployment and administration scripts for the Koinos orderbook DEX",
+  "dependencies": {
+    "koilib": "^9.2.0"
+  },
+  "scripts": {
+    "generate-key": "node generate-key.js",
+    "deploy": "node deploy-contract.js",
+    "create-markets": "node create-markets.js",
+    "show-state": "node show-state.js"
+  },
+  "overrides": {
+    "protobufjs": "7.4.0"
+  }
+}

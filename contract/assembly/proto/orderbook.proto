@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package orderbook;
+
+import "koinos/options.proto";
+
+// ---------------------------------------------------------------------------
+// Storage / domain objects
+// ---------------------------------------------------------------------------
+
+message market_config {
+   uint32 market_id = 1;
+   bytes base_token = 2 [(koinos.btype) = CONTRACT_ID];
+   bytes quote_token = 3 [(koinos.btype) = CONTRACT_ID];
+   uint64 min_base_amount = 4 [jstype = JS_STRING];
+   uint64 last_price = 5 [jstype = JS_STRING];
+   uint32 trade_head = 6;
+   uint64 trade_count = 7 [jstype = JS_STRING];
+   uint64 base_volume = 8 [jstype = JS_STRING];
+   uint64 quote_volume = 9 [jstype = JS_STRING];
+}
+
+message order_object {
+   uint64 id = 1 [jstype = JS_STRING];
+   uint32 market_id = 2;
+   // 0 = buy (bid), 1 = sell (ask)
+   uint32 side = 3;
+   // quote token units per 100,000,000 (1e8) base token units
+   uint64 price = 4 [jstype = JS_STRING];
+   // original quantity in base token units
+   uint64 quantity = 5 [jstype = JS_STRING];
+   // unfilled quantity in base token units
+   uint64 remaining = 6 [jstype = JS_STRING];
+   // remaining escrowed amount held by the contract for this order
+   // (quote units for buy orders, base units for sell orders)
+   uint64 escrow = 7 [jstype = JS_STRING];
+   bytes owner = 8 [(koinos.btype) = ADDRESS];
+   uint64 timestamp = 9 [jstype = JS_STRING];
+}
+
+message trade_object {
+   uint64 seq = 1 [jstype = JS_STRING];
+   uint32 market_id = 2;
+   uint64 price = 3 [jstype = JS_STRING];
+   uint64 quantity = 4 [jstype = JS_STRING];
+   uint64 quote_amount = 5 [jstype = JS_STRING];
+   // side of the taker: 0 = taker bought base, 1 = taker sold base
+   uint32 taker_side = 6;
+   uint64 timestamp = 7 [jstype = JS_STRING];
+   bytes maker = 8 [(koinos.btype) = ADDRESS];
+   bytes taker = 9 [(koinos.btype) = ADDRESS];
+   uint64 maker_order_id = 10 [jstype = JS_STRING];
+}
+
+message global_state {
+   uint64 next_order_id = 1 [jstype = JS_STRING];
+   uint64 next_trade_seq = 2 [jstype = JS_STRING];
+   uint32 next_market_id = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Entry points
+// ---------------------------------------------------------------------------
+
+// @description Create a new trading market between two tokens (contract authority only)
+// @read-only false
+// @result create_market_result
+message create_market_arguments {
+   bytes base_token = 1 [(koinos.btype) = CONTRACT_ID];
+   bytes quote_token = 2 [(koinos.btype) = CONTRACT_ID];
+   uint64 min_base_amount = 3 [jstype = JS_STRING];
+}
+
+message create_market_result {
+   uint32 market_id = 1;
+}
+
+// @description Place a limit order. Crossing orders are matched immediately with price-time priority; any remainder is escrowed on the book (GTC), refunded (IOC) or the call fails (POST_ONLY if it would cross)
+// @read-only false
+// @result place_order_result
+message place_order_arguments {
+   bytes owner = 1 [(koinos.btype) = ADDRESS];
+   uint32 market_id = 2;
+   // 0 = buy base with quote, 1 = sell base for quote
+   uint32 side = 3;
+   // quote units per 1e8 base units
+   uint64 price = 4 [jstype = JS_STRING];
+   // base token units
+   uint64 quantity = 5 [jstype = JS_STRING];
+   // 0 = good-till-cancelled, 1 = immediate-or-cancel, 2 = post-only
+   uint32 flags = 6;
+}
+
+message place_order_result {
+   // id of the resting order, 0 if nothing rested
+   uint64 order_id = 1 [jstype = JS_STRING];
+   uint64 filled_quantity = 2 [jstype = JS_STRING];
+   uint64 filled_quote = 3 [jstype = JS_STRING];
+   uint64 remaining = 4 [jstype = JS_STRING];
+}
+
+// @description Cancel an open order and refund its escrow (order owner authority)
+// @read-only false
+// @result cancel_order_result
+message cancel_order_arguments {
+   uint64 order_id = 1 [jstype = JS_STRING];
+}
+
+message cancel_order_result {
+}
+
+// @description Get all markets with their stats
+// @read-only true
+// @result get_markets_result
+message get_markets_arguments {
+}
+
+message get_markets_result {
+   repeated market_config markets = 1;
+}
+
+// @description Get the resting orders of a market orderbook, best priced first
+// @read-only true
+// @result get_orderbook_result
+message get_orderbook_arguments {
+   uint32 market_id = 1;
+   // maximum orders returned per side (default 50, max 200)
+   uint32 limit = 2;
+}
+
+message get_orderbook_result {
+   repeated order_object bids = 1;
+   repeated order_object asks = 2;
+}
+
+// @description Get a single open order by id
+// @read-only true
+// @result get_order_result
+message get_order_arguments {
+   uint64 order_id = 1 [jstype = JS_STRING];
+}
+
+message get_order_result {
+   order_object value = 1;
+}
+
+// @description Get the open orders of an account, ordered by ascending order id
+// @read-only true
+// @result get_user_orders_result
+message get_user_orders_arguments {
+   bytes owner = 1 [(koinos.btype) = ADDRESS];
+   // return orders with id strictly greater than this (0 = from the beginning)
+   uint64 start = 2 [jstype = JS_STRING];
+   // default 50, max 200
+   uint32 limit = 3;
+}
+
+message get_user_orders_result {
+   repeated order_object orders = 1;
+}
+
+// @description Get the most recent trades of a market, newest first
+// @read-only true
+// @result get_trades_result
+message get_trades_arguments {
+   uint32 market_id = 1;
+   // default 100, max 500
+   uint32 limit = 2;
+}
+
+message get_trades_result {
+   repeated trade_object trades = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+message order_placed_event {
+   order_object order = 1;
+}
+
+message order_cancelled_event {
+   uint64 order_id = 1 [jstype = JS_STRING];
+   uint32 market_id = 2;
+   bytes owner = 3 [(koinos.btype) = ADDRESS];
+}
+
+message trade_event {
+   trade_object trade = 1;
+}

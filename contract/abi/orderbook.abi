@@ -1,0 +1,61 @@
+{
+    "methods": {
+        "create_market": {
+            "argument": "orderbook.create_market_arguments",
+            "return": "orderbook.create_market_result",
+            "description": "Create a new trading market between two tokens (contract authority only)",
+            "entry-point": "0x30231247",
+            "read-only": false
+        },
+        "place_order": {
+            "argument": "orderbook.place_order_arguments",
+            "return": "orderbook.place_order_result",
+            "description": "Place a limit order. Crossing orders are matched immediately with price-time priority; any remainder is escrowed on the book (GTC), refunded (IOC) or the call fails (POST_ONLY if it would cross)",
+            "entry-point": "0x163b60a5",
+            "read-only": false
+        },
+        "cancel_order": {
+            "argument": "orderbook.cancel_order_arguments",
+            "return": "orderbook.cancel_order_result",
+            "description": "Cancel an open order and refund its escrow (order owner authority)",
+            "entry-point": "0x8442359c",
+            "read-only": false
+        },
+        "get_markets": {
+            "argument": "orderbook.get_markets_arguments",
+            "return": "orderbook.get_markets_result",
+            "description": "Get all markets with their stats",
+            "entry-point": "0xaf7aee93",
+            "read-only": true
+        },
+        "get_orderbook": {
+            "argument": "orderbook.get_orderbook_arguments",
+            "return": "orderbook.get_orderbook_result",
+            "description": "Get the resting orders of a market orderbook, best priced first",
+            "entry-point": "0x453f3fab",
+            "read-only": true
+        },
+        "get_order": {
+            "argument": "orderbook.get_order_arguments",
+            "return": "orderbook.get_order_result",
+            "description": "Get a single open order by id",
+            "entry-point": "0x45915cb9",
+            "read-only": true
+        },
+        "get_user_orders": {
+            "argument": "orderbook.get_user_orders_arguments",
+            "return": "orderbook.get_user_orders_result",
+            "description": "Get the open orders of an account, ordered by ascending order id",
+            "entry-point": "0x4b436b62",
+            "read-only": true
+        },
+        "get_trades": {
+            "argument": "orderbook.get_trades_arguments",
+            "return": "orderbook.get_trades_result",
+            "description": "Get the most recent trades of a market, newest first",
+            "entry-point": "0xb43d6baf",
+            "read-only": true
+        }
+    },
+    "types": "CtEVCh5hc3NlbWJseS9wcm90by9vcmRlcmJvb2sucHJvdG8SCW9yZGVyYm9vaxoUa29pbm9zL29wdGlvbnMucHJvdG8i1wIKDW1hcmtldF9jb25maWcSGwoJbWFya2V0X2lkGAEgASgNUghtYXJrZXRJZBIjCgpiYXNlX3Rva2VuGAIgASgMQgSAtRgFUgliYXNlVG9rZW4SJQoLcXVvdGVfdG9rZW4YAyABKAxCBIC1GAVSCnF1b3RlVG9rZW4SKgoPbWluX2Jhc2VfYW1vdW50GAQgASgEQgIwAVINbWluQmFzZUFtb3VudBIhCgpsYXN0X3ByaWNlGAUgASgEQgIwAVIJbGFzdFByaWNlEh0KCnRyYWRlX2hlYWQYBiABKA1SCXRyYWRlSGVhZBIjCgt0cmFkZV9jb3VudBgHIAEoBEICMAFSCnRyYWRlQ291bnQSIwoLYmFzZV92b2x1bWUYCCABKARCAjABUgpiYXNlVm9sdW1lEiUKDHF1b3RlX3ZvbHVtZRgJIAEoBEICMAFSC3F1b3RlVm9sdW1lIokCCgxvcmRlcl9vYmplY3QSEgoCaWQYASABKARCAjABUgJpZBIbCgltYXJrZXRfaWQYAiABKA1SCG1hcmtldElkEhIKBHNpZGUYAyABKA1SBHNpZGUSGAoFcHJpY2UYBCABKARCAjABUgVwcmljZRIeCghxdWFudGl0eRgFIAEoBEICMAFSCHF1YW50aXR5EiAKCXJlbWFpbmluZxgGIAEoBEICMAFSCXJlbWFpbmluZxIaCgZlc2Nyb3cYByABKARCAjABUgZlc2Nyb3cSGgoFb3duZXIYCCABKAxCBIC1GAZSBW93bmVyEiAKCXRpbWVzdGFtcBgJIAEoBEICMAFSCXRpbWVzdGFtcCLFAgoMdHJhZGVfb2JqZWN0EhQKA3NlcRgBIAEoBEICMAFSA3NlcRIbCgltYXJrZXRfaWQYAiABKA1SCG1hcmtldElkEhgKBXByaWNlGAMgASgEQgIwAVIFcHJpY2USHgoIcXVhbnRpdHkYBCABKARCAjABUghxdWFudGl0eRIlCgxxdW90ZV9hbW91bnQYBSABKARCAjABUgtxdW90ZUFtb3VudBIdCgp0YWtlcl9zaWRlGAYgASgNUgl0YWtlclNpZGUSIAoJdGltZXN0YW1wGAcgASgEQgIwAVIJdGltZXN0YW1wEhoKBW1ha2VyGAggASgMQgSAtRgGUgVtYWtlchIaCgV0YWtlchgJIAEoDEIEgLUYBlIFdGFrZXISKAoObWFrZXJfb3JkZXJfaWQYCiABKARCAjABUgxtYWtlck9yZGVySWQihgEKDGdsb2JhbF9zdGF0ZRImCg1uZXh0X29yZGVyX2lkGAEgASgEQgIwAVILbmV4dE9yZGVySWQSKAoObmV4dF90cmFkZV9zZXEYAiABKARCAjABUgxuZXh0VHJhZGVTZXESJAoObmV4dF9tYXJrZXRfaWQYAyABKA1SDG5leHRNYXJrZXRJZCKRAQoXY3JlYXRlX21hcmtldF9hcmd1bWVudHMSIwoKYmFzZV90b2tlbhgBIAEoDEIEgLUYBVIJYmFzZVRva2VuEiUKC3F1b3RlX3Rva2VuGAIgASgMQgSAtRgFUgpxdW90ZVRva2VuEioKD21pbl9iYXNlX2Ftb3VudBgDIAEoBEICMAFSDW1pbkJhc2VBbW91bnQiMwoUY3JlYXRlX21hcmtldF9yZXN1bHQSGwoJbWFya2V0X2lkGAEgASgNUghtYXJrZXRJZCK0AQoVcGxhY2Vfb3JkZXJfYXJndW1lbnRzEhoKBW93bmVyGAEgASgMQgSAtRgGUgVvd25lchIbCgltYXJrZXRfaWQYAiABKA1SCG1hcmtldElkEhIKBHNpZGUYAyABKA1SBHNpZGUSGAoFcHJpY2UYBCABKARCAjABUgVwcmljZRIeCghxdWFudGl0eRgFIAEoBEICMAFSCHF1YW50aXR5EhQKBWZsYWdzGAYgASgNUgVmbGFncyKpAQoScGxhY2Vfb3JkZXJfcmVzdWx0Eh0KCG9yZGVyX2lkGAEgASgEQgIwAVIHb3JkZXJJZBIrCg9maWxsZWRfcXVhbnRpdHkYAiABKARCAjABUg5maWxsZWRRdWFudGl0eRIlCgxmaWxsZWRfcXVvdGUYAyABKARCAjABUgtmaWxsZWRRdW90ZRIgCglyZW1haW5pbmcYBCABKARCAjABUglyZW1haW5pbmciNwoWY2FuY2VsX29yZGVyX2FyZ3VtZW50cxIdCghvcmRlcl9pZBgBIAEoBEICMAFSB29yZGVySWQiFQoTY2FuY2VsX29yZGVyX3Jlc3VsdCIXChVnZXRfbWFya2V0c19hcmd1bWVudHMiSAoSZ2V0X21hcmtldHNfcmVzdWx0EjIKB21hcmtldHMYASADKAsyGC5vcmRlcmJvb2subWFya2V0X2NvbmZpZ1IHbWFya2V0cyJMChdnZXRfb3JkZXJib29rX2FyZ3VtZW50cxIbCgltYXJrZXRfaWQYASABKA1SCG1hcmtldElkEhQKBWxpbWl0GAIgASgNUgVsaW1pdCJwChRnZXRfb3JkZXJib29rX3Jlc3VsdBIrCgRiaWRzGAEgAygLMhcub3JkZXJib29rLm9yZGVyX29iamVjdFIEYmlkcxIrCgRhc2tzGAIgAygLMhcub3JkZXJib29rLm9yZGVyX29iamVjdFIEYXNrcyI0ChNnZXRfb3JkZXJfYXJndW1lbnRzEh0KCG9yZGVyX2lkGAEgASgEQgIwAVIHb3JkZXJJZCJBChBnZXRfb3JkZXJfcmVzdWx0Ei0KBXZhbHVlGAEgASgLMhcub3JkZXJib29rLm9yZGVyX29iamVjdFIFdmFsdWUiZwoZZ2V0X3VzZXJfb3JkZXJzX2FyZ3VtZW50cxIaCgVvd25lchgBIAEoDEIEgLUYBlIFb3duZXISGAoFc3RhcnQYAiABKARCAjABUgVzdGFydBIUCgVsaW1pdBgDIAEoDVIFbGltaXQiSQoWZ2V0X3VzZXJfb3JkZXJzX3Jlc3VsdBIvCgZvcmRlcnMYASADKAsyFy5vcmRlcmJvb2sub3JkZXJfb2JqZWN0UgZvcmRlcnMiSQoUZ2V0X3RyYWRlc19hcmd1bWVudHMSGwoJbWFya2V0X2lkGAEgASgNUghtYXJrZXRJZBIUCgVsaW1pdBgCIAEoDVIFbGltaXQiRAoRZ2V0X3RyYWRlc19yZXN1bHQSLwoGdHJhZGVzGAEgAygLMhcub3JkZXJib29rLnRyYWRlX29iamVjdFIGdHJhZGVzIkMKEm9yZGVyX3BsYWNlZF9ldmVudBItCgVvcmRlchgBIAEoCzIXLm9yZGVyYm9vay5vcmRlcl9vYmplY3RSBW9yZGVyIm8KFW9yZGVyX2NhbmNlbGxlZF9ldmVudBIdCghvcmRlcl9pZBgBIAEoBEICMAFSB29yZGVySWQSGwoJbWFya2V0X2lkGAIgASgNUghtYXJrZXRJZBIaCgVvd25lchgDIAEoDEIEgLUYBlIFb3duZXIiPAoLdHJhZGVfZXZlbnQSLQoFdHJhZGUYASABKAsyFy5vcmRlcmJvb2sudHJhZGVfb2JqZWN0UgV0cmFkZWIGcHJvdG8z"
+}

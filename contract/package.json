@@ -1,0 +1,18 @@
+{
+  "name": "koinos-orderbook-contract",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "On-chain orderbook DEX contract for the Koinos blockchain",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "@koinos/sdk-as": "1.4.0",
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "build": "node build.js release",
+    "build:debug": "node build.js debug",
+    "build:release": "node build.js release",
+    "build:cli": "koinos-sdk-as-cli build-all release 0 orderbook.proto"
+  }
+}

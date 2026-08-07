@@ -1,0 +1,203 @@
+# KoinosKit Trade — on-chain orderbook DEX for Koinos
+
+A full orderbook exchange for the Koinos blockchain, built for
+**trade.koinoskit.site**. Unlike AMM DEXs (KoinDX), trading happens on a
+central limit orderbook that lives entirely on chain: makers lock tokens in
+the orderbook contract at their limit price, takers fill them straight from
+their Kondor wallet, and a matching engine settles crossing orders with
+price-time priority.
+
+![KoinosKit Trade](docs/screenshot.png)
+
+**Markets** — all pairs between the four supported tokens:
+
+| Market | Base | Quote |
+| --- | --- | --- |
+| KOIN/vUSDT | `15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL` | `12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh` |
+| KOIN/vUSDC | KOIN | `1N8iYrYEJdCVK1rhbqv3qZUzHcpoeKmFnj` |
+| KOIN/vETH | KOIN | `1Tf1QKv3gVYLjq34yURSHw5ErTYbFjqTG` |
+| vETH/vUSDT | vETH | vUSDT |
+| vETH/vUSDC | vETH | vUSDC |
+| vUSDT/vUSDC | vUSDT | vUSDC |
+
+## Repository layout
+
+```
+contract/   AssemblyScript smart contract (matching engine + escrow)
+frontend/   React trading UI (Vite + Tailwind + lightweight-charts + koilib/kondor)
+scripts/    Deployment & admin scripts (deploy, create markets, inspect state)
+docs/       Screenshots and assets
+```
+
+## How it works
+
+### The contract (`contract/`)
+
+- `place_order(owner, marketId, side, price, quantity, flags)` — pulls the
+  full escrow up front (quote tokens for buys, base tokens for sells) into
+  the contract, then matches against the opposite side of the book, best
+  price first, oldest first at equal price. Fills always execute at the
+  **resting (maker) order's price**. Whatever remains is left on the book
+  (GTC), refunded (IOC, used by the UI for market orders) or the call fails
+  (post-only, if it would cross).
+- `cancel_order(orderId)` — removes the order and refunds the remaining
+  escrow. Only the order's owner can cancel.
+- `create_market(baseToken, quoteToken, minBaseAmount)` — admin only
+  (signature of the contract account itself).
+- Read methods: `get_markets`, `get_orderbook`, `get_order`,
+  `get_user_orders`, `get_trades` (per-market ring buffer of the last 2000
+  trades — this is what the charts are built from).
+- Events: `orderbook.order_placed`, `orderbook.trade`,
+  `orderbook.order_cancelled` with impacted addresses, so explorers and
+  indexers pick trading activity up.
+
+Prices are integers: **quote units per 1e8 base units** (`PRICE_SCALE`).
+The frontend converts human prices (e.g. `0.42 vUSDT per KOIN`) using each
+token's on-chain `decimals`.
+
+Design properties worth knowing:
+
+- **No admin custody**: the contract has no withdrawal/sweep method. The
+  admin key can only create markets — escrow can only ever flow back to
+  traders through fills, cancels and refunds.
+- Matching is capped at 20 fills per transaction (mana bound). A huge taker
+  order that crosses more than 20 resting orders fills the first 20 and the
+  remainder rests (or is refunded for IOC).
+- Buy-order escrow is rounded up; any rounding dust is refunded when the
+  order closes. Maker remainders too small to be worth 1 quote unit are
+  closed and refunded instead of being traded for nothing.
+- Remainders below the market's minimum order size are refunded rather than
+  left as dust on the book.
+- Zero trading fees in this version.
+- Self-trading is not blocked: your taker order can fill your own resting
+  order (tokens simply return to you).
+
+### Tokens and authority
+
+KOIN authorizes transfers through the transaction signature. The three
+v-tokens are KCS-4 tokens with allowances, so the UI automatically bundles
+an exact-amount `approve` operation in the same transaction before the
+contract pulls escrow. Nothing to do manually — Kondor shows both
+operations in the confirmation popup.
+
+KOIN balances cannot be read through `chain.read_contract` (its storage is
+in system space), so the UI reads them from the REST endpoint
+`/v1/token/koin/balance/{account}`; the other tokens are read normally.
+
+### The frontend (`frontend/`)
+
+Vite + React + TypeScript + Tailwind. Kondor for signing, `koilib` for
+everything chain-side, `lightweight-charts` for candlesticks. All amounts
+are handled as `BigInt` in the tokens' smallest units.
+
+- Market selector with last price for all pairs
+- Candlestick + volume chart (5m/15m/1h/4h/1d) built client-side from the
+  contract's on-chain trade history, polled every 4 s
+- Orderbook with price-level aggregation, depth bars and click-to-fill
+- Buy/sell panel: limit orders (GTC / IOC / post-only) and market orders
+  (implemented as IOC limit orders with 1% price protection computed from
+  the live book), balance percentage buttons, escrow preview
+- Open orders (cancel from the table) and personal fill history
+- 24h stats (change, high/low, volumes) computed from on-chain trades
+- Transaction toasts with links to koinosblocks.com
+
+## Deployment guide
+
+### 0. Prerequisites
+
+- Node.js 20+ (22 recommended) and Yarn (`npm i -g yarn`)
+- A little KOIN for mana on the deploying account
+
+### 1. Build the contract
+
+```bash
+cd contract
+yarn install
+yarn build            # produces build/release/contract.wasm + abi/
+```
+
+(The build pins the `asconfig.json` output for AssemblyScript 0.27 and
+retries the protoc codegen steps, which are flaky on some systems.)
+
+### 2. Create the contract account & deploy
+
+```bash
+cd ../scripts
+npm install
+npm run generate-key                  # prints a fresh address + WIF
+# send ~1 KOIN to the printed address for mana, then:
+KOINOS_WIF=<wif> npm run deploy
+KOINOS_WIF=<wif> npm run create-markets
+ORDERBOOK_ADDRESS=<address> npm run show-state   # sanity check
+```
+
+> **The generated key is the contract.** The address becomes the DEX
+> contract id and the key is the admin key for `create_market`. Store the
+> WIF offline; do not reuse a personal wallet key. The key cannot touch
+> escrowed funds, but treat it carefully anyway — it can upload new
+> bytecode over the contract.
+
+To use the Harbinger testnet first (recommended dry run):
+`KOINOS_NETWORK=harbinger`, fund the account from the faucet
+(https://faucet.koinos.io), set `HARBINGER_*` token addresses in
+`scripts/config.js` (deploy your own test tokens or reuse existing ones)
+and repeat the steps.
+
+### 3. Configure & build the frontend
+
+```bash
+cd ../frontend
+npm install
+cp .env.example .env        # set VITE_ORDERBOOK_ADDRESS=<address>
+npm run dev                 # local development
+npm run build               # production build in dist/
+```
+
+### 4. Host at trade.koinoskit.site
+
+The repo ships a GitHub Pages workflow (`.github/workflows/deploy.yml`):
+
+1. Repo **Settings → Pages → Source: GitHub Actions**
+2. **Settings → Secrets and variables → Actions → Variables**: add
+   `ORDERBOOK_ADDRESS` (and optionally `KOINOS_RPC`, `KOINOS_NETWORK`)
+3. Add a DNS `CNAME` record for `trade.koinoskit.site` pointing to
+   `<your-github-user>.github.io`, and set the custom domain in the Pages
+   settings
+4. Push to `main` (or run the workflow manually)
+
+`frontend/dist` is a fully static site, so Cloudflare Pages, Netlify or
+any static host works just as well — set the same `VITE_*` variables at
+build time.
+
+### Updating the contract ABI
+
+If you change `contract/assembly/proto/orderbook.proto`, rebuild the
+contract and re-sync the frontend copy:
+
+```bash
+cd contract && yarn build
+cd ../frontend && npm run sync-abi
+```
+
+## Development notes
+
+- `contract/` uses `@koinos/sdk-as` 1.4.0 (AssemblyScript 0.27). Storage
+  spaces: markets, orders by id, book index (market+side+price+seq for
+  price-time iteration), per-user order index, trade ring buffers.
+- `koilib` must resolve `protobufjs@7.4.0` — newer protobufjs releases
+  break koilib's descriptor loading, which is why both `frontend/` and
+  `scripts/` pin it via `overrides`.
+- The generated koilib ABI (`orderbook-abi.json`) uses camelCase field
+  names (`marketId`, `minBaseAmount`, …) — that's what all koilib
+  calls/results use.
+- Known limitations: charts only reach as far back as the on-chain trade
+  ring buffer (2000 trades per market); order history beyond open orders
+  and recent fills needs an off-chain indexer; no trading fees switch yet.
+
+## Security status
+
+The contract compiles and its economics are reviewed (escrow conservation,
+rounding, price-time priority, authority checks), but it has **not been
+audited or battle-tested on mainnet**. Do a Harbinger dry run, start with
+small minimum markets, and consider an audit before promoting the site
+widely.
