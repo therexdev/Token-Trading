@@ -1,0 +1,12 @@
+# Redirect the retired subdomain (trade.koinoskit.site) to the new one
+# (app.tradekoinos.com), preserving the path and query string.
+#
+# The condition matters: app.tradekoinos.com and trade.koinoskit.site share
+# this same web root, so the rule must fire ONLY for the old host — otherwise
+# app.tradekoinos.com would redirect to itself in a loop. The RewriteCond
+# below scopes the redirect to the old host, leaving the new host untouched.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^(www\.)?trade\.koinoskit\.site$ [NC]
+  RewriteRule ^ https://app.tradekoinos.com%{REQUEST_URI} [R=301,L]
+</IfModule>
