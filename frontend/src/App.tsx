@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useStore } from "./store/useStore";
+import { useEffect, useState } from "react";
+import { useStore, useSelectedMarket } from "./store/useStore";
 import { Header } from "./components/Header";
 import { StatsBar } from "./components/StatsBar";
 import { PriceChart } from "./components/PriceChart";
@@ -9,10 +9,37 @@ import { TradeHistory } from "./components/TradeHistory";
 import { OpenOrders } from "./components/OpenOrders";
 import { Toasts } from "./components/Toasts";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
+import { SIDE_BUY, SIDE_SELL } from "./lib/types";
 
 const MARKET_POLL_MS = 4000;
 const USER_POLL_MS = 10000;
 const MARKETS_POLL_MS = 30000;
+
+// matches Tailwind's `lg` breakpoint — the layouts are swapped in JS (not CSS)
+// so only one chart / trade panel instance is ever mounted at a time
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(
+    () => window.matchMedia(DESKTOP_QUERY).matches
+  );
+  useEffect(() => {
+    const query = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+}
+
+type MobileTab = "chart" | "book" | "trades" | "orders";
+
+const MOBILE_TABS: { id: MobileTab; label: string }[] = [
+  { id: "chart", label: "Chart" },
+  { id: "book", label: "Book" },
+  { id: "trades", label: "Trades" },
+  { id: "orders", label: "Orders" },
+];
 
 function SetupNotice() {
   return (
@@ -61,6 +88,14 @@ export default function App() {
   const refreshMarketData = useStore((state) => state.refreshMarketData);
   const refreshUser = useStore((state) => state.refreshUser);
   const refreshMarkets = useStore((state) => state.refreshMarkets);
+  const myOrders = useStore((state) => state.myOrders);
+  const prefillPrice = useStore((state) => state.prefillPrice);
+  const market = useSelectedMarket();
+
+  const isDesktop = useIsDesktop();
+  const [tab, setTab] = useState<MobileTab>("chart");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetSide, setSheetSide] = useState<number>(SIDE_BUY);
 
   useEffect(() => {
     if (!ORDERBOOK_ADDRESS) return;
@@ -84,10 +119,21 @@ export default function App() {
     return () => clearInterval(userTimer);
   }, [account, refreshUser]);
 
+  // on phones, tapping a price in the book opens the order sheet prefilled
+  // (the sheet's TradePanel consumes prefillPrice once it mounts)
+  useEffect(() => {
+    if (!isDesktop && prefillPrice !== null) setSheetOpen(true);
+  }, [prefillPrice, isDesktop]);
+
   if (!ORDERBOOK_ADDRESS) return <SetupNotice />;
 
+  const openSheet = (side: number) => {
+    setSheetSide(side);
+    setSheetOpen(true);
+  };
+
   return (
-    <div className="flex h-screen flex-col bg-ink-950 text-white">
+    <div className="app-shell flex flex-col bg-ink-950 text-white">
       <Header />
       <StatsBar />
 
@@ -98,25 +144,25 @@ export default function App() {
         </div>
       ) : initError ? (
         <ErrorNotice message={initError} />
-      ) : (
-        <main className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-ink-700 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
+      ) : isDesktop ? (
+        <main className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_320px] gap-px bg-ink-700">
           {/* order book */}
-          <section className="order-2 min-h-[360px] bg-ink-900 lg:order-1 lg:min-h-0">
+          <section className="min-h-0 bg-ink-900">
             <OrderBookPanel />
           </section>
 
           {/* chart + my orders */}
-          <section className="order-1 flex min-h-0 flex-col gap-px lg:order-2">
-            <div className="min-h-[300px] flex-[3] bg-ink-900 lg:min-h-0">
+          <section className="flex min-h-0 flex-col gap-px">
+            <div className="min-h-0 flex-[3] bg-ink-900">
               <PriceChart />
             </div>
-            <div className="min-h-[180px] flex-[2] bg-ink-900">
+            <div className="min-h-0 flex-[2] bg-ink-900">
               <OpenOrders />
             </div>
           </section>
 
           {/* trade panel + trades feed */}
-          <section className="order-3 flex min-h-0 flex-col gap-px">
+          <section className="flex min-h-0 flex-col gap-px">
             <div className="bg-ink-900">
               <TradePanel />
             </div>
@@ -125,6 +171,97 @@ export default function App() {
             </div>
           </section>
         </main>
+      ) : (
+        <>
+          {/* mobile tab bar */}
+          <nav className="flex shrink-0 border-b border-ink-700 bg-ink-900">
+            {MOBILE_TABS.map((entry) => (
+              <button
+                key={entry.id}
+                onClick={() => setTab(entry.id)}
+                className={`flex-1 border-b-2 py-2.5 text-xs font-semibold uppercase tracking-wider transition ${
+                  tab === entry.id
+                    ? "border-accent text-white"
+                    : "border-transparent text-ink-400"
+                }`}
+              >
+                {entry.label}
+                {entry.id === "orders" && account && myOrders.length > 0
+                  ? ` (${myOrders.length})`
+                  : ""}
+              </button>
+            ))}
+          </nav>
+
+          {/* active tab panel — panels stay mounted so chart zoom, sub-tabs
+              and scroll positions survive tab switches */}
+          <main className="min-h-0 flex-1 bg-ink-900">
+            <div className={tab === "chart" ? "h-full" : "hidden"}>
+              <PriceChart />
+            </div>
+            <div className={tab === "book" ? "h-full" : "hidden"}>
+              <OrderBookPanel />
+            </div>
+            <div className={tab === "trades" ? "h-full" : "hidden"}>
+              <TradeHistory />
+            </div>
+            <div className={tab === "orders" ? "h-full" : "hidden"}>
+              <OpenOrders />
+            </div>
+          </main>
+
+          {/* buy / sell always within thumb reach */}
+          {market && (
+            <div className="flex shrink-0 gap-2 border-t border-ink-700 bg-ink-900 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2">
+              <button
+                onClick={() => openSheet(SIDE_BUY)}
+                className="flex-1 rounded-md bg-up py-3 text-sm font-bold text-white transition active:brightness-90"
+              >
+                Buy {market.base.symbol}
+              </button>
+              <button
+                onClick={() => openSheet(SIDE_SELL)}
+                className="flex-1 rounded-md bg-down py-3 text-sm font-bold text-white transition active:brightness-90"
+              >
+                Sell {market.base.symbol}
+              </button>
+            </div>
+          )}
+
+          {/* order form bottom sheet */}
+          {sheetOpen && market && (
+            <div className="fixed inset-0 z-40">
+              <div
+                className="absolute inset-0 animate-fade-in bg-black/60"
+                onClick={() => setSheetOpen(false)}
+              />
+              <div className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] animate-slide-up flex-col rounded-t-2xl border-t border-ink-600 bg-ink-900 shadow-2xl">
+                <div className="relative shrink-0 border-b border-ink-700 px-4 pb-2.5 pt-4">
+                  <div className="absolute left-1/2 top-1.5 h-1 w-9 -translate-x-1/2 rounded-full bg-ink-600" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white">
+                      {market.base.symbol}
+                      <span className="text-ink-400">/{market.quote.symbol}</span>
+                    </span>
+                    <button
+                      onClick={() => setSheetOpen(false)}
+                      aria-label="Close"
+                      className="-mr-2 flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <div className="min-h-0 overflow-y-auto pb-[env(safe-area-inset-bottom,0px)]">
+                  <TradePanel
+                    initialSide={sheetSide}
+                    onSubmitted={() => setSheetOpen(false)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Toasts />

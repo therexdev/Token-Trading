@@ -27,7 +27,7 @@ export function TradeHistory() {
         {trades.slice(0, 80).map((trade) => (
           <div
             key={trade.seq.toString()}
-            className="grid grid-cols-3 gap-1 px-3 py-[3px] text-right font-mono text-[11px] leading-4"
+            className="grid grid-cols-3 gap-1 px-3 py-1 text-right font-mono text-xs leading-4 lg:py-[3px] lg:text-[11px]"
           >
             <span
               className={`text-left ${

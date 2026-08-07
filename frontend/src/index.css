@@ -8,9 +8,42 @@ body,
   height: 100%;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   @apply bg-ink-950 font-sans text-white antialiased;
   font-feature-settings: "tnum";
+  /* stop rubber-band / pull-to-refresh from wiping a half-typed order */
+  overscroll-behavior-y: none;
+}
+
+/* full-height app shell; dvh tracks the collapsing mobile browser chrome */
+.app-shell {
+  height: 100vh;
+}
+@supports (height: 100dvh) {
+  .app-shell {
+    height: 100dvh;
+  }
+}
+
+/* faster, more deliberate taps on controls (no double-tap zoom delay) */
+button,
+select,
+input,
+a {
+  touch-action: manipulation;
+}
+
+/* horizontal strips that scroll without showing a scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 ::-webkit-scrollbar {

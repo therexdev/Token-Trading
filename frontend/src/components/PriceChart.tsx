@@ -130,12 +130,12 @@ export function PriceChart() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b border-ink-700 px-3 py-1.5">
+      <div className="no-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-ink-700 px-3 py-1.5">
         {INTERVALS.map((interval) => (
           <button
             key={interval.seconds}
             onClick={() => setIntervalSeconds(interval.seconds)}
-            className={`rounded px-2 py-0.5 text-xs transition ${
+            className={`shrink-0 rounded px-2.5 py-1 text-xs transition lg:px-2 lg:py-0.5 ${
               interval.seconds === intervalSeconds
                 ? "bg-ink-600 text-white"
                 : "text-ink-400 hover:text-white"
@@ -145,7 +145,7 @@ export function PriceChart() {
           </button>
         ))}
         <div className="flex-1" />
-        <span className="text-[10px] uppercase tracking-wider text-ink-400">
+        <span className="hidden shrink-0 text-[10px] uppercase tracking-wider text-ink-400 sm:inline">
           built from on-chain trades
         </span>
       </div>

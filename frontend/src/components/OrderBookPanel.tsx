@@ -39,7 +39,7 @@ function LevelRow({
   return (
     <button
       onClick={onClick}
-      className="relative grid w-full grid-cols-3 gap-1 px-3 py-[3px] text-right font-mono text-[11px] leading-4 transition hover:bg-ink-700"
+      className="relative grid w-full grid-cols-3 gap-1 px-3 py-1 text-right font-mono text-xs leading-4 transition hover:bg-ink-700 lg:py-[3px] lg:text-[11px]"
     >
       <span
         className="absolute inset-y-0 right-0"

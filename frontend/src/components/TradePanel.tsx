@@ -67,7 +67,14 @@ function walkBookByBudget(asks: OrderInfo[], budget: bigint): bigint {
   return amount;
 }
 
-export function TradePanel() {
+interface TradePanelProps {
+  /** side preselected when the panel mounts (used by the mobile sheet) */
+  initialSide?: number;
+  /** called after an order lands on-chain (the mobile sheet closes itself) */
+  onSubmitted?: () => void;
+}
+
+export function TradePanel({ initialSide, onSubmitted }: TradePanelProps = {}) {
   const market = useSelectedMarket();
   const account = useStore((state) => state.account);
   const connect = useStore((state) => state.connect);
@@ -78,7 +85,7 @@ export function TradePanel() {
   const prefillPrice = useStore((state) => state.prefillPrice);
   const setPrefillPrice = useStore((state) => state.setPrefillPrice);
 
-  const [side, setSide] = useState<number>(SIDE_BUY);
+  const [side, setSide] = useState<number>(initialSide ?? SIDE_BUY);
   const [orderType, setOrderType] = useState<OrderType>("limit");
   const [tif, setTif] = useState<Tif>("gtc");
   const [priceStr, setPriceStr] = useState("");
@@ -105,9 +112,11 @@ export function TradePanel() {
     }
   }, [prefillPrice, setPrefillPrice]);
 
-  // seed the price with the market's last price once known
+  // seed the price with the market's last price once known — unless a book
+  // tap is about to prefill it (the sheet mounts with prefillPrice pending,
+  // and both effects fire in the same commit)
   useEffect(() => {
-    if (!market || priceStr) return;
+    if (!market || priceStr || prefillPrice !== null) return;
     if (market.lastPrice > 0n) {
       setPriceStr(
         priceToHuman(market.lastPrice, baseDec, quoteDec, 12).replace(/,/g, "")
@@ -273,6 +282,7 @@ export function TradePanel() {
     if (ok) {
       setAmountStr("");
       setTotalStr("");
+      onSubmitted?.();
     }
   };
 
@@ -288,7 +298,7 @@ export function TradePanel() {
       <div className="grid grid-cols-2 overflow-hidden rounded-md border border-ink-600">
         <button
           onClick={() => setSide(SIDE_BUY)}
-          className={`py-2 text-sm font-bold transition ${
+          className={`py-2.5 text-sm font-bold transition lg:py-2 ${
             isBuy ? "bg-up text-white" : "bg-ink-800 text-ink-400 hover:text-white"
           }`}
         >
@@ -296,7 +306,7 @@ export function TradePanel() {
         </button>
         <button
           onClick={() => setSide(SIDE_SELL)}
-          className={`py-2 text-sm font-bold transition ${
+          className={`py-2.5 text-sm font-bold transition lg:py-2 ${
             !isBuy ? "bg-down text-white" : "bg-ink-800 text-ink-400 hover:text-white"
           }`}
         >
@@ -311,7 +321,7 @@ export function TradePanel() {
             <button
               key={type}
               onClick={() => setOrderType(type)}
-              className={`px-3 py-1 capitalize transition ${
+              className={`px-3.5 py-1.5 capitalize transition lg:px-3 lg:py-1 ${
                 orderType === type
                   ? "bg-ink-600 text-white"
                   : "bg-ink-850 text-ink-400 hover:text-white"
@@ -325,7 +335,7 @@ export function TradePanel() {
           <select
             value={tif}
             onChange={(event) => setTif(event.target.value as Tif)}
-            className="rounded border border-ink-600 bg-ink-850 px-2 py-1 text-ink-300 outline-none"
+            className="min-w-0 rounded border border-ink-600 bg-ink-850 px-2 py-1.5 text-base text-ink-300 outline-none lg:py-1 lg:text-xs"
             title="Time in force"
           >
             <option value="gtc">Good till cancelled</option>
@@ -358,7 +368,7 @@ export function TradePanel() {
             onChange={(event) => setPriceStr(event.target.value)}
             inputMode="decimal"
             placeholder="0.0"
-            className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2 font-mono text-sm text-white outline-none transition focus:border-accent"
+            className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2.5 font-mono text-base text-white outline-none transition focus:border-accent lg:py-2 lg:text-sm"
           />
         </label>
       ) : (
@@ -396,7 +406,7 @@ export function TradePanel() {
           onChange={(event) => onAmountEdited(event.target.value)}
           inputMode="decimal"
           placeholder="0.0"
-          className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2 font-mono text-sm text-white outline-none transition focus:border-accent"
+          className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2.5 font-mono text-base text-white outline-none transition focus:border-accent lg:py-2 lg:text-sm"
         />
       </label>
 
@@ -405,7 +415,7 @@ export function TradePanel() {
           <button
             key={percent}
             onClick={() => applyPercent(percent)}
-            className="rounded border border-ink-600 bg-ink-850 py-1 text-[11px] text-ink-400 transition hover:border-accent hover:text-white"
+            className="rounded border border-ink-600 bg-ink-850 py-1.5 text-xs text-ink-400 transition hover:border-accent hover:text-white lg:py-1 lg:text-[11px]"
           >
             {percent}%
           </button>
@@ -426,7 +436,7 @@ export function TradePanel() {
             onChange={(event) => onTotalEdited(event.target.value)}
             inputMode="decimal"
             placeholder="0.0"
-            className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2 font-mono text-sm text-white outline-none transition focus:border-accent"
+            className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2.5 font-mono text-base text-white outline-none transition focus:border-accent lg:py-2 lg:text-sm"
           />
         </label>
       )}
@@ -455,7 +465,7 @@ export function TradePanel() {
         isKondorAvailable() ? (
           <button
             onClick={connect}
-            className="rounded-md bg-accent py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+            className="rounded-md bg-accent py-3 text-sm font-bold text-white transition hover:brightness-110 lg:py-2.5"
           >
             Connect Kondor to trade
           </button>
@@ -464,7 +474,7 @@ export function TradePanel() {
             href="https://chromewebstore.google.com/detail/kondor/ghipkefkpgkladckmlmdnadmcchefhjl"
             target="_blank"
             rel="noreferrer"
-            className="rounded-md bg-accent py-2.5 text-center text-sm font-bold text-white transition hover:brightness-110"
+            className="rounded-md bg-accent py-3 text-center text-sm font-bold text-white transition hover:brightness-110 lg:py-2.5"
           >
             Install Kondor to trade
           </a>
@@ -473,7 +483,7 @@ export function TradePanel() {
         <button
           onClick={submit}
           disabled={!!validation || submitting}
-          className={`rounded-md py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 ${actionColor}`}
+          className={`rounded-md py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 lg:py-2.5 ${actionColor}`}
         >
           {submitting
             ? "Submitting…"

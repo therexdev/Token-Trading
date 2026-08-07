@@ -13,7 +13,7 @@ export function Toasts() {
   const dismissToast = useStore((state) => state.dismissToast);
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 flex-col gap-2">
+    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] z-50 flex flex-col gap-2 lg:inset-x-auto lg:bottom-4 lg:right-4 lg:w-80">
       {toasts.map((toast) => (
         <div
           key={toast.id}

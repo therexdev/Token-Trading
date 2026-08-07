@@ -58,7 +58,7 @@ export function OpenOrders() {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         {!account ? (
           <div className="py-6 text-center text-xs text-ink-500">
             Connect your wallet to see your orders
@@ -77,7 +77,9 @@ export function OpenOrders() {
                   <th className="px-2 py-1.5 font-normal">Price</th>
                   <th className="px-2 py-1.5 font-normal">Amount</th>
                   <th className="px-2 py-1.5 font-normal">Filled</th>
-                  <th className="px-2 py-1.5 font-normal">Age</th>
+                  <th className="hidden px-2 py-1.5 font-normal sm:table-cell">
+                    Age
+                  </th>
                   <th className="px-3 py-1.5 font-normal"></th>
                 </tr>
               </thead>
@@ -128,14 +130,14 @@ export function OpenOrders() {
                       <td className="px-2 py-1.5 text-ink-400">
                         {filledPercent}%
                       </td>
-                      <td className="px-2 py-1.5 text-ink-500">
+                      <td className="hidden px-2 py-1.5 text-ink-500 sm:table-cell">
                         {order.timestamp ? timeAgo(order.timestamp) : "—"}
                       </td>
                       <td className="px-3 py-1.5">
                         <button
                           onClick={() => cancel(order.id)}
                           disabled={cancelling === order.id.toString()}
-                          className="rounded border border-ink-600 px-2 py-0.5 text-[10px] text-ink-300 transition hover:border-down hover:text-down disabled:opacity-50"
+                          className="rounded border border-ink-600 px-2.5 py-1 text-[11px] text-ink-300 transition hover:border-down hover:text-down disabled:opacity-50 lg:px-2 lg:py-0.5 lg:text-[10px]"
                         >
                           {cancelling === order.id.toString()
                             ? "…"
@@ -161,7 +163,9 @@ export function OpenOrders() {
                 <th className="px-2 py-1.5 font-normal">Price</th>
                 <th className="px-2 py-1.5 font-normal">Amount</th>
                 <th className="px-2 py-1.5 font-normal">Total</th>
-                <th className="px-3 py-1.5 font-normal">Age</th>
+                <th className="hidden px-3 py-1.5 font-normal sm:table-cell">
+                  Age
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -201,7 +205,7 @@ export function OpenOrders() {
                       {formatUnits(trade.quoteAmount, market.quote.decimals, 4)}{" "}
                       {market.quote.symbol}
                     </td>
-                    <td className="px-3 py-1.5 text-ink-500">
+                    <td className="hidden px-3 py-1.5 text-ink-500 sm:table-cell">
                       {timeAgo(trade.timestamp)}
                     </td>
                   </tr>
