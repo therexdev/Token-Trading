@@ -339,25 +339,27 @@
       }
       .ticker-track {
         display: flex;
-        gap: 40px;
-        padding: 13px 20px;
-        animation: scroll 34s linear infinite;
-      }
-      .ticker-track:nth-child(2) {
-        animation-delay: -17s;
+        flex: none;
+        width: max-content;
+        padding: 13px 0;
+        animation: scroll 60s linear infinite;
+        will-change: transform;
       }
       @keyframes scroll {
         from {
           transform: translateX(0);
         }
         to {
-          transform: translateX(-100%);
+          /* the track holds two identical copies, so -50% lands the second
+             copy exactly where the first began — a seamless, jump-free loop */
+          transform: translateX(-50%);
         }
       }
       .tk {
         display: inline-flex;
         align-items: baseline;
         gap: 10px;
+        padding: 0 20px;
         font-family: var(--font-mono);
         font-size: 13.5px;
         letter-spacing: 0.02em;
@@ -933,7 +935,6 @@
       <!-- TICKER -->
       <div class="ticker" aria-hidden="true">
         <div class="ticker-track" id="tickerA"></div>
-        <div class="ticker-track" id="tickerB"></div>
       </div>
     </div>
 
@@ -1299,31 +1300,41 @@
           ["vETH/vUSDC", "3,806", -1],
           ["vUSDT/vUSDC", "1.0001", 1],
         ];
-        function chg(dir) {
-          return dir > 0 ? "▲" : "▼";
+        function item(p) {
+          return (
+            '<span class="tk"><span class="pair">' +
+            p[0] +
+            '</span><span class="px">' +
+            p[1] +
+            '</span><span class="chg ' +
+            (p[2] > 0 ? "up" : "dn") +
+            '">' +
+            (p[2] > 0 ? "▲" : "▼") +
+            "</span></span>"
+          );
         }
-        function build(el) {
-          if (!el) return;
-          var html = "";
-          for (var r = 0; r < 3; r++) {
-            for (var i = 0; i < pairs.length; i++) {
-              var p = pairs[i];
-              html +=
-                '<span class="tk"><span class="pair">' +
-                p[0] +
-                '</span><span class="px">' +
-                p[1] +
-                '</span><span class="chg ' +
-                (p[2] > 0 ? "up" : "dn") +
-                '">' +
-                chg(p[2]) +
-                "</span></span>";
-            }
+        var track = document.getElementById("tickerA");
+        if (track) {
+          // build one copy wide enough to overflow the viewport, then place
+          // two identical copies back to back so the -50% animation loops
+          // seamlessly with no gap or restart
+          var reps = Math.max(
+            3,
+            Math.ceil((window.innerWidth || 1280) / 180)
+          );
+          var one = "";
+          for (var r = 0; r < reps; r++) {
+            for (var i = 0; i < pairs.length; i++) one += item(pairs[i]);
           }
-          el.innerHTML = html;
+          track.innerHTML = one + one;
+          // hold a constant scroll speed regardless of how wide one copy is
+          requestAnimationFrame(function () {
+            var oneWidth = track.scrollWidth / 2;
+            var pxPerSecond = 70;
+            track.style.animationDuration =
+              Math.round(oneWidth / pxPerSecond) + "s";
+          });
         }
-        build(document.getElementById("tickerA"));
-        build(document.getElementById("tickerB"));
       })();
 
       // Markets grid
