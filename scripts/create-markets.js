@@ -61,11 +61,35 @@ async function main() {
     console.log(
       `creating ${baseSymbol}/${quoteSymbol} (min order ${minBaseHuman} ${baseSymbol} = ${minBaseAmount})...`
     );
-    const { transaction } = await orderbook.functions.create_market({
-      baseToken: base.address,
-      quoteToken: quote.address,
-      minBaseAmount,
-    });
+    // market creation is a tiny transaction: ask for a small rc limit so the
+    // mempool never sees us requesting the account's whole mana allowance
+    // (which collides with reservations from just-submitted transactions)
+    const submit = () =>
+      orderbook.functions.create_market(
+        {
+          baseToken: base.address,
+          quoteToken: quote.address,
+          minBaseAmount,
+        },
+        { rcLimit: "300000000" } // 3 KOIN of mana
+      );
+    let transaction;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        ({ transaction } = await submit());
+        break;
+      } catch (error) {
+        const message = String(error?.message || error);
+        if (attempt < 5 && message.includes("insufficient pending account resources")) {
+          console.log(
+            "  mempool still holds a reservation from the previous transaction, retrying in 15s..."
+          );
+          await new Promise((resolve) => setTimeout(resolve, 15000));
+          continue;
+        }
+        throw error;
+      }
+    }
     await transaction.wait("byBlock", 60000);
     console.log(`  created in transaction ${transaction.id}`);
   }
