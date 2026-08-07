@@ -4,9 +4,9 @@
   "license": "MIT",
   "description": "On-chain orderbook DEX contract for the Koinos blockchain",
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@koinos/sdk-as": "1.4.0",
+    "binaryen": "^131.0.0",
     "typescript": "^4.6.4"
   },
   "scripts": {

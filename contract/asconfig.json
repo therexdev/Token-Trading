@@ -17,6 +17,12 @@
     }
   },
   "options": {
-    "runtime": "stub"
+    "runtime": "stub",
+    "disable": [
+      "sign-extension",
+      "bulk-memory",
+      "nontrapping-f2i",
+      "mutable-globals"
+    ]
   }
 }

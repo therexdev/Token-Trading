@@ -46,12 +46,14 @@ async function main() {
       1e8 +
     2; // ~2 KOIN margin for compute
   console.log(`mana     : ${available.toFixed(2)} KOIN available`);
-  console.log(`estimate : ~${estimate.toFixed(1)} KOIN of mana for this upload`);
-  if (available < estimate) {
+  console.log(`estimate : ~${estimate.toFixed(1)} KOIN of mana for this upload (worst case)`);
+  if (available < estimate && process.env.FORCE !== "1") {
     throw new Error(
       `not enough mana: hold at least ${Math.ceil(estimate + 5)} KOIN on ` +
         `${signer.getAddress()} and retry. The KOIN is not spent - consumed ` +
-        `mana recharges fully within 5 days.`
+        `mana recharges fully within 5 days. (Re-uploading over an existing ` +
+        `contract of similar size costs much less than the estimate - set ` +
+        `FORCE=1 to attempt anyway.)`
     );
   }
 
