@@ -19,6 +19,10 @@ export const TOKENS = {
       address: "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
       allowances: true,
     },
+    VHP: {
+      address: "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr",
+      allowances: true,
+    },
     vUSDT: {
       address: "12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh",
       allowances: true,
@@ -39,18 +43,24 @@ export const TOKENS = {
       address: process.env.HARBINGER_KOIN || "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
       allowances: false,
     },
+    VHP: { address: process.env.HARBINGER_VHP || "", allowances: true },
     vUSDT: { address: process.env.HARBINGER_VUSDT || "", allowances: true },
     vUSDC: { address: process.env.HARBINGER_VUSDC || "", allowances: true },
     vETH: { address: process.env.HARBINGER_VETH || "", allowances: true },
   },
 };
 
-// All markets between the four tokens: [base, quote, minimum order size in
-// whole base tokens]. Prices are quoted in the quote token per base token.
+// Markets to ensure exist: [base, quote, minimum order size in whole base
+// tokens]. Prices are quoted in the quote token per base token. Re-running
+// create-markets is safe — pairs that already exist on-chain are skipped.
 export const MARKETS = [
   ["KOIN", "vUSDT", "0.1"],
   ["KOIN", "vUSDC", "0.1"],
   ["KOIN", "vETH", "0.1"],
+  ["VHP", "KOIN", "0.1"],
+  ["VHP", "vUSDT", "0.1"],
+  ["VHP", "vUSDC", "0.1"],
+  ["VHP", "vETH", "0.1"],
   ["vETH", "vUSDT", "0.0001"],
   ["vETH", "vUSDC", "0.0001"],
   ["vUSDT", "vUSDC", "0.1"],

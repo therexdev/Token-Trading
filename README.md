@@ -9,13 +9,17 @@ price-time priority.
 
 ![KoinosKit Trade](docs/screenshot.png)
 
-**Markets** — all pairs between the four supported tokens:
+**Markets** — all pairs between the five supported tokens:
 
 | Market | Base | Quote |
 | --- | --- | --- |
 | KOIN/vUSDT | `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK` | `12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh` |
 | KOIN/vUSDC | KOIN | `1N8iYrYEJdCVK1rhbqv3qZUzHcpoeKmFnj` |
 | KOIN/vETH | KOIN | `1Tf1QKv3gVYLjq34yURSHw5ErTYbFjqTG` |
+| VHP/KOIN | `18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr` | KOIN |
+| VHP/vUSDT | VHP | vUSDT |
+| VHP/vUSDC | VHP | vUSDC |
+| VHP/vETH | VHP | vETH |
 | vETH/vUSDT | vETH | vUSDT |
 | vETH/vUSDC | vETH | vUSDC |
 | vUSDT/vUSDC | vUSDT | vUSDC |

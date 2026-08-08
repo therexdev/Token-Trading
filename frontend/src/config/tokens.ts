@@ -45,6 +45,19 @@ export const TOKENS: TokenConfig[] = [
     color: "#4f8cff",
   },
   {
+    // VHP's balance storage lives in system space, so read_contract fails
+    // with "user code cannot access system space" — balances go through the
+    // privileged REST endpoint instead (transfers inside transactions are
+    // unaffected: the system contract runs with its own privileges there)
+    symbol: "VHP",
+    name: "Virtual Hash Power",
+    address: "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr",
+    decimals: 8,
+    allowances: true,
+    restName: "vhp",
+    color: "#e8a33d",
+  },
+  {
     symbol: "vUSDT",
     name: "Virtual USDT",
     address: "12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh",

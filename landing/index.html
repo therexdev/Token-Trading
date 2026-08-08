@@ -6,7 +6,7 @@
     <title>Trade Koinos — The lossless on-chain orderbook DEX</title>
     <meta
       name="description"
-      content="Trade Koinos is a fully on-chain limit orderbook exchange for KOIN, vUSDT, vUSDC and vETH on the Koinos blockchain. Zero trading fees, zero network fees, zero slippage — lossless by design."
+      content="Trade Koinos is a fully on-chain limit orderbook exchange for KOIN, VHP, vUSDT, vUSDC and vETH on the Koinos blockchain. Zero trading fees, zero network fees, zero slippage — lossless by design."
     />
     <link
       rel="icon"
@@ -913,8 +913,8 @@
           The <span class="lossless">lossless</span> way to trade Koinos.
         </h1>
         <p class="lede">
-          A fully on-chain limit orderbook exchange for KOIN, vUSDT, vUSDC and
-          vETH. <strong>Zero trading fees. Zero network fees. Zero
+          A fully on-chain limit orderbook exchange for KOIN, VHP, vUSDT,
+          vUSDC and vETH. <strong>Zero trading fees. Zero network fees. Zero
           slippage.</strong> Every trade settles at a real, posted price — and
           nothing is ever skimmed off the top.
         </p>
@@ -1154,10 +1154,10 @@
           </div>
           <div class="feature reveal">
             <div class="ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
-            <h3>Every pair between four assets</h3>
+            <h3>Every pair between five assets</h3>
             <p>
-              Trade KOIN, vUSDT, vUSDC and vETH against each other — six markets
-              in total, each with its own book and history.
+              Trade KOIN, VHP, vUSDT, vUSDC and vETH against each other — ten
+              markets in total, each with its own book and history.
             </p>
           </div>
           <div class="feature reveal">
@@ -1184,8 +1184,8 @@
     <section id="markets" class="markets">
       <div class="wrap">
         <div class="sec-head center reveal">
-          <span class="eyebrow">Six markets, live now</span>
-          <h2>Every pair across KOIN, vUSDT, vUSDC and vETH.</h2>
+          <span class="eyebrow">Ten markets, live now</span>
+          <h2>Every pair across KOIN, VHP, vUSDT, vUSDC and vETH.</h2>
         </div>
         <div class="market-grid" id="marketGrid"></div>
       </div>
@@ -1296,6 +1296,10 @@
           ["KOIN/vUSDT", "0.42", 1],
           ["KOIN/vUSDC", "0.418", 1],
           ["KOIN/vETH", "0.00011", -1],
+          ["VHP/KOIN", "1.02", 1],
+          ["VHP/vUSDT", "0.43", 1],
+          ["VHP/vUSDC", "0.428", -1],
+          ["VHP/vETH", "0.00011", 1],
           ["vETH/vUSDT", "3,810", 1],
           ["vETH/vUSDC", "3,806", -1],
           ["vUSDT/vUSDC", "1.0001", 1],
@@ -1339,11 +1343,15 @@
 
       // Markets grid
       (function () {
-        var C = { KOIN: "#4f8cff", vUSDT: "#26a17b", vUSDC: "#2775ca", vETH: "#8c8c9e" };
+        var C = { KOIN: "#4f8cff", VHP: "#e8a33d", vUSDT: "#26a17b", vUSDC: "#2775ca", vETH: "#8c8c9e" };
         var markets = [
           ["KOIN", "vUSDT"],
           ["KOIN", "vUSDC"],
           ["KOIN", "vETH"],
+          ["VHP", "KOIN"],
+          ["VHP", "vUSDT"],
+          ["VHP", "vUSDC"],
+          ["VHP", "vETH"],
           ["vETH", "vUSDT"],
           ["vETH", "vUSDC"],
           ["vUSDT", "vUSDC"],
