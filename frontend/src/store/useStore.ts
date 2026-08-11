@@ -9,6 +9,7 @@ import {
   fetchUserOrders,
   placeOrder,
   cancelOrder,
+  type KondorAccount,
   type PlaceOrderParams,
 } from "../lib/koinos";
 import type { MarketInfo, OrderInfo, TradeInfo } from "../lib/types";
@@ -28,6 +29,8 @@ interface AppState {
 
   account: string | null;
   connecting: boolean;
+  /** accounts Kondor shared, pending the user's pick (null = no picker open) */
+  accountChoices: KondorAccount[] | null;
   balances: Record<string, bigint>;
 
   markets: MarketInfo[];
@@ -44,6 +47,8 @@ interface AppState {
 
   init: () => Promise<void>;
   connect: () => Promise<void>;
+  chooseAccount: (address: string) => void;
+  dismissAccountChoices: () => void;
   disconnect: () => void;
   selectMarket: (marketId: number) => void;
   refreshMarkets: () => Promise<void>;
@@ -68,6 +73,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   account: localStorage.getItem(STORAGE_ACCOUNT),
   connecting: false,
+  accountChoices: null,
   balances: {},
 
   markets: [],
@@ -125,9 +131,14 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const accounts = await connectKondor();
       if (!accounts.length) throw new Error("No account selected in Kondor");
-      localStorage.setItem(STORAGE_ACCOUNT, accounts[0]);
-      set({ account: accounts[0], connecting: false });
-      void get().refreshUser();
+      // a single shared account on first connect needs no picker; any other
+      // case (several accounts, or an explicit switch while connected) lets
+      // the user choose instead of silently taking the first account
+      if (accounts.length === 1 && !get().account) {
+        get().chooseAccount(accounts[0].address);
+      } else {
+        set({ accountChoices: accounts, connecting: false });
+      }
     } catch (error: any) {
       set({ connecting: false });
       get().pushToast({
@@ -138,9 +149,21 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  chooseAccount: (address: string) => {
+    localStorage.setItem(STORAGE_ACCOUNT, address);
+    if (get().account !== address) {
+      // drop the previous account's data so it never shows under the new one
+      set({ balances: {}, myOrders: [] });
+    }
+    set({ account: address, accountChoices: null, connecting: false });
+    void get().refreshUser();
+  },
+
+  dismissAccountChoices: () => set({ accountChoices: null }),
+
   disconnect: () => {
     localStorage.removeItem(STORAGE_ACCOUNT);
-    set({ account: null, balances: {}, myOrders: [] });
+    set({ account: null, balances: {}, myOrders: [], accountChoices: null });
   },
 
   selectMarket: (marketId: number) => {

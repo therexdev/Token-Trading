@@ -40,14 +40,21 @@ export function isKondorAvailable(): boolean {
   return typeof (window as any).kondor !== "undefined";
 }
 
-export async function connectKondor(): Promise<string[]> {
+export interface KondorAccount {
+  address: string;
+  name?: string;
+}
+
+export async function connectKondor(): Promise<KondorAccount[]> {
   const accounts = await Promise.race([
     kondor.getAccounts(),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Kondor did not respond. Unlock the extension and try again.")), 120000)
     ),
   ]);
-  return (accounts as { address: string }[]).map((account) => account.address);
+  return (accounts as { address: string; name?: string }[])
+    .filter((account) => !!account && !!account.address)
+    .map((account) => ({ address: account.address, name: account.name }));
 }
 
 export function getKondorSigner(address: string): SignerInterface {

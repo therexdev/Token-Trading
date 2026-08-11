@@ -8,6 +8,7 @@ import { TradePanel } from "./components/TradePanel";
 import { TradeHistory } from "./components/TradeHistory";
 import { OpenOrders } from "./components/OpenOrders";
 import { Toasts } from "./components/Toasts";
+import { AccountPicker } from "./components/AccountPicker";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
 import { SIDE_BUY, SIDE_SELL } from "./lib/types";
 
@@ -264,6 +265,7 @@ export default function App() {
         </>
       )}
 
+      <AccountPicker />
       <Toasts />
     </div>
   );

@@ -53,13 +53,45 @@ export function Header() {
       )}
 
       {account ? (
-        <button
-          onClick={disconnect}
-          title="Disconnect"
-          className="rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-down hover:text-down lg:py-1.5"
-        >
-          {shortAddress(account)}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={connect}
+            disabled={connecting}
+            title="Switch account"
+            className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 lg:py-1.5"
+          >
+            {connecting ? "Connecting…" : shortAddress(account)}
+            {!connecting && (
+              <svg
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+                className="h-3 w-3 fill-current opacity-60"
+              >
+                <path d="M11.1 1.6 14.5 5l-3.4 3.4-1.06-1.06 1.59-1.59H4v-1.5h7.63l-1.59-1.59L11.1 1.6z" />
+                <path d="M4.9 14.4 1.5 11l3.4-3.4 1.06 1.06-1.59 1.59H12v1.5H4.37l1.59 1.59L4.9 14.4z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={disconnect}
+            title="Disconnect"
+            aria-label="Disconnect"
+            className="flex h-[33px] w-[33px] items-center justify-center rounded-md border border-ink-600 bg-ink-800 text-ink-400 transition hover:border-down hover:text-down lg:h-[29px] lg:w-[29px]"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <path d="M8 1.8v5.4" />
+              <path d="M4.4 3.6a5.4 5.4 0 1 0 7.2 0" />
+            </svg>
+          </button>
+        </div>
       ) : isKondorAvailable() ? (
         <button
           onClick={connect}
