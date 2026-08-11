@@ -67,17 +67,21 @@ export function AccountPicker() {
         </div>
 
         <div className="border-t border-ink-700 px-4 py-2.5 text-[10px] leading-relaxed text-ink-500">
-          Missing an account? Kondor decides which accounts it shares with
-          this site.{" "}
+          <span className="font-semibold text-ink-400">
+            Missing an account?
+          </span>{" "}
+          Kondor only shares the accounts you approved for this site, and it
+          answers from those saved permissions. To add one: open Kondor,
+          remove this site from its connected websites list, then{" "}
           <button
             onClick={() => void connect()}
             disabled={connecting}
             className="font-semibold text-accent transition hover:underline disabled:opacity-50"
           >
-            {connecting ? "Asking Kondor…" : "Ask Kondor again"}
+            {connecting ? "reconnecting…" : "reconnect"}
           </button>{" "}
-          and tick it in the popup — or unlink this site under Kondor&apos;s
-          settings and reconnect to choose accounts from scratch.
+          — Kondor will prompt again and you can tick every account you want
+          to use here.
         </div>
       </div>
     </div>

@@ -131,9 +131,27 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const accounts = await connectKondor();
       if (!accounts.length) throw new Error("No account selected in Kondor");
+      // when the picker is already open, a re-request that comes back with
+      // the identical list deserves an explanation: Kondor answers from its
+      // saved site permissions, so a missing account stays missing until
+      // this site is removed from Kondor's website list
+      const previous = get().accountChoices;
+      const unchanged =
+        previous !== null &&
+        previous.length === accounts.length &&
+        accounts.every((entry) =>
+          previous.some((other) => other.address === entry.address)
+        );
+      if (unchanged) {
+        get().pushToast({
+          kind: "info",
+          title: "Kondor shared the same accounts",
+          detail:
+            "Kondor answers from its saved permissions for this site. To add an account: open Kondor, remove this site from its connected websites, then reconnect here and tick every account you want.",
+        });
+      }
       // always let the user confirm which account to use — reconnecting is
-      // exactly when people want a different account, and the picker also
-      // explains how to share one that Kondor isn't offering yet
+      // exactly when people want a different account
       set({ accountChoices: accounts, connecting: false });
     } catch (error: any) {
       set({ connecting: false });
