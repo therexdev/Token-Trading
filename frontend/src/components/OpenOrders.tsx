@@ -86,7 +86,6 @@ export function OpenOrders() {
               <tbody>
                 {myOrders.map((order) => {
                   const market = marketById.get(order.marketId);
-                  if (!market) return null;
                   const filledPercent =
                     order.quantity > 0n
                       ? Number(
@@ -94,6 +93,52 @@ export function OpenOrders() {
                             order.quantity
                         )
                       : 0;
+                  if (!market) {
+                    // the order's market uses a token this build no longer
+                    // lists (e.g. a retired token address) — still show it
+                    // so the escrowed funds can be cancelled back out
+                    return (
+                      <tr
+                        key={order.id.toString()}
+                        className="border-t border-ink-800 hover:bg-ink-850"
+                      >
+                        <td
+                          className="px-3 py-1.5 text-left text-ink-500"
+                          title="This pair is no longer listed; cancelling refunds your escrow"
+                        >
+                          market #{order.marketId}
+                        </td>
+                        <td
+                          className={`px-2 py-1.5 ${
+                            order.side === SIDE_BUY ? "text-up" : "text-down"
+                          }`}
+                        >
+                          {order.side === SIDE_BUY ? "BUY" : "SELL"}
+                        </td>
+                        <td className="px-2 py-1.5 text-ink-500">—</td>
+                        <td className="px-2 py-1.5 text-ink-300">
+                          {formatUnits(order.remaining, 8, 4)}
+                        </td>
+                        <td className="px-2 py-1.5 text-ink-400">
+                          {filledPercent}%
+                        </td>
+                        <td className="hidden px-2 py-1.5 text-ink-500 sm:table-cell">
+                          {order.timestamp ? timeAgo(order.timestamp) : "—"}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <button
+                            onClick={() => cancel(order.id)}
+                            disabled={cancelling === order.id.toString()}
+                            className="rounded border border-ink-600 px-2.5 py-1 text-[11px] text-ink-300 transition hover:border-down hover:text-down disabled:opacity-50 lg:px-2 lg:py-0.5 lg:text-[10px]"
+                          >
+                            {cancelling === order.id.toString()
+                              ? "…"
+                              : "Cancel"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr
                       key={order.id.toString()}

@@ -20,10 +20,13 @@ export const TOKENS = {
       allowances: true,
     },
     VHP: {
-      // the mainnet VHP contract has no approve/allowance entry points —
-      // transfers are authorized by the transaction signature
-      address: "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr",
-      allowances: false,
+      // 12Y5vW6... is the LIVE VHP contract (KCS-4 allowances). The
+      // widely-cited 18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr address is the
+      // RETIRED pre-migration VHP with system-locked storage — markets
+      // created against it fail every escrow pull with "user code cannot
+      // access system space".
+      address: "12Y5vW6gk8GceH53YfRkRre2Rrcsgw7Naq",
+      allowances: true,
     },
     vUSDT: {
       address: "12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh",
