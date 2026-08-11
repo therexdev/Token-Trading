@@ -14,6 +14,11 @@ import {
 } from "../lib/koinos";
 import type { MarketInfo, OrderInfo, TradeInfo } from "../lib/types";
 import { TOKENS } from "../config/tokens";
+import {
+  MARKET_HASH_PREFIX,
+  marketFromHash,
+  writeMarketHash,
+} from "../lib/marketLink";
 
 export interface Toast {
   id: number;
@@ -98,25 +103,42 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }
       const markets = await fetchMarkets();
+      const hash = window.location.hash;
+      const linked = marketFromHash(hash, markets);
       const savedRaw = localStorage.getItem(STORAGE_MARKET);
       const savedMarket = savedRaw ? Number(savedRaw) : NaN;
-      // prefer a previously chosen market; otherwise land on KOIN/vUSDT
+      // a market deep link wins; then the previously chosen market;
+      // otherwise land on KOIN/vUSDT
       const defaultMarket =
         markets.find(
           (market) =>
             market.base.symbol === "KOIN" && market.quote.symbol === "vUSDT"
         ) || markets[0];
       const selected =
+        linked ||
         (savedRaw
           ? markets.find((market) => market.marketId === savedMarket)
-          : null) || defaultMarket;
+          : null) ||
+        defaultMarket;
       set({
         markets,
         selectedMarketId: selected ? selected.marketId : null,
         initialized: true,
         initError: markets.length ? null : "No markets found on the contract",
       });
-      if (selected) void get().refreshMarketData();
+      if (selected) {
+        // canonicalize the URL (also rewrites symbol links to addresses)
+        writeMarketHash(selected);
+        void get().refreshMarketData();
+      }
+      if (!linked && hash.startsWith(MARKET_HASH_PREFIX)) {
+        get().pushToast({
+          kind: "info",
+          title: "Market link not recognized",
+          detail:
+            "The link points at a pair that isn't listed here — showing the default market instead.",
+        });
+      }
       if (get().account) void get().refreshUser();
     } catch (error: any) {
       set({
@@ -183,6 +205,10 @@ export const useStore = create<AppState>((set, get) => ({
   selectMarket: (marketId: number) => {
     if (marketId === get().selectedMarketId) return;
     localStorage.setItem(STORAGE_MARKET, String(marketId));
+    const market = get().markets.find(
+      (entry) => entry.marketId === marketId
+    );
+    if (market) writeMarketHash(market);
     set({
       selectedMarketId: marketId,
       bids: [],

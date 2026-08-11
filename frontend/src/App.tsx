@@ -11,6 +11,7 @@ import { Toasts } from "./components/Toasts";
 import { AccountPicker } from "./components/AccountPicker";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
 import { SIDE_BUY, SIDE_SELL } from "./lib/types";
+import { marketFromHash } from "./lib/marketLink";
 
 const MARKET_POLL_MS = 4000;
 const USER_POLL_MS = 10000;
@@ -125,6 +126,21 @@ export default function App() {
   useEffect(() => {
     if (!isDesktop && prefillPrice !== null) setSheetOpen(true);
   }, [prefillPrice, isDesktop]);
+
+  // a market link pasted into (or navigated to in) an already-open tab
+  // switches pairs without a reload; the app's own URL updates use
+  // replaceState, which never fires hashchange, so this cannot loop
+  useEffect(() => {
+    const onHashChange = () => {
+      const state = useStore.getState();
+      const linked = marketFromHash(window.location.hash, state.markets);
+      if (linked && linked.marketId !== state.selectedMarketId) {
+        state.selectMarket(linked.marketId);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   if (!ORDERBOOK_ADDRESS) return <SetupNotice />;
 
