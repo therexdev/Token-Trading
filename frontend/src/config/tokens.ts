@@ -48,12 +48,16 @@ export const TOKENS: TokenConfig[] = [
     // VHP's balance storage lives in system space, so read_contract fails
     // with "user code cannot access system space" — balances go through the
     // privileged REST endpoint instead (transfers inside transactions are
-    // unaffected: the system contract runs with its own privileges there)
+    // unaffected: the system contract runs with its own privileges there).
+    // Unlike KOIN and the v-tokens, VHP implements NO KCS-4 allowances (its
+    // ABI has no approve/allowance): sending approve aborts with "exit
+    // error did not contain error data". Escrow pulls are authorized by
+    // the seller's transaction signature instead.
     symbol: "VHP",
     name: "Virtual Hash Power",
     address: "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr",
     decimals: 8,
-    allowances: true,
+    allowances: false,
     restName: "vhp",
     color: "#e8a33d",
   },

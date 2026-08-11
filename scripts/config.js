@@ -20,8 +20,10 @@ export const TOKENS = {
       allowances: true,
     },
     VHP: {
+      // the mainnet VHP contract has no approve/allowance entry points —
+      // transfers are authorized by the transaction signature
       address: "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr",
-      allowances: true,
+      allowances: false,
     },
     vUSDT: {
       address: "12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh",
