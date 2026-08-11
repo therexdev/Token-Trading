@@ -16,7 +16,7 @@ price-time priority.
 | KOIN/vUSDT | `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK` | `12VoHz41a4HtfiyhTWbg9RXqGMRbYk6pXh` |
 | KOIN/vUSDC | KOIN | `1N8iYrYEJdCVK1rhbqv3qZUzHcpoeKmFnj` |
 | KOIN/vETH | KOIN | `1Tf1QKv3gVYLjq34yURSHw5ErTYbFjqTG` |
-| VHP/KOIN | `18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr` | KOIN |
+| VHP/KOIN | `12Y5vW6gk8GceH53YfRkRre2Rrcsgw7Naq` | KOIN |
 | VHP/vUSDT | VHP | vUSDT |
 | VHP/vUSDC | VHP | vUSDC |
 | VHP/vETH | VHP | vETH |
@@ -78,16 +78,18 @@ Design properties worth knowing:
 
 ### Tokens and authority
 
-All four tokens (KOIN at `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK` and the
-three v-tokens) are KCS-4 tokens with allowances, so the UI automatically
-bundles an exact-amount `approve` operation in the same transaction before
-the contract pulls escrow. Nothing to do manually — Kondor shows both
-operations in the confirmation popup.
+All five tokens (KOIN at `19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK`, VHP at
+`12Y5vW6gk8GceH53YfRkRre2Rrcsgw7Naq` and the three v-tokens) are KCS-4
+tokens with allowances, so the UI automatically bundles an exact-amount
+`approve` operation in the same transaction before the contract pulls
+escrow. Nothing to do manually — Kondor shows both operations in the
+confirmation popup.
 
-> ⚠️ The widely-cited `15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL` KOIN address is
-> the **retired pre-migration contract**: its storage is system-locked and
-> any call to it fails with "user code cannot access system space". Always
-> use the `19GYj…` address above.
+> ⚠️ The widely-cited `15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL` KOIN and
+> `18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr` VHP addresses are the **retired
+> pre-migration contracts**: their storage is system-locked and any call
+> to them fails with "user code cannot access system space". Always use
+> the live addresses above.
 
 ### The frontend (`frontend/`)
 
