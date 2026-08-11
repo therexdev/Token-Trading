@@ -131,14 +131,10 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const accounts = await connectKondor();
       if (!accounts.length) throw new Error("No account selected in Kondor");
-      // a single shared account on first connect needs no picker; any other
-      // case (several accounts, or an explicit switch while connected) lets
-      // the user choose instead of silently taking the first account
-      if (accounts.length === 1 && !get().account) {
-        get().chooseAccount(accounts[0].address);
-      } else {
-        set({ accountChoices: accounts, connecting: false });
-      }
+      // always let the user confirm which account to use — reconnecting is
+      // exactly when people want a different account, and the picker also
+      // explains how to share one that Kondor isn't offering yet
+      set({ accountChoices: accounts, connecting: false });
     } catch (error: any) {
       set({ connecting: false });
       get().pushToast({

@@ -9,6 +9,8 @@ export function AccountPicker() {
   const accountChoices = useStore((state) => state.accountChoices);
   const account = useStore((state) => state.account);
   const chooseAccount = useStore((state) => state.chooseAccount);
+  const connect = useStore((state) => state.connect);
+  const connecting = useStore((state) => state.connecting);
   const dismissAccountChoices = useStore(
     (state) => state.dismissAccountChoices
   );
@@ -65,9 +67,17 @@ export function AccountPicker() {
         </div>
 
         <div className="border-t border-ink-700 px-4 py-2.5 text-[10px] leading-relaxed text-ink-500">
-          Kondor controls which accounts are shared with this site. Missing
-          one? Unlink the site in Kondor&apos;s settings and connect again,
-          ticking every account you want available here.
+          Missing an account? Kondor decides which accounts it shares with
+          this site.{" "}
+          <button
+            onClick={() => void connect()}
+            disabled={connecting}
+            className="font-semibold text-accent transition hover:underline disabled:opacity-50"
+          >
+            {connecting ? "Asking Kondor…" : "Ask Kondor again"}
+          </button>{" "}
+          and tick it in the popup — or unlink this site under Kondor&apos;s
+          settings and reconnect to choose accounts from scratch.
         </div>
       </div>
     </div>
