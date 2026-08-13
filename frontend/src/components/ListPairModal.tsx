@@ -285,14 +285,15 @@ export function ListPairModal() {
     [quoteChoice, quoteCustom, quoteProbed, tokens]
   );
 
-  // a pair with exactly one already-listed token always trades with that
-  // token as the base, whichever field it was picked in: Token A + KOIN
-  // lists as KOIN/TOKENA (and files under the KOIN tab)
+  // a pair with exactly one already-listed token always trades the NEW
+  // token, priced in the listed one, whichever field each was picked in:
+  // Token A + KOIN lists as TOKENA/KOIN (Buy/Sell TOKENA, priced in KOIN,
+  // filed under the KOIN tab)
   const normalized = useMemo(() => {
     if (!base || !quote) return null;
     const baseListed = base.known !== null && !base.known.dynamic;
     const quoteListed = quote.known !== null && !quote.known.dynamic;
-    if (quoteListed && !baseListed) {
+    if (baseListed && !quoteListed) {
       return { base: quote, quote: base, swapped: true };
     }
     return { base, quote, swapped: false };
@@ -413,12 +414,13 @@ export function ListPairModal() {
 
           {normalized?.swapped && (
             <div className="rounded-md border border-accent/40 bg-ink-850 px-3 py-2 text-[11px] leading-relaxed text-ink-300">
-              {normalized.base.symbol} is a listed token, so the pair will be
-              created as{" "}
+              {normalized.quote.symbol} is a listed token, so the pair will
+              be created as{" "}
               <span className="font-semibold text-white">
                 {normalized.base.symbol}/{normalized.quote.symbol}
               </span>{" "}
-              — listed tokens always lead the pair.
+              — you buy and sell {normalized.base.symbol}, priced in{" "}
+              {normalized.quote.symbol}.
             </div>
           )}
 

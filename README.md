@@ -14,11 +14,12 @@ tokens, and listing is permissionless: anyone can add a new pair from the
 app ("List a new pair" in the market selector) by picking listed tokens or
 pasting any token contract address. The creator pays the (estimated,
 mana-only) network cost. A pair that includes exactly one curated token is
-always created with that token as the base, whichever way it was entered —
-Token A + KOIN lists as KOIN/TOKENA under the KOIN tab. Pairs that don't
-involve a curated token show up under the market selector's **Other** tab;
-token metadata for new pairs is discovered on-chain, so the UI updates
-without a rebuild.
+always created with the new token as the base, priced in the curated one,
+whichever way it was entered — Token A + KOIN lists as TOKENA/KOIN under
+the KOIN tab, and the trade panel reads "Buy TOKENA" / "Sell TOKENA".
+Pairs that don't involve a curated token show up under the market
+selector's **Other** tab; token metadata for new pairs is discovered
+on-chain, so the UI updates without a rebuild.
 
 The curated tokens:
 
@@ -126,8 +127,8 @@ are handled as `BigInt` in the tokens' smallest units.
   estimated mana cost vs your available mana, and sign with Kondor — the
   new pair appears for everyone without a frontend rebuild, token metadata
   is discovered from the chain. When exactly one side is a curated token,
-  the pair is auto-ordered with it as the base (KOIN/TOKENA, never
-  TOKENA/KOIN)
+  the pair is auto-ordered with the new token as the base, priced in the
+  curated one (TOKENA/KOIN — "Buy TOKENA", never "Buy KOIN")
 - Candlestick + volume chart (5m/15m/1h/4h/1d) built client-side from the
   contract's on-chain trade history, polled every 4 s
 - Orderbook with price-level aggregation, depth bars and click-to-fill
