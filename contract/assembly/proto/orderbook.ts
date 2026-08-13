@@ -578,6 +578,79 @@ export namespace orderbook {
     }
   }
 
+  @unmanaged
+  export class set_min_base_amount_arguments {
+    static encode(
+      message: set_min_base_amount_arguments,
+      writer: Writer
+    ): void {
+      if (message.market_id != 0) {
+        writer.uint32(8);
+        writer.uint32(message.market_id);
+      }
+
+      if (message.min_base_amount != 0) {
+        writer.uint32(16);
+        writer.uint64(message.min_base_amount);
+      }
+    }
+
+    static decode(reader: Reader, length: i32): set_min_base_amount_arguments {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new set_min_base_amount_arguments();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.market_id = reader.uint32();
+            break;
+
+          case 2:
+            message.min_base_amount = reader.uint64();
+            break;
+
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    market_id: u32;
+    min_base_amount: u64;
+
+    constructor(market_id: u32 = 0, min_base_amount: u64 = 0) {
+      this.market_id = market_id;
+      this.min_base_amount = min_base_amount;
+    }
+  }
+
+  @unmanaged
+  export class set_min_base_amount_result {
+    static encode(message: set_min_base_amount_result, writer: Writer): void {}
+
+    static decode(reader: Reader, length: i32): set_min_base_amount_result {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new set_min_base_amount_result();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    constructor() {}
+  }
+
   export class place_order_arguments {
     static encode(message: place_order_arguments, writer: Writer): void {
       const unique_name_owner = message.owner;
@@ -1228,6 +1301,59 @@ export namespace orderbook {
 
     constructor(trades: Array<trade_object> = []) {
       this.trades = trades;
+    }
+  }
+
+  export class market_created_event {
+    static encode(message: market_created_event, writer: Writer): void {
+      const unique_name_market = message.market;
+      if (unique_name_market !== null) {
+        writer.uint32(10);
+        writer.fork();
+        market_config.encode(unique_name_market, writer);
+        writer.ldelim();
+      }
+
+      const unique_name_creator = message.creator;
+      if (unique_name_creator !== null) {
+        writer.uint32(18);
+        writer.bytes(unique_name_creator);
+      }
+    }
+
+    static decode(reader: Reader, length: i32): market_created_event {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new market_created_event();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.market = market_config.decode(reader, reader.uint32());
+            break;
+
+          case 2:
+            message.creator = reader.bytes();
+            break;
+
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    market: market_config | null;
+    creator: Uint8Array | null;
+
+    constructor(
+      market: market_config | null = null,
+      creator: Uint8Array | null = null
+    ) {
+      this.market = market;
+      this.creator = creator;
     }
   }
 

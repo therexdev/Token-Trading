@@ -9,6 +9,7 @@ import { TradeHistory } from "./components/TradeHistory";
 import { OpenOrders } from "./components/OpenOrders";
 import { Toasts } from "./components/Toasts";
 import { AccountPicker } from "./components/AccountPicker";
+import { ListPairModal } from "./components/ListPairModal";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
 import { SIDE_BUY, SIDE_SELL } from "./lib/types";
 import { marketFromHash } from "./lib/marketLink";
@@ -282,6 +283,7 @@ export default function App() {
       )}
 
       <AccountPicker />
+      <ListPairModal />
       <Toasts />
     </div>
   );

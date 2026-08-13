@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   connectKondor,
+  createMarket,
   fetchBalances,
   fetchMarkets,
   fetchOrderbook,
@@ -13,7 +14,7 @@ import {
   type PlaceOrderParams,
 } from "../lib/koinos";
 import type { MarketInfo, OrderInfo, TradeInfo } from "../lib/types";
-import { TOKENS } from "../config/tokens";
+import { TOKENS, type TokenConfig } from "../config/tokens";
 import {
   MARKET_HASH_PREFIX,
   marketFromHash,
@@ -39,6 +40,10 @@ interface AppState {
   balances: Record<string, bigint>;
 
   markets: MarketInfo[];
+  /** curated tokens plus every token discovered from on-chain listings */
+  tokens: TokenConfig[];
+  /** every pair on-chain, hidden ones included (duplicate pre-check) */
+  allPairs: { base: string; quote: string }[];
   selectedMarketId: number | null;
 
   bids: OrderInfo[];
@@ -49,6 +54,7 @@ interface AppState {
 
   toasts: Toast[];
   prefillPrice: string | null;
+  listPairOpen: boolean;
 
   init: () => Promise<void>;
   connect: () => Promise<void>;
@@ -61,6 +67,12 @@ interface AppState {
   refreshUser: () => Promise<void>;
   submitOrder: (params: PlaceOrderParams) => Promise<boolean>;
   submitCancel: (orderId: bigint) => Promise<boolean>;
+  submitCreateMarket: (
+    baseToken: string,
+    quoteToken: string,
+    minBaseAmount: bigint
+  ) => Promise<boolean>;
+  setListPairOpen: (open: boolean) => void;
   pushToast: (toast: Omit<Toast, "id">) => number;
   dismissToast: (id: number) => void;
   setPrefillPrice: (price: string | null) => void;
@@ -82,6 +94,8 @@ export const useStore = create<AppState>((set, get) => ({
   balances: {},
 
   markets: [],
+  tokens: TOKENS,
+  allPairs: [],
   selectedMarketId: null,
 
   bids: [],
@@ -92,6 +106,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   toasts: [],
   prefillPrice: null,
+  listPairOpen: false,
 
   init: async () => {
     try {
@@ -102,7 +117,7 @@ export const useStore = create<AppState>((set, get) => ({
           token.decimals = decimals[token.symbol];
         }
       }
-      const markets = await fetchMarkets();
+      const { markets, tokens, allPairs } = await fetchMarkets();
       const hash = window.location.hash;
       const linked = marketFromHash(hash, markets);
       const savedRaw = localStorage.getItem(STORAGE_MARKET);
@@ -122,6 +137,8 @@ export const useStore = create<AppState>((set, get) => ({
         defaultMarket;
       set({
         markets,
+        tokens,
+        allPairs,
         selectedMarketId: selected ? selected.marketId : null,
         initialized: true,
         initError: markets.length ? null : "No markets found on the contract",
@@ -222,8 +239,8 @@ export const useStore = create<AppState>((set, get) => ({
 
   refreshMarkets: async () => {
     try {
-      const markets = await fetchMarkets();
-      set({ markets });
+      const { markets, tokens, allPairs } = await fetchMarkets();
+      set({ markets, tokens, allPairs });
     } catch {
       // keep previous data on transient RPC errors
     }
@@ -254,7 +271,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!account) return;
     try {
       const [balances, myOrders] = await Promise.all([
-        fetchBalances(account),
+        fetchBalances(account, get().tokens),
         fetchUserOrders(account),
       ]);
       if (get().account !== account) return;
@@ -336,6 +353,62 @@ export const useStore = create<AppState>((set, get) => ({
       return false;
     }
   },
+
+  submitCreateMarket: async (baseToken, quoteToken, minBaseAmount) => {
+    const account = get().account;
+    if (!account) return false;
+    const { pushToast, dismissToast } = get();
+    const pendingId = pushToast({
+      kind: "pending",
+      title: "Confirm the listing in Kondor…",
+    });
+    try {
+      const handle = await createMarket(
+        account,
+        baseToken,
+        quoteToken,
+        minBaseAmount
+      );
+      dismissToast(pendingId);
+      const miningId = pushToast({
+        kind: "pending",
+        title: "Listing submitted, waiting for the block…",
+        txId: handle.id,
+      });
+      await handle.wait();
+      dismissToast(miningId);
+      await get().refreshMarkets();
+      // land the user on the freshly listed pair
+      const created = get().markets.find(
+        (market) =>
+          (market.base.address === baseToken &&
+            market.quote.address === quoteToken) ||
+          (market.base.address === quoteToken &&
+            market.quote.address === baseToken)
+      );
+      pushToast({
+        kind: "success",
+        title: created
+          ? `${created.base.symbol}/${created.quote.symbol} is now listed`
+          : "Trading pair listed",
+        txId: handle.id,
+      });
+      if (created) get().selectMarket(created.marketId);
+      set({ listPairOpen: false });
+      void get().refreshUser();
+      return true;
+    } catch (error: any) {
+      dismissToast(pendingId);
+      pushToast({
+        kind: "error",
+        title: "Listing failed",
+        detail: error?.message || String(error),
+      });
+      return false;
+    }
+  },
+
+  setListPairOpen: (open: boolean) => set({ listPairOpen: open }),
 
   pushToast: (toast) => {
     const id = toastCounter++;

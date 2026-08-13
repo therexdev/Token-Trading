@@ -1,5 +1,6 @@
-import { useStore } from "../store/useStore";
-import { NETWORK, TOKENS } from "../config/tokens";
+import { useMemo } from "react";
+import { useStore, useSelectedMarket } from "../store/useStore";
+import { NETWORK } from "../config/tokens";
 import { formatUnits, shortAddress } from "../lib/format";
 import { isKondorAvailable } from "../lib/koinos";
 
@@ -9,6 +10,18 @@ export function Header() {
   const connect = useStore((state) => state.connect);
   const disconnect = useStore((state) => state.disconnect);
   const balances = useStore((state) => state.balances);
+  const tokens = useStore((state) => state.tokens);
+  const market = useSelectedMarket();
+
+  // the balance strip shows the curated tokens, plus whichever discovered
+  // tokens the selected market trades
+  const stripTokens = useMemo(() => {
+    const list = tokens.filter((token) => !token.dynamic);
+    for (const side of [market?.base, market?.quote]) {
+      if (side?.dynamic && !list.includes(side)) list.push(side);
+    }
+    return list;
+  }, [tokens, market]);
 
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:gap-4 lg:px-4">
@@ -37,7 +50,7 @@ export function Header() {
 
       {account && (
         <div className="hidden items-center gap-3 rounded-md border border-ink-700 bg-ink-850 px-3 py-1.5 text-xs md:flex">
-          {TOKENS.map((token) => (
+          {stripTokens.map((token) => (
             <div key={token.symbol} className="flex items-center gap-1.5">
               <span
                 className="inline-block h-2 w-2 rounded-full"

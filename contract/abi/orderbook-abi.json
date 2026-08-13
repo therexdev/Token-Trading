@@ -3,8 +3,15 @@
         "create_market": {
             "input": "orderbook.create_market_arguments",
             "output": "orderbook.create_market_result",
-            "description": "Create a new trading market between two tokens (contract authority only)",
+            "description": "Create a new trading market between two tokens. Permissionless: anyone may list a pair; the transaction payer covers the mana. Both addresses must answer decimals() like a live token contract",
             "entryPoint": 807604807,
+            "readOnly": false
+        },
+        "set_min_base_amount": {
+            "input": "orderbook.set_min_base_amount_arguments",
+            "output": "orderbook.set_min_base_amount_result",
+            "description": "Adjust a market's minimum order size (contract authority only; repair hatch for unusable permissionless listings)",
+            "entryPoint": 3440789165,
             "readOnly": false
         },
         "place_order": {
@@ -306,6 +313,24 @@
                             }
                         }
                     },
+                    "set_min_base_amount_arguments": {
+                        "fields": {
+                            "marketId": {
+                                "type": "uint32",
+                                "id": 1
+                            },
+                            "minBaseAmount": {
+                                "type": "uint64",
+                                "id": 2,
+                                "options": {
+                                    "jstype": "JS_STRING"
+                                }
+                            }
+                        }
+                    },
+                    "set_min_base_amount_result": {
+                        "fields": {}
+                    },
                     "place_order_arguments": {
                         "fields": {
                             "owner": {
@@ -495,6 +520,21 @@
                                 "rule": "repeated",
                                 "type": "trade_object",
                                 "id": 1
+                            }
+                        }
+                    },
+                    "market_created_event": {
+                        "fields": {
+                            "market": {
+                                "type": "market_config",
+                                "id": 1
+                            },
+                            "creator": {
+                                "type": "bytes",
+                                "id": 2,
+                                "options": {
+                                    "(koinos.btype)": "ADDRESS"
+                                }
                             }
                         }
                     },

@@ -1,5 +1,5 @@
 
-Ñ
+Ã
 assembly/proto/orderbook.proto	orderbookkoinos/options.proto"×
 market_config
 	market_id (RmarketId#
@@ -51,7 +51,11 @@ base_token (B€µR	baseToken%
 quoteToken*
 min_base_amount (B0RminBaseAmount"3
 create_market_result
-	market_id (RmarketId"´
+	market_id (RmarketId"h
+set_min_base_amount_arguments
+	market_id (RmarketId*
+min_base_amount (B0RminBaseAmount"
+set_min_base_amount_result"´
 place_order_arguments
 owner (B€µRowner
 	market_id (RmarketId
@@ -90,7 +94,10 @@ quoteToken*
 	market_id (RmarketId
 limit (Rlimit"D
 get_trades_result/
-trades (2.orderbook.trade_objectRtrades"C
+trades (2.orderbook.trade_objectRtrades"h
+market_created_event0
+market (2.orderbook.market_configRmarket
+creator (B€µRcreator"C
 order_placed_event-
 order (2.orderbook.order_objectRorder"o
 order_cancelled_event

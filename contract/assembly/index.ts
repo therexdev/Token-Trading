@@ -19,6 +19,20 @@ export function main(): i32 {
       break;
     }
 
+    case 0xcd1646ad: {
+      const args =
+        Protobuf.decode<ProtoNamespace.set_min_base_amount_arguments>(
+          contractArgs.args,
+          ProtoNamespace.set_min_base_amount_arguments.decode
+        );
+      const res = c.set_min_base_amount(args);
+      retbuf = Protobuf.encode(
+        res,
+        ProtoNamespace.set_min_base_amount_result.encode
+      );
+      break;
+    }
+
     case 0x163b60a5: {
       const args = Protobuf.decode<ProtoNamespace.place_order_arguments>(
         contractArgs.args,

@@ -14,7 +14,22 @@ export interface TokenConfig {
    */
   restName?: string;
   color: string;
+  /**
+   * true for tokens discovered on-chain from permissionless listings
+   * (metadata probed via read_contract, not curated in this config)
+   */
+  dynamic?: boolean;
 }
+
+/**
+ * Retired pre-migration system contracts. Their storage is system-locked —
+ * every call fails with "user code cannot access system space" — so they are
+ * never probed and markets against them stay hidden.
+ */
+export const RETIRED_ADDRESSES: string[] = [
+  "15DJN4a8SgrbGhhGksSBASiSYjGnMU8dGL", // retired KOIN
+  "18tWNU7E4yuQzz7hMVpceb9ixmaWLVyQsr", // retired VHP
+];
 
 export const ORDERBOOK_ADDRESS: string =
   import.meta.env.VITE_ORDERBOOK_ADDRESS || "";

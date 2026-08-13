@@ -7,7 +7,7 @@ import {
   RPC_URL,
   REST_URL,
   TOKENS,
-  tokenByAddress,
+  RETIRED_ADDRESSES,
   type TokenConfig,
 } from "../config/tokens";
 import {
@@ -106,29 +106,186 @@ function mapTrade(raw: any): TradeInfo {
   };
 }
 
-export async function fetchMarkets(): Promise<MarketInfo[]> {
+// ---------------------------------------------------------------------------
+// Dynamic token discovery (permissionless listings)
+// ---------------------------------------------------------------------------
+
+const TOKEN_META_STORAGE = "koinoskit-trade:token-meta:v1";
+
+export interface ProbedTokenMeta {
+  symbol: string;
+  name: string;
+  decimals: number;
+  allowances: boolean;
+}
+
+function loadTokenMetaCache(): Record<string, ProbedTokenMeta> {
+  try {
+    const raw = localStorage.getItem(TOKEN_META_STORAGE);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTokenMetaCache(cache: Record<string, ProbedTokenMeta>): void {
+  try {
+    localStorage.setItem(TOKEN_META_STORAGE, JSON.stringify(cache));
+  } catch {
+    // storage full/blocked: metadata is re-probed next load
+  }
+}
+
+// addresses that failed probing this session — skipped on the periodic
+// markets poll, retried on the next full page load
+const failedProbes = new Set<string>();
+
+/**
+ * Read a token contract's metadata straight from the chain. Returns null
+ * when the address does not answer like a token (no contract there, or a
+ * retired system-locked one).
+ */
+export async function probeToken(
+  address: string,
+  fresh = false
+): Promise<ProbedTokenMeta | null> {
+  if (RETIRED_ADDRESSES.includes(address)) return null;
+  if (!fresh && failedProbes.has(address)) return null;
+  const contract = getTokenContract(address);
+  try {
+    const [symbolRes, decimalsRes] = await Promise.all([
+      contract.functions.symbol(),
+      contract.functions.decimals(),
+    ]);
+    const symbol = String(symbolRes.result?.value ?? "").trim();
+    const decimals = Number(decimalsRes.result?.value);
+    if (!Number.isFinite(decimals) || decimals < 0 || decimals > 18) {
+      throw new Error("bad decimals");
+    }
+    let name = symbol;
+    try {
+      const { result } = await contract.functions.name();
+      if (result?.value) name = String(result.value);
+    } catch {
+      // name() is optional
+    }
+    // KCS-4 allowance support decides whether escrow pulls need approve ops
+    let allowances = true;
+    try {
+      await contract.functions.allowance({ owner: address, spender: address });
+    } catch {
+      allowances = false;
+    }
+    failedProbes.delete(address);
+    return { symbol, name, decimals, allowances };
+  } catch {
+    failedProbes.add(address);
+    return null;
+  }
+}
+
+function colorFromAddress(address: string): string {
+  let hash = 0;
+  for (let i = 0; i < address.length; i++) {
+    hash = (hash * 31 + address.charCodeAt(i)) >>> 0;
+  }
+  return `hsl(${hash % 360}, 62%, 55%)`;
+}
+
+function shortAddress(address: string): string {
+  return `${address.slice(0, 4)}…${address.slice(-4)}`;
+}
+
+export interface MarketsSnapshot {
+  markets: MarketInfo[];
+  /** curated tokens first, then every discovered token that trades */
+  tokens: TokenConfig[];
+  /** every pair on-chain (hidden ones included), for duplicate checks */
+  allPairs: { base: string; quote: string }[];
+}
+
+export async function fetchMarkets(): Promise<MarketsSnapshot> {
   const contract = getOrderbookContract();
   const { result } = await contract.functions.get_markets({});
+  const raw = ((result?.markets as any[]) || []).map((entry) => ({
+    marketId: asNumber(entry.marketId ?? entry.market_id),
+    baseAddress: String(entry.baseToken ?? entry.base_token ?? ""),
+    quoteAddress: String(entry.quoteToken ?? entry.quote_token ?? ""),
+    minBaseAmount: asBigInt(entry.minBaseAmount ?? entry.min_base_amount),
+    lastPrice: asBigInt(entry.lastPrice ?? entry.last_price),
+    tradeCount: asBigInt(entry.tradeCount ?? entry.trade_count),
+    baseVolume: asBigInt(entry.baseVolume ?? entry.base_volume),
+    quoteVolume: asBigInt(entry.quoteVolume ?? entry.quote_volume),
+  }));
+
+  // resolve every token address: curated config first, then the local
+  // metadata cache, then live probes for addresses never seen before
+  const registry = new Map<string, TokenConfig>();
+  for (const token of TOKENS) registry.set(token.address, token);
+
+  const cache = loadTokenMetaCache();
+  const unknown: string[] = [];
+  for (const entry of raw) {
+    for (const address of [entry.baseAddress, entry.quoteAddress]) {
+      if (!address || registry.has(address)) continue;
+      if (RETIRED_ADDRESSES.includes(address)) continue;
+      if (!unknown.includes(address)) unknown.push(address);
+    }
+  }
+
+  const probed = await Promise.all(
+    unknown.map(async (address) => {
+      const meta = cache[address] || (await probeToken(address));
+      return [address, meta] as const;
+    })
+  );
+
+  // symbols key balances and the UI, so discovered ones must stay unique
+  const taken = new Set(TOKENS.map((token) => token.symbol.toUpperCase()));
+  let cacheDirty = false;
+  for (const [address, meta] of probed) {
+    if (!meta) continue;
+    if (!cache[address]) {
+      cache[address] = meta;
+      cacheDirty = true;
+    }
+    const trimmed = (meta.symbol || "").slice(0, 12) || shortAddress(address);
+    let symbol = trimmed;
+    if (taken.has(symbol.toUpperCase())) symbol = `${trimmed}·${address.slice(-4)}`;
+    if (taken.has(symbol.toUpperCase())) symbol = address;
+    taken.add(symbol.toUpperCase());
+    registry.set(address, {
+      symbol,
+      name: meta.name || symbol,
+      address,
+      decimals: meta.decimals,
+      allowances: meta.allowances,
+      color: colorFromAddress(address),
+      dynamic: true,
+    });
+  }
+  if (cacheDirty) saveTokenMetaCache(cache);
+
   const markets: MarketInfo[] = [];
-  for (const raw of (result?.markets as any[]) || []) {
-    const base = tokenByAddress(String(raw.baseToken ?? raw.base_token ?? ""));
-    const quote = tokenByAddress(
-      String(raw.quoteToken ?? raw.quote_token ?? "")
-    );
-    if (!base || !quote) continue; // unknown listing, hide from the UI
+  for (const entry of raw) {
+    const base = registry.get(entry.baseAddress);
+    const quote = registry.get(entry.quoteAddress);
+    if (!base || !quote) continue; // unresolvable (retired/dead) — hidden
     markets.push({
-      marketId: asNumber(raw.marketId ?? raw.market_id),
+      marketId: entry.marketId,
       base,
       quote,
-      minBaseAmount: asBigInt(raw.minBaseAmount ?? raw.min_base_amount),
-      lastPrice: asBigInt(raw.lastPrice ?? raw.last_price),
-      tradeCount: asBigInt(raw.tradeCount ?? raw.trade_count),
-      baseVolume: asBigInt(raw.baseVolume ?? raw.base_volume),
-      quoteVolume: asBigInt(raw.quoteVolume ?? raw.quote_volume),
+      minBaseAmount: entry.minBaseAmount,
+      lastPrice: entry.lastPrice,
+      tradeCount: entry.tradeCount,
+      baseVolume: entry.baseVolume,
+      quoteVolume: entry.quoteVolume,
     });
   }
   // display order: rank by each token's position in TOKENS (KOIN first), so
-  // the KOIN pairs lead and KOIN/vUSDT sorts to the top
+  // the KOIN pairs lead; discovered pairs follow in listing order
   const rank = (symbol: string) => {
     const index = TOKENS.findIndex((token) => token.symbol === symbol);
     return index === -1 ? TOKENS.length : index;
@@ -138,7 +295,16 @@ export async function fetchMarkets(): Promise<MarketInfo[]> {
     if (baseDiff !== 0) return baseDiff;
     return rank(a.quote.symbol) - rank(b.quote.symbol);
   });
-  return markets;
+
+  const tokens = [
+    ...TOKENS,
+    ...[...registry.values()].filter((token) => token.dynamic),
+  ];
+  const allPairs = raw.map((entry) => ({
+    base: entry.baseAddress,
+    quote: entry.quoteAddress,
+  }));
+  return { markets, tokens, allPairs };
 }
 
 export async function fetchOrderbook(
@@ -212,10 +378,11 @@ export async function fetchBalance(
 }
 
 export async function fetchBalances(
-  owner: string
+  owner: string,
+  tokens: TokenConfig[] = TOKENS
 ): Promise<Record<string, bigint>> {
   const entries = await Promise.all(
-    TOKENS.map(async (token) => {
+    tokens.map(async (token) => {
       try {
         return [token.symbol, await fetchBalance(token, owner)] as const;
       } catch {
@@ -374,6 +541,45 @@ export async function cancelOrder(
       pushTo: async (tx) => {
         await tx.pushOperation(orderbook.functions.cancel_order, {
           orderId: orderId.toString(),
+        });
+      },
+    },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Permissionless market creation
+// ---------------------------------------------------------------------------
+
+/**
+ * Mana estimate for create_market, in rc units (1e8 = 1 KOIN of mana).
+ * Calibrated on mainnet receipts: past creations used 33–39M rc, growing
+ * ~0.5M per existing market (the duplicate-pair scan), plus headroom for
+ * the token probes the contract now performs.
+ */
+export function estimateCreateMarketMana(existingMarkets: number): bigint {
+  return 50_000_000n + 700_000n * BigInt(existingMarkets);
+}
+
+/** available mana (rc) of an account, in 1e8 units like KOIN */
+export async function fetchAvailableMana(owner: string): Promise<bigint> {
+  return BigInt(await provider.getAccountRc(owner));
+}
+
+export async function createMarket(
+  owner: string,
+  baseToken: string,
+  quoteToken: string,
+  minBaseAmount: bigint
+): Promise<TxHandle> {
+  const orderbook = getOrderbookContract();
+  return sendOperations(owner, [
+    {
+      pushTo: async (tx) => {
+        await tx.pushOperation(orderbook.functions.create_market, {
+          baseToken,
+          quoteToken,
+          minBaseAmount: minBaseAmount.toString(),
         });
       },
     },

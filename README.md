@@ -9,7 +9,15 @@ price-time priority.
 
 ![KoinosKit Trade](docs/screenshot.png)
 
-**Markets** — all pairs between the five supported tokens:
+**Markets** — the curated launch set covers all pairs between five known
+tokens, and listing is permissionless: anyone can add a new pair from the
+app ("List a new pair" in the market selector) by picking listed tokens or
+pasting any token contract address. The creator pays the (estimated,
+mana-only) network cost. Pairs that don't involve a curated token show up
+under the market selector's **Other** tab; token metadata for new pairs is
+discovered on-chain, so the UI updates without a rebuild.
+
+The curated tokens:
 
 | Market | Base | Quote |
 | --- | --- | --- |
@@ -46,14 +54,21 @@ docs/       Screenshots and assets
   (post-only, if it would cross).
 - `cancel_order(orderId)` — removes the order and refunds the remaining
   escrow. Only the order's owner can cancel.
-- `create_market(baseToken, quoteToken, minBaseAmount)` — admin only
-  (signature of the contract account itself).
+- `create_market(baseToken, quoteToken, minBaseAmount)` — **permissionless**:
+  anyone may list a new pair, paying the mana from their own transaction
+  (the UI shows an estimate first). Both addresses must answer `decimals()`
+  like a live token contract — which also rejects the retired system-locked
+  KOIN/VHP contracts — duplicate pairs are rejected in either direction, and
+  the minimum order size is capped at 1,000,000 whole base tokens.
+- `set_min_base_amount(marketId, minBaseAmount)` — admin only (signature of
+  the contract account itself): repair hatch for a permissionless listing
+  created with an unusable minimum order size.
 - Read methods: `get_markets`, `get_orderbook`, `get_order`,
   `get_user_orders`, `get_trades` (per-market ring buffer of the last 2000
   trades — this is what the charts are built from).
-- Events: `orderbook.order_placed`, `orderbook.trade`,
-  `orderbook.order_cancelled` with impacted addresses, so explorers and
-  indexers pick trading activity up.
+- Events: `orderbook.market_created`, `orderbook.order_placed`,
+  `orderbook.trade`, `orderbook.order_cancelled` with impacted addresses,
+  so explorers and indexers pick trading activity up.
 
 Prices are integers: **quote units per 1e8 base units** (`PRICE_SCALE`).
 The frontend converts human prices (e.g. `0.42 vUSDT per KOIN`) using each
@@ -61,9 +76,10 @@ token's on-chain `decimals`.
 
 Design properties worth knowing:
 
-- **No admin custody**: the contract has no withdrawal/sweep method. The
-  admin key can only create markets — escrow can only ever flow back to
-  traders through fills, cancels and refunds.
+- **No admin custody**: the contract has no withdrawal/sweep method.
+  Market creation is permissionless, and the admin key can only adjust a
+  market's minimum order size — escrow can only ever flow back to traders
+  through fills, cancels and refunds.
 - Matching is capped at 20 fills per transaction (mana bound). A huge taker
   order that crosses more than 20 resting orders fills the first 20 and the
   remainder rests (or is refunded for IOC).
@@ -97,7 +113,12 @@ Vite + React + TypeScript + Tailwind. Kondor for signing, `koilib` for
 everything chain-side, `lightweight-charts` for candlesticks. All amounts
 are handled as `BigInt` in the tokens' smallest units.
 
-- Market selector with last price for all pairs
+- Market selector with last price for all pairs, token tabs (plus "Other"
+  for pairs of non-curated tokens) and a "List a new pair" flow: pick or
+  paste both token addresses (live-probed for symbol/decimals), set the
+  minimum order size, see the estimated mana cost vs your available mana,
+  and sign with Kondor — the new pair appears for everyone without a
+  frontend rebuild, token metadata is discovered from the chain
 - Candlestick + volume chart (5m/15m/1h/4h/1d) built client-side from the
   contract's on-chain trade history, polled every 4 s
 - Orderbook with price-level aggregation, depth bars and click-to-fill
@@ -147,10 +168,17 @@ ORDERBOOK_ADDRESS=<address> npm run show-state   # sanity check
 ```
 
 > **The generated key is the contract.** The address becomes the DEX
-> contract id and the key is the admin key for `create_market`. Store the
-> WIF offline; do not reuse a personal wallet key. The key cannot touch
-> escrowed funds, but treat it carefully anyway — it can upload new
-> bytecode over the contract.
+> contract id and the key is the admin key for `set_min_base_amount`.
+> Store the WIF offline; do not reuse a personal wallet key. The key
+> cannot touch escrowed funds, but treat it carefully anyway — it can
+> upload new bytecode over the contract.
+
+**Upgrading an existing deployment**: re-running `npm run deploy` with the
+same WIF uploads the new bytecode (and registers the updated ABI) over the
+existing contract address. All state — markets, open orders, escrow, trade
+history — is preserved; only the code changes. Re-uploading costs far less
+mana than the script's worst-case estimate suggests (set `FORCE=1` to skip
+the preflight check).
 
 To use the Harbinger testnet first (recommended dry run):
 `KOINOS_NETWORK=harbinger`, fund the account from the faucet

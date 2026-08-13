@@ -6,6 +6,7 @@ import { TOKENS } from "../config/tokens";
 export function MarketSelector() {
   const markets = useStore((state) => state.markets);
   const selectMarket = useStore((state) => state.selectMarket);
+  const setListPairOpen = useStore((state) => state.setListPairOpen);
   const market = useSelectedMarket();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<string>("All");
@@ -36,16 +37,21 @@ export function MarketSelector() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // one tab per token that appears in at least one live market, TOKENS order
+  // one tab per curated token that appears in at least one live market
+  // (TOKENS order), plus "Other" for pairs of purely discovered tokens
   const tokenTabs = useMemo(() => {
     const present = new Set<string>();
     for (const entry of markets) {
       present.add(entry.base.symbol);
       present.add(entry.quote.symbol);
     }
-    return TOKENS.filter((token) => present.has(token.symbol)).map(
+    const tabs = TOKENS.filter((token) => present.has(token.symbol)).map(
       (token) => token.symbol
     );
+    const hasOther = markets.some(
+      (entry) => entry.base.dynamic && entry.quote.dynamic
+    );
+    return hasOther ? [...tabs, "Other"] : tabs;
   }, [markets]);
 
   const visible = useMemo(() => {
@@ -59,6 +65,12 @@ export function MarketSelector() {
       );
     }
     if (tab === "All") return markets;
+    if (tab === "Other") {
+      // pairs where neither side is one of the curated tokens
+      return markets.filter(
+        (entry) => entry.base.dynamic && entry.quote.dynamic
+      );
+    }
     const filtered = markets.filter(
       (entry) => entry.base.symbol === tab || entry.quote.symbol === tab
     );
@@ -191,6 +203,19 @@ export function MarketSelector() {
                 No pairs match
               </div>
             )}
+          </div>
+
+          {/* anyone can list a new pair — the creator pays the mana */}
+          <div className="shrink-0 border-t border-ink-700 p-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] lg:pb-2">
+            <button
+              onClick={() => {
+                setOpen(false);
+                setListPairOpen(true);
+              }}
+              className="w-full rounded-md border border-dashed border-ink-600 py-2 text-xs font-semibold text-ink-300 transition hover:border-accent hover:text-white"
+            >
+              + List a new pair
+            </button>
           </div>
         </div>
       )}

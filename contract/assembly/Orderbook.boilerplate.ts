@@ -17,6 +17,19 @@ export class Orderbook {
     return res;
   }
 
+  set_min_base_amount(
+    args: orderbook.set_min_base_amount_arguments
+  ): orderbook.set_min_base_amount_result {
+    // const market_id = args.market_id;
+    // const min_base_amount = args.min_base_amount;
+
+    // YOUR CODE HERE
+
+    const res = new orderbook.set_min_base_amount_result();
+
+    return res;
+  }
+
   place_order(
     args: orderbook.place_order_arguments
   ): orderbook.place_order_result {

@@ -3,6 +3,7 @@ import {
   Protobuf,
   authority,
   chain,
+  kcs4,
   Token,
   u128,
 } from "@koinos/sdk-as";
@@ -25,6 +26,14 @@ const MAX_FILLS_PER_TX: u32 = 20;
 
 // Per-market trade history ring buffer capacity
 const TRADE_RING_CAP: u32 = 2000;
+
+// KCS-4 decimals() entry point id (see @koinos/sdk-as Token)
+const TOKEN_DECIMALS_ENTRY: u32 = 0xee80fd2f;
+
+// Permissionless listings: cap the minimum order size at 1,000,000 whole
+// base tokens so a first-come listing cannot lock a pair behind an
+// impossible minimum (set_min_base_amount can still repair one)
+const MAX_MIN_BASE_WHOLE_TOKENS: u64 = 1000000;
 
 // Read limits
 const DEFAULT_BOOK_LIMIT: u32 = 50;
@@ -317,6 +326,35 @@ export class Orderbook {
     return field.uint64_value;
   }
 
+  /** account paying the mana of the current transaction */
+  private transactionPayer(): Uint8Array {
+    const field = System.getTransactionField("header.payer");
+    if (!field) return new Uint8Array(0);
+    return field.bytes_value;
+  }
+
+  /**
+   * decimals() of a token contract, failing the transaction with a clear
+   * message when the address does not answer like one. Rejects addresses
+   * with no contract, non-token contracts, and the retired system-locked
+   * token contracts (their calls fail with "cannot access system space").
+   */
+  private requireTokenDecimals(token: Uint8Array, label: string): u32 {
+    const callRes = System.call(token, TOKEN_DECIMALS_ENTRY, new Uint8Array(0));
+    System.require(
+      callRes.code == 0,
+      "orderbook: " +
+        label +
+        " token does not answer decimals() - not a live token contract"
+    );
+    const buffer = callRes.res.object;
+    if (!buffer) return 0;
+    return Protobuf.decode<kcs4.decimals_result>(
+      buffer,
+      kcs4.decimals_result.decode
+    ).value;
+  }
+
   private recordTrade(
     state: orderbook.global_state,
     market: orderbook.market_config,
@@ -374,12 +412,8 @@ export class Orderbook {
   create_market(
     args: orderbook.create_market_arguments
   ): orderbook.create_market_result {
-    // only the contract account itself may create markets
-    System.requireAuthority(
-      authority.authorization_type.contract_call,
-      this.contractId
-    );
-
+    // permissionless: anyone may list a new pair, paying the mana from
+    // their own transaction; the checks below keep junk listings out
     System.require(
       args.base_token != null && args.base_token!.length > 0,
       "orderbook: missing base token"
@@ -397,6 +431,22 @@ export class Orderbook {
     System.require(
       args.min_base_amount > 0,
       "orderbook: min_base_amount must be positive"
+    );
+
+    // both addresses must behave like live token contracts
+    const baseDecimals = this.requireTokenDecimals(baseToken, "base");
+    this.requireTokenDecimals(quoteToken, "quote");
+
+    // bound the minimum order size to 1,000,000 whole base tokens
+    let minCap: u64 = u64.MAX_VALUE;
+    if (baseDecimals < 13) {
+      let pow: u64 = 1;
+      for (let i: u32 = 0; i < baseDecimals; i++) pow *= 10;
+      minCap = MAX_MIN_BASE_WHOLE_TOKENS * pow;
+    }
+    System.require(
+      args.min_base_amount <= minCap,
+      "orderbook: min_base_amount exceeds 1,000,000 whole base tokens"
     );
 
     const state = this.getGlobalState();
@@ -432,9 +482,43 @@ export class Orderbook {
     this.saveMarket(market);
     this.saveGlobalState(state);
 
+    // announce the listing; the payer is the creator
+    const creator = this.transactionPayer();
+    const createdEvent = new orderbook.market_created_event();
+    createdEvent.market = market;
+    createdEvent.creator = creator;
+    const impacted: Uint8Array[] = [];
+    if (creator.length > 0) impacted.push(creator);
+    System.event(
+      "orderbook.market_created",
+      Protobuf.encode(createdEvent, orderbook.market_created_event.encode),
+      impacted
+    );
+
     const result = new orderbook.create_market_result();
     result.market_id = market.market_id;
     return result;
+  }
+
+  set_min_base_amount(
+    args: orderbook.set_min_base_amount_arguments
+  ): orderbook.set_min_base_amount_result {
+    // repair hatch for permissionless listings created with an unusable
+    // minimum: only the contract authority may adjust it
+    System.requireAuthority(
+      authority.authorization_type.contract_call,
+      this.contractId
+    );
+    System.require(
+      args.min_base_amount > 0,
+      "orderbook: min_base_amount must be positive"
+    );
+    const market = this.getMarket(args.market_id);
+    System.require(market != null, "orderbook: unknown market");
+    const mkt = market!;
+    mkt.min_base_amount = args.min_base_amount;
+    this.saveMarket(mkt);
+    return new orderbook.set_min_base_amount_result();
   }
 
   place_order(

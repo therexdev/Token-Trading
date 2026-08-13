@@ -62,7 +62,7 @@ message global_state {
 // Entry points
 // ---------------------------------------------------------------------------
 
-// @description Create a new trading market between two tokens (contract authority only)
+// @description Create a new trading market between two tokens. Permissionless: anyone may list a pair; the transaction payer covers the mana. Both addresses must answer decimals() like a live token contract
 // @read-only false
 // @result create_market_result
 message create_market_arguments {
@@ -73,6 +73,17 @@ message create_market_arguments {
 
 message create_market_result {
    uint32 market_id = 1;
+}
+
+// @description Adjust a market's minimum order size (contract authority only; repair hatch for unusable permissionless listings)
+// @read-only false
+// @result set_min_base_amount_result
+message set_min_base_amount_arguments {
+   uint32 market_id = 1;
+   uint64 min_base_amount = 2 [jstype = JS_STRING];
+}
+
+message set_min_base_amount_result {
 }
 
 // @description Place a limit order. Crossing orders are matched immediately with price-time priority; any remainder is escrowed on the book (GTC), refunded (IOC) or the call fails (POST_ONLY if it would cross)
@@ -175,6 +186,11 @@ message get_trades_result {
 // ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
+
+message market_created_event {
+   market_config market = 1;
+   bytes creator = 2 [(koinos.btype) = ADDRESS];
+}
 
 message order_placed_event {
    order_object order = 1;
