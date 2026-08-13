@@ -7,7 +7,7 @@ import {
   probeToken,
   type ProbedTokenMeta,
 } from "../lib/koinos";
-import { formatUnits, parseUnits, shortAddress } from "../lib/format";
+import { formatUnits, shortAddress } from "../lib/format";
 import type { TokenConfig } from "../config/tokens";
 import { RETIRED_ADDRESSES } from "../config/tokens";
 
@@ -15,9 +15,6 @@ const CUSTOM = "__custom__";
 
 // base58check account addresses (same alphabet Koinos uses)
 const ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{25,35}$/;
-
-// mirror of the contract-side ceiling on min_base_amount
-const MAX_MIN_WHOLE_TOKENS = 1_000_000;
 
 interface SideValue {
   address: string;
@@ -127,7 +124,6 @@ export function ListPairModal() {
   const [quoteProbed, setQuoteProbed] = useState<ProbedTokenMeta | null>(null);
   const [quoteProbeError, setQuoteProbeError] = useState<string | null>(null);
 
-  const [minStr, setMinStr] = useState("0.1");
   const [submitting, setSubmitting] = useState(false);
   const [availableMana, setAvailableMana] = useState<bigint | null>(null);
 
@@ -145,7 +141,6 @@ export function ListPairModal() {
     setQuoteCustom("");
     setQuoteProbed(null);
     setQuoteProbeError(null);
-    setMinStr("0.1");
     setSubmitting(false);
   }, [open]);
 
@@ -323,15 +318,6 @@ export function ListPairModal() {
     if (existingMarket)
       return `${existingMarket.base.symbol}/${existingMarket.quote.symbol} is already listed`;
     if (duplicateHidden) return "this pair already exists on the contract";
-    let minUnits: bigint;
-    try {
-      minUnits = parseUnits(minStr || "0", base.decimals);
-    } catch {
-      return "invalid minimum order size";
-    }
-    if (minUnits <= 0n) return "minimum order size must be positive";
-    if (minUnits > BigInt(MAX_MIN_WHOLE_TOKENS) * 10n ** BigInt(base.decimals))
-      return "minimum order size is too large";
     if (
       availableMana !== null &&
       account &&
@@ -344,7 +330,6 @@ export function ListPairModal() {
     quote,
     existingMarket,
     duplicateHidden,
-    minStr,
     availableMana,
     manaEstimate,
     account,
@@ -354,9 +339,11 @@ export function ListPairModal() {
 
   const submit = async () => {
     if (!base || !quote || validation) return;
-    const minUnits = parseUnits(minStr, base.decimals);
     setSubmitting(true);
-    await submitCreateMarket(base.address, quote.address, minUnits);
+    // no artificial minimum: the floor is one smallest unit of the base
+    // token (the contract separately rejects orders whose total value
+    // rounds to zero quote units)
+    await submitCreateMarket(base.address, quote.address, 1n);
     setSubmitting(false);
   };
 
@@ -406,23 +393,6 @@ export function ListPairModal() {
             probeError={quoteProbeError}
             excludeAddress={base?.address ?? null}
           />
-
-          <label className="block">
-            <div className="mb-1 text-[11px] uppercase tracking-wider text-ink-400">
-              Minimum order size{base ? ` (${base.symbol})` : ""}
-            </div>
-            <input
-              value={minStr}
-              onChange={(event) => setMinStr(event.target.value)}
-              inputMode="decimal"
-              placeholder="0.1"
-              className="w-full rounded-md border border-ink-600 bg-ink-850 px-3 py-2.5 font-mono text-base text-white outline-none transition focus:border-accent lg:py-2 lg:text-sm"
-            />
-            <div className="mt-1 text-[10px] leading-relaxed text-ink-500">
-              Orders below this size are rejected; it keeps the book free of
-              dust. 0.1 is a sensible default for most tokens.
-            </div>
-          </label>
 
           <div className="rounded-md border border-ink-700 bg-ink-850 px-3 py-2.5 text-[11px] leading-relaxed text-ink-400">
             <div className="flex justify-between">
@@ -497,9 +467,11 @@ export function ListPairModal() {
 
           <div className="text-[10px] leading-relaxed text-ink-500">
             Listings are permissionless and permanent: anyone can trade the
-            pair once it exists, and it cannot be delisted. Pairs between
-            unknown tokens appear under the "Other" tab — always verify token
-            addresses before trading.
+            pair once it exists, and it cannot be delisted. There is no
+            minimum order size — anything from one smallest unit of the base
+            token up trades, as long as its value doesn't round to zero.
+            Pairs between unknown tokens appear under the "Other" tab —
+            always verify token addresses before trading.
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@
     "generate-key": "node generate-key.js",
     "deploy": "node deploy-contract.js",
     "create-markets": "node create-markets.js",
+    "set-min": "node set-min.js",
     "show-state": "node show-state.js"
   },
   "overrides": {

@@ -2,10 +2,10 @@
 //
 //   KOINOS_WIF=<contract wif> [KOINOS_NETWORK=mainnet] npm run create-markets
 //
-// Reads each token's decimals on-chain and converts the human minimum order
-// size from config.js into base units.
+// Every market is created with the minimum order size set to one smallest
+// unit of the base token (no artificial minimum).
 
-import { Signer, Provider, Contract, utils } from "koilib";
+import { Signer, Provider, Contract } from "koilib";
 import { RPC_URLS, TOKENS, MARKETS, getNetwork, requireWif } from "./config.js";
 import { loadOrderbookAbi } from "./abi-utils.js";
 
@@ -24,26 +24,12 @@ async function main() {
     signer,
   });
 
-  // look up decimals for every token once
-  const decimals = {};
-  for (const [symbol, token] of Object.entries(tokens)) {
-    if (!token.address) continue;
-    const tokenContract = new Contract({
-      id: token.address,
-      abi: utils.tokenAbi,
-      provider,
-    });
-    const { result } = await tokenContract.functions.decimals();
-    decimals[symbol] = Number(result.value);
-    console.log(`${symbol} (${token.address}): ${decimals[symbol]} decimals`);
-  }
-
   const { result: existing } = await orderbook.functions.get_markets({});
   const existingPairs = new Set(
     (existing?.markets || []).map((m) => `${m.baseToken}/${m.quoteToken}`)
   );
 
-  for (const [baseSymbol, quoteSymbol, minBaseHuman] of MARKETS) {
+  for (const [baseSymbol, quoteSymbol] of MARKETS) {
     const base = tokens[baseSymbol];
     const quote = tokens[quoteSymbol];
     if (!base?.address || !quote?.address) {
@@ -58,10 +44,8 @@ async function main() {
       continue;
     }
 
-    const minBaseAmount = utils.parseUnits(minBaseHuman, decimals[baseSymbol]);
-    console.log(
-      `creating ${baseSymbol}/${quoteSymbol} (min order ${minBaseHuman} ${baseSymbol} = ${minBaseAmount})...`
-    );
+    const minBaseAmount = "1"; // one smallest unit of the base token
+    console.log(`creating ${baseSymbol}/${quoteSymbol}...`);
     // market creation is a tiny transaction: ask for a small rc limit so the
     // mempool never sees us requesting the account's whole mana allowance
     // (which collides with reservations from just-submitted transactions)

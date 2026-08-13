@@ -59,10 +59,13 @@ docs/       Screenshots and assets
   (the UI shows an estimate first). Both addresses must answer `decimals()`
   like a live token contract — which also rejects the retired system-locked
   KOIN/VHP contracts — duplicate pairs are rejected in either direction, and
-  the minimum order size is capped at 1,000,000 whole base tokens.
+  the minimum order size is capped at 1,000,000 whole base tokens. The app
+  and scripts always list with the minimum at **one smallest unit** of the
+  base token — there is no artificial minimum; the order-value-rounds-to-zero
+  check below is the effective dust floor.
 - `set_min_base_amount(marketId, minBaseAmount)` — admin only (signature of
-  the contract account itself): repair hatch for a permissionless listing
-  created with an unusable minimum order size.
+  the contract account itself): repair hatch for a market created directly
+  (not through the app) with an unusable minimum (`npm run set-min`).
 - Read methods: `get_markets`, `get_orderbook`, `get_order`,
   `get_user_orders`, `get_trades` (per-market ring buffer of the last 2000
   trades — this is what the charts are built from).
@@ -86,8 +89,9 @@ Design properties worth knowing:
 - Buy-order escrow is rounded up; any rounding dust is refunded when the
   order closes. Maker remainders too small to be worth 1 quote unit are
   closed and refunded instead of being traded for nothing.
-- Remainders below the market's minimum order size are refunded rather than
-  left as dust on the book.
+- Markets are listed with the minimum order size at one smallest base unit,
+  so there is no artificial minimum; remainders below a market's configured
+  minimum (if any) are refunded rather than left as dust on the book.
 - Zero trading fees in this version.
 - Self-trading is not blocked: your taker order can fill your own resting
   order (tokens simply return to you).
@@ -115,10 +119,10 @@ are handled as `BigInt` in the tokens' smallest units.
 
 - Market selector with last price for all pairs, token tabs (plus "Other"
   for pairs of non-curated tokens) and a "List a new pair" flow: pick or
-  paste both token addresses (live-probed for symbol/decimals), set the
-  minimum order size, see the estimated mana cost vs your available mana,
-  and sign with Kondor — the new pair appears for everyone without a
-  frontend rebuild, token metadata is discovered from the chain
+  paste both token addresses (live-probed for symbol/decimals), see the
+  estimated mana cost vs your available mana, and sign with Kondor — the
+  new pair appears for everyone without a frontend rebuild, token metadata
+  is discovered from the chain
 - Candlestick + volume chart (5m/15m/1h/4h/1d) built client-side from the
   contract's on-chain trade history, polled every 4 s
 - Orderbook with price-level aggregation, depth bars and click-to-fill

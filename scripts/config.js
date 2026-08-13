@@ -55,20 +55,22 @@ export const TOKENS = {
   },
 };
 
-// Markets to ensure exist: [base, quote, minimum order size in whole base
-// tokens]. Prices are quoted in the quote token per base token. Re-running
-// create-markets is safe — pairs that already exist on-chain are skipped.
+// Markets to ensure exist: [base, quote]. Prices are quoted in the quote
+// token per base token. Every market is created with the minimum order size
+// set to one smallest unit of the base token — there is no artificial
+// minimum; the contract rejects orders whose value rounds to zero anyway.
+// Re-running create-markets is safe — pairs that already exist are skipped.
 export const MARKETS = [
-  ["KOIN", "vUSDT", "0.1"],
-  ["KOIN", "vUSDC", "0.1"],
-  ["KOIN", "vETH", "0.1"],
-  ["VHP", "KOIN", "0.1"],
-  ["VHP", "vUSDT", "0.1"],
-  ["VHP", "vUSDC", "0.1"],
-  ["VHP", "vETH", "0.1"],
-  ["vETH", "vUSDT", "0.0001"],
-  ["vETH", "vUSDC", "0.0001"],
-  ["vUSDT", "vUSDC", "0.1"],
+  ["KOIN", "vUSDT"],
+  ["KOIN", "vUSDC"],
+  ["KOIN", "vETH"],
+  ["VHP", "KOIN"],
+  ["VHP", "vUSDT"],
+  ["VHP", "vUSDC"],
+  ["VHP", "vETH"],
+  ["vETH", "vUSDT"],
+  ["vETH", "vUSDC"],
+  ["vUSDT", "vUSDC"],
 ];
 
 export function getNetwork() {
