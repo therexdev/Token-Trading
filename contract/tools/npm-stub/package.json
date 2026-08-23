@@ -1,0 +1,8 @@
+{
+  "name": "npm",
+  "version": "8.19.4",
+  "description": "Placeholder for the npm CLI: somap declares npm as a runtime dependency by mistake and never requires it. See README.md.",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true
+}

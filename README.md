@@ -315,9 +315,10 @@ cd ../frontend && npm run sync-abi
 - `contract/` uses `@koinos/sdk-as` 1.4.0 (AssemblyScript 0.27). Storage
   spaces: markets, orders by id, book index (market+side+price+seq for
   price-time iteration), per-user order index, trade ring buffers.
-- `koilib` must resolve `protobufjs@7.4.0` — newer protobufjs releases
-  break koilib's descriptor loading, which is why both `frontend/` and
-  `scripts/` pin it via `overrides`.
+- `koilib` must stay on the protobufjs 7 line — protobufjs 8 is outside the
+  range koilib declares — so both `frontend/` and `scripts/` pin
+  `protobufjs: ^7.6.5` via `overrides`. Keep the floor at 7.6.5: everything
+  at or below 7.6.2 carries a critical arbitrary-code-execution advisory.
 - The generated koilib ABI (`orderbook-abi.json`) uses camelCase field
   names (`marketId`, `minBaseAmount`, …) — that's what all koilib
   calls/results use.
@@ -332,3 +333,33 @@ rounding, price-time priority, authority checks), but it has **not been
 audited or battle-tested on mainnet**. Do a Harbinger dry run, start with
 small minimum markets, and consider an audit before promoting the site
 widely.
+
+### Dependency security
+
+`npm audit` is clean in `frontend/` and `scripts/`. Both pin
+`protobufjs: ^7.6.5` through `overrides`, and `frontend/` runs Vite 7 with
+`@vitejs/plugin-react` 5 (Vite 5 pinned an esbuild with a dev-server
+advisory).
+
+`contract/` is dev-only tooling — nothing here is bundled into the
+deployed site or the wasm — and it inherits a large tree from
+`@koinos/sdk-as` 1.4.0. Three `overrides` clear the bulk of it:
+
+| override | why |
+| --- | --- |
+| `glob-promise: ^6.0.7` | v5 dragged in `npm-install-peers`, which vendored the npm 6 CLI |
+| `lodash: ^4.18.1` | prototype pollution / `_.template` code injection, reached via `chevrotain` |
+| `npm: file:../../tools/npm-stub` | `somap` declares the npm CLI as a dependency by mistake and never requires it — see [`contract/tools/npm-stub`](contract/tools/npm-stub/README.md) |
+
+That takes `contract/` from 63 advisories to 4, all of which are the same
+root cause: **`protobufjs` is pinned at 6.11.6** by
+`@koinos/abi-proto-gen@1.0.0`, which requires `protobufjs/cli/pbjs` — a path
+that only exists in protobufjs 6. It is a build-time dependency that only
+ever parses this repository's own `assembly/proto/orderbook.proto`, so the
+advisories (all of which need attacker-controlled `.proto` or JSON
+descriptor input) are not reachable here.
+
+Upgrading it means moving to `@koinos/abi-proto-gen@1.0.2`, which emits the
+ABI with different field casing (`marketId` → `market_id`, `entryPoint` →
+`entry_point`). That would require reworking the frontend's koilib calls and
+re-registering the ABI on-chain, so it is deliberately left alone.

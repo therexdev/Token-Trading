@@ -14,5 +14,10 @@
     "build:debug": "node build.js debug",
     "build:release": "node build.js release",
     "build:cli": "koinos-sdk-as-cli build-all release 0 orderbook.proto"
+  },
+  "overrides": {
+    "npm": "file:../../tools/npm-stub",
+    "glob-promise": "^6.0.7",
+    "lodash": "^4.18.1"
   }
 }
