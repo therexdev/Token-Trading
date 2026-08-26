@@ -5,7 +5,7 @@
   "description": "Trade Koinos — orderbook DEX frontend plus the Google sign-in bridge (app.tradekoinos.com)",
   "main": "server/server.js",
   "scripts": {
-    "build": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build",
+    "build": "node build-site.js",
     "start": "node server/server.js",
     "dev": "node server/server.js",
     "postinstall": "npm run build"
