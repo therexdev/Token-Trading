@@ -9,3 +9,9 @@ build/
 # delivery zip for the landing site
 *.zip
 *.zip
+
+# deploy artifacts build-site.js writes at the repo root
+/index.html
+/assets/
+/favicon.svg
+/.htaccess

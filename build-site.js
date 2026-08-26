@@ -43,13 +43,36 @@ console.log('build-site: building the trading UI...');
 run('npm run build', frontend);
 
 const built = path.join(frontend, 'dist');
+if (!fs.existsSync(path.join(built, 'index.html'))) {
+  console.error('build-site: frontend build produced no index.html — refusing to call this a build');
+  process.exit(1);
+}
+
+/* Publish the site to EVERY location a host might serve from, so the deploy
+   works no matter how the pipeline is configured:
+
+     frontend/dist/  what server/server.js serves (Node app running)
+     dist/           for publishers with an "output directory" setting
+     repo root       for publishers that copy the app folder itself into the
+                     web root (Hostinger's git deploy does this) — index.html
+                     must sit at that root or the domain 404s
+
+   The root copy means that even with NO app configuration at all — no entry
+   file, no output directory, Node not running — LiteSpeed still finds
+   index.html and serves the site statically. */
 const out = path.join(root, 'dist');
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(built, out, { recursive: true });
 
-const files = fs.readdirSync(out);
-if (!files.includes('index.html')) {
-  console.error('build-site: dist/ has no index.html — refusing to call this a build');
-  process.exit(1);
+fs.rmSync(path.join(root, 'assets'), { recursive: true, force: true });
+for (const entry of fs.readdirSync(built)) {
+  fs.cpSync(path.join(built, entry), path.join(root, entry), { recursive: true, force: true });
 }
-console.log(`build-site: done — dist/ ready to publish (${files.join(', ')})`);
+
+for (const spot of [out, root]) {
+  if (!fs.existsSync(path.join(spot, 'index.html'))) {
+    console.error(`build-site: no index.html at ${spot} — refusing to call this a build`);
+    process.exit(1);
+  }
+}
+console.log(`build-site: done — site published to repo root, dist/ and frontend/dist (${fs.readdirSync(built).join(', ')})`);
