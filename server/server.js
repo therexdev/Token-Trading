@@ -6,7 +6,7 @@
    no server at all (that is how trade.koinoskit.site is deployed over FTP).
    This process exists for one extra capability: Google sign-in, which needs
    a server-side hop because the browser cannot make the call itself —
-   aurvania.quest rejects unfamiliar User-Agents, and browsers cannot set
+   aurvania.com rejects unfamiliar User-Agents, and browsers cannot set
    one.
 
    So the frontend feature-detects: it asks /api/config, and only shows the
@@ -32,7 +32,7 @@ const CFG = {
   /* Aurvania's Google client id. Leave unset to inherit it at boot — the ID
      token must carry Aurvania's `aud` or it is rejected downstream. */
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-  aurvaniaApi: (process.env.AURVANIA_API || 'https://aurvania.quest').replace(/\/+$/, ''),
+  aurvaniaApi: (process.env.AURVANIA_API || 'https://aurvania.com').replace(/\/+$/, ''),
   /* Hostinger terminates TLS in front of the app, so the client IP arrives
      in X-Forwarded-For. Count the hops you actually trust; 0 disables the
      header entirely so nobody can spoof their way past the rate limiter. */

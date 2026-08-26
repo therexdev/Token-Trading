@@ -155,7 +155,7 @@ files. The key never leaves the extension; the app receives signatures.
 and OURO. That shared address is not a derivation anyone can recompute: it
 comes from Aurvania's account store, which holds the encrypted key and
 releases it on a verified login. `server/` forwards the Google ID token to
-`aurvania.quest/api/account` and passes the answer back to the browser.
+`aurvania.com/api/account` and passes the answer back to the browser.
 
 The hop through `server/` is not optional — the browser cannot make that call
 itself, because Aurvania rejects unfamiliar User-Agents and a browser cannot

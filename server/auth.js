@@ -6,7 +6,7 @@
    we could reproduce locally — it comes from Aurvania's account store, which
    holds the encrypted key and releases the WIF on a verified login. So this
    module is a thin, stateless bridge: it forwards the Google ID token to
-   aurvania.quest/api/account and hands back whatever wallet Aurvania says
+   aurvania.com/api/account and hands back whatever wallet Aurvania says
    that identity owns.
 
    Consequences worth keeping in mind when editing:
@@ -24,8 +24,8 @@
 function createAuth(cfg) {
   const {
     googleClientId = '',
-    aurvaniaApi = 'https://aurvania.quest',
-    // aurvania.quest's host 403s unfamiliar User-Agents, so the bridge
+    aurvaniaApi = 'https://aurvania.com',
+    // aurvania.com's host 403s unfamiliar User-Agents, so the bridge
     // speaks with a curl-like identity (the pattern OURO and the Discover
     // Koinos gateway already ship).
     bridgeUa = 'curl/8.5.0 (Trade-Koinos)',
