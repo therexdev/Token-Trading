@@ -20,6 +20,18 @@ import {
   marketFromHash,
   writeMarketHash,
 } from "../lib/marketLink";
+import {
+  adoptWif,
+  clearSessionKey,
+  getSessionLabel,
+  sessionAddress,
+  setSessionLabel,
+} from "../lib/sessionKey";
+import {
+  fetchAuthConfig,
+  loginWithGoogle,
+  type AuthConfig,
+} from "../lib/authApi";
 
 export interface Toast {
   id: number;
@@ -34,6 +46,12 @@ interface AppState {
   initError: string | null;
 
   account: string | null;
+  /** how the current account signs — Kondor extension, or a Google session key */
+  authMethod: AuthMethod;
+  /** email label for a Google session, shown on the account button */
+  authLabel: string | null;
+  /** null until probed; google stays false wherever there is no server */
+  authConfig: AuthConfig | null;
   connecting: boolean;
   /** accounts Kondor shared, pending the user's pick (null = no picker open) */
   accountChoices: KondorAccount[] | null;
@@ -58,6 +76,7 @@ interface AppState {
 
   init: () => Promise<void>;
   connect: () => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   chooseAccount: (address: string) => void;
   dismissAccountChoices: () => void;
   disconnect: () => void;
@@ -79,16 +98,54 @@ interface AppState {
 }
 
 let toastCounter = 1;
+export type AuthMethod = "kondor" | "google" | null;
 const STORAGE_ACCOUNT = "koinoskit-trade:account";
+const STORAGE_METHOD = "koinoskit-trade:auth-method";
 // bumped to v2 so any stale saved selection is dropped and the app lands on
 // the KOIN/vUSDT default
 const STORAGE_MARKET = "koinoskit-trade:market:v2";
+
+/**
+ * What survives a reload.
+ *
+ * A Kondor account is only an address — the extension still holds the key, so
+ * remembering it across sessions costs nothing. A Google account is different:
+ * its key lives in this tab and dies with it, so it is only restored while
+ * that session key is still here. A new tab starts signed out rather than
+ * showing an account that cannot sign.
+ */
+function restoreSession(): {
+  account: string | null;
+  authMethod: AuthMethod;
+  authLabel: string | null;
+} {
+  const saved = localStorage.getItem(STORAGE_ACCOUNT);
+  const method = localStorage.getItem(STORAGE_METHOD) as AuthMethod;
+
+  if (method === "google") {
+    const live = sessionAddress();
+    if (!live || (saved && live !== saved)) {
+      localStorage.removeItem(STORAGE_ACCOUNT);
+      localStorage.removeItem(STORAGE_METHOD);
+      clearSessionKey();
+      return { account: null, authMethod: null, authLabel: null };
+    }
+    return { account: live, authMethod: "google", authLabel: getSessionLabel() };
+  }
+
+  return { account: saved, authMethod: saved ? "kondor" : null, authLabel: null };
+}
+
+const restored = restoreSession();
 
 export const useStore = create<AppState>((set, get) => ({
   initialized: false,
   initError: null,
 
-  account: localStorage.getItem(STORAGE_ACCOUNT),
+  account: restored.account,
+  authMethod: restored.authMethod,
+  authLabel: restored.authLabel,
+  authConfig: null,
   connecting: false,
   accountChoices: null,
   balances: {},
@@ -109,6 +166,10 @@ export const useStore = create<AppState>((set, get) => ({
   listPairOpen: false,
 
   init: async () => {
+    // probe the sign-in bridge alongside the chain reads rather than before
+    // them: served as flat files there is no /api/config to answer, and the
+    // orderbook must not wait on that finding out
+    void fetchAuthConfig().then((authConfig) => set({ authConfig }));
     try {
       // correct static decimals with the on-chain values before anything else
       const decimals = await fetchTokenDecimals();
@@ -202,13 +263,64 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  signInWithGoogle: async (idToken: string) => {
+    set({ connecting: true });
+    try {
+      const result = await loginWithGoogle(idToken);
+      // derive the address from the key itself rather than trusting the
+      // server's word: if the two disagree the key is not what was claimed
+      const address = adoptWif(result.wif);
+      if (address !== result.address) {
+        clearSessionKey();
+        throw new Error(
+          "The signed-in wallet did not match its key — sign-in refused"
+        );
+      }
+      setSessionLabel(result.label);
+      localStorage.setItem(STORAGE_ACCOUNT, address);
+      localStorage.setItem(STORAGE_METHOD, "google");
+      if (get().account !== address) set({ balances: {}, myOrders: [] });
+      set({
+        account: address,
+        authMethod: "google",
+        authLabel: result.label,
+        accountChoices: null,
+        connecting: false,
+      });
+      get().pushToast({
+        kind: "success",
+        title: result.created ? "Wallet created" : "Signed in",
+        detail: `${result.label} · ${address}`,
+      });
+      void get().refreshUser();
+    } catch (error: any) {
+      clearSessionKey();
+      set({ connecting: false });
+      get().pushToast({
+        kind: "error",
+        title: "Google sign-in failed",
+        detail: error?.message || String(error),
+      });
+    }
+  },
+
   chooseAccount: (address: string) => {
+    // picking a Kondor account replaces any Google session outright — the
+    // held key must not outlive the account it belongs to
+    clearSessionKey();
     localStorage.setItem(STORAGE_ACCOUNT, address);
+    localStorage.setItem(STORAGE_METHOD, "kondor");
     if (get().account !== address) {
       // drop the previous account's data so it never shows under the new one
       set({ balances: {}, myOrders: [] });
     }
-    set({ account: address, accountChoices: null, connecting: false });
+    set({
+      account: address,
+      authMethod: "kondor",
+      authLabel: null,
+      accountChoices: null,
+      connecting: false,
+    });
     void get().refreshUser();
   },
 
@@ -216,7 +328,17 @@ export const useStore = create<AppState>((set, get) => ({
 
   disconnect: () => {
     localStorage.removeItem(STORAGE_ACCOUNT);
-    set({ account: null, balances: {}, myOrders: [], accountChoices: null });
+    localStorage.removeItem(STORAGE_METHOD);
+    // the whole point of signing out is that the key stops being usable
+    clearSessionKey();
+    set({
+      account: null,
+      authMethod: null,
+      authLabel: null,
+      balances: {},
+      myOrders: [],
+      accountChoices: null,
+    });
   },
 
   selectMarket: (marketId: number) => {

@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useStore, useSelectedMarket } from "../store/useStore";
 import { NETWORK } from "../config/tokens";
 import { formatUnits, shortAddress } from "../lib/format";
 import { isKondorAvailable } from "../lib/koinos";
+import { ConnectModal } from "./ConnectModal";
 
 export function Header() {
   const account = useStore((state) => state.account);
@@ -11,7 +12,19 @@ export function Header() {
   const disconnect = useStore((state) => state.disconnect);
   const balances = useStore((state) => state.balances);
   const tokens = useStore((state) => state.tokens);
+  const authConfig = useStore((state) => state.authConfig);
+  const authMethod = useStore((state) => state.authMethod);
+  const authLabel = useStore((state) => state.authLabel);
   const market = useSelectedMarket();
+  const [connectOpen, setConnectOpen] = useState(false);
+
+  // with a sign-in bridge behind the app there is a choice to offer; served
+  // as flat files there is only Kondor, so skip the modal and go straight
+  // there exactly as before
+  const startConnect = useCallback(() => {
+    if (authConfig?.google) setConnectOpen(true);
+    else void connect();
+  }, [authConfig?.google, connect]);
 
   // the balance strip shows the curated tokens, plus whichever discovered
   // tokens the selected market trades
@@ -24,6 +37,8 @@ export function Header() {
   }, [tokens, market]);
 
   return (
+    <>
+    {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
     <header className="flex shrink-0 items-center gap-3 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:gap-4 lg:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0">
@@ -68,12 +83,24 @@ export function Header() {
       {account ? (
         <div className="flex items-center gap-1.5">
           <button
-            onClick={connect}
+            onClick={startConnect}
             disabled={connecting}
-            title="Switch account"
-            className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 lg:py-1.5"
+            title={
+              authMethod === "google"
+                ? `${authLabel ?? "Google account"} · ${account} — switch account`
+                : "Switch account"
+            }
+            className="flex max-w-[13rem] items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 lg:py-1.5"
           >
-            {connecting ? "Connecting…" : shortAddress(account)}
+            {connecting ? (
+              "Connecting…"
+            ) : authMethod === "google" ? (
+              <span className="truncate font-sans">
+                {authLabel ?? "Google account"}
+              </span>
+            ) : (
+              shortAddress(account)
+            )}
             {!connecting && (
               <svg
                 viewBox="0 0 16 16"
@@ -105,6 +132,16 @@ export function Header() {
             </svg>
           </button>
         </div>
+      ) : authConfig?.google ? (
+        // Google works without the extension, so the entry point stops being
+        // Kondor-specific once the bridge is live
+        <button
+          onClick={startConnect}
+          disabled={connecting}
+          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 lg:py-1.5"
+        >
+          {connecting ? "Connecting…" : "Sign in"}
+        </button>
       ) : isKondorAvailable() ? (
         <button
           onClick={connect}
@@ -124,5 +161,6 @@ export function Header() {
         </a>
       )}
     </header>
+    </>
   );
 }

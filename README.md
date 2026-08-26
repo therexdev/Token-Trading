@@ -41,9 +41,14 @@ The curated tokens:
 ```
 contract/   AssemblyScript smart contract (matching engine + escrow)
 frontend/   React trading UI (Vite + Tailwind + lightweight-charts + koilib/kondor)
+server/     Node host for app.tradekoinos.com — serves the build, bridges Google sign-in
 scripts/    Deployment & admin scripts (deploy, create markets, inspect state)
 docs/       Screenshots and assets
 ```
+
+The UI runs either way: as flat files with Kondor alone (trade.koinoskit.site,
+uploaded over FTP), or behind `server/`, which adds Google sign-in. See
+[Sign-in](#sign-in).
 
 ## How it works
 
@@ -138,6 +143,68 @@ are handled as `BigInt` in the tokens' smallest units.
 - Open orders (cancel from the table) and personal fill history
 - 24h stats (change, high/low, volumes) computed from on-chain trades
 - Transaction toasts with links to koinosblocks.com
+
+## Sign-in
+
+Two ways in, and the app adapts to whichever is available:
+
+**Kondor** — the default, and the only option when the app is served as flat
+files. The key never leaves the extension; the app receives signatures.
+
+**Google** — the same Koinos wallet a Google account already has on Aurvania
+and OURO. That shared address is not a derivation anyone can recompute: it
+comes from Aurvania's account store, which holds the encrypted key and
+releases it on a verified login. `server/` forwards the Google ID token to
+`aurvania.quest/api/account` and passes the answer back to the browser.
+
+The hop through `server/` is not optional — the browser cannot make that call
+itself, because Aurvania rejects unfamiliar User-Agents and a browser cannot
+set one. So Google sign-in only exists where this Node app is running. The UI
+asks `/api/config` at boot and hides the button when nothing answers, which is
+why the FTP deployment stays Kondor-only with no build flag to remember.
+
+`server/` custodies nothing. It has no key store, no database, and no runtime
+dependencies — Node builtins only. The WIF passes through in memory on its way
+to the browser and is never logged or written to disk.
+
+### The key in the browser
+
+A Google sign-in hands the tab a real private key, so from that moment the
+page can move funds on its own. That is a different risk from the Discover
+Koinos gateway, where the same flow guards a free NFT — here the key controls
+balances and anything escrowed in the orderbook.
+
+So a Google session is deliberately shorter-lived than the gateway's:
+`frontend/src/lib/sessionKey.ts` keeps the key in memory, mirrored to
+**sessionStorage**, never localStorage. A refresh keeps you signed in; closing
+the tab ends the session and leaves nothing on disk. Signing back in is one
+Google popup, and it is the same wallet every time.
+
+Two more guards worth knowing about before changing that file:
+
+- `signInWithGoogle` derives the address from the key itself and refuses the
+  sign-in if it disagrees with the address the server reported.
+- `getSignerFor` picks a signer by matching the address, not by reading a
+  stored flag, so a stale session key can never sign for a Kondor account.
+
+Kondor remains the stronger option, and is what to recommend to anyone holding
+size.
+
+### Running it
+
+```bash
+npm install          # also builds frontend/dist via postinstall
+npm start            # serves the build on $PORT (default 3000)
+```
+
+On Hostinger, deploy the repository as a Node app (startup file
+`server/server.js`) and set the variables in `.env.example` — at minimum
+`TRUST_PROXY_HOPS=1` and `VITE_ORDERBOOK_ADDRESS`. `GOOGLE_CLIENT_ID` can stay
+empty: the server inherits Aurvania's client id at boot, and logs which of the
+two it ended up using.
+
+If Google sign-in is off, the boot log says why. The usual cause is Aurvania
+being unreachable at start-up, which is a restart away from fixed.
 
 ## Deployment guide
 

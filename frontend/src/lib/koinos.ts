@@ -16,6 +16,7 @@ import {
   type TradeInfo,
 } from "./types";
 import { parseUnits } from "./format";
+import { getSessionSigner } from "./sessionKey";
 
 export const provider = new Provider([RPC_URL]);
 
@@ -59,6 +60,19 @@ export async function connectKondor(): Promise<KondorAccount[]> {
 
 export function getKondorSigner(address: string): SignerInterface {
   return kondor.getSigner(address) as unknown as SignerInterface;
+}
+
+/**
+ * The signer for `address`, whichever way the user signed in.
+ *
+ * A Google session holds the key in this tab, so it signs locally; everything
+ * else goes to Kondor. Matching on the address rather than a stored flag means
+ * a stale session key can never sign for a Kondor account, or the reverse.
+ */
+export function getSignerFor(address: string): SignerInterface {
+  const session = getSessionSigner();
+  if (session && session.getAddress() === address) return session;
+  return getKondorSigner(address);
 }
 
 // ---------------------------------------------------------------------------
@@ -441,7 +455,7 @@ async function sendOperations(
   owner: string,
   operations: { pushTo: (tx: Transaction) => Promise<void> }[]
 ): Promise<TxHandle> {
-  const signer = getKondorSigner(owner);
+  const signer = getSignerFor(owner);
   // request a modest rc limit instead of koilib's default (the account's
   // entire mana): the mempool reserves the full limit until a transaction
   // is included, which made a second order submitted right away fail with
