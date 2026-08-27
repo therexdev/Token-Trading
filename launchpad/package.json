@@ -1,0 +1,25 @@
+{
+  "name": "koinos-launchpad-contract",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Token launchpad contract for the Koinos blockchain (fixed-price and pro-rata sales, caps, locks, batched distribution)",
+  "private": true,
+  "devDependencies": {
+    "@koinos/sdk-as": "1.4.0",
+    "binaryen": "^131.0.0",
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "build": "node build.js release",
+    "build:debug": "node build.js debug",
+    "build:release": "node build.js release"
+  },
+  "overrides": {
+    "@koinos/abi-proto-gen": "^1.0.2",
+    "protobufjs": "^8.7.2",
+    "protobufjs-cli": "^2.6.2",
+    "npm": "file:../../tools/npm-stub",
+    "glob-promise": "^6.0.7",
+    "lodash": "^4.18.1"
+  }
+}

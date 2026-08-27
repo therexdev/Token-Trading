@@ -1,0 +1,255 @@
+syntax = "proto3";
+
+package launchpad;
+
+import "koinos/options.proto";
+
+// ---------------------------------------------------------------------------
+// Token launchpad
+//
+// A creator escrows tokens and opens a timed sale priced in KOIN. Two modes:
+//
+//   mode 0 (FIXED)  - a flat KOIN price per token; first come, first served
+//                     until the for-sale amount runs out (a sold-out sale can
+//                     finalize before its end time).
+//   mode 1 (POOL)   - buyers deposit KOIN for the whole window; at the end the
+//                     for-sale tokens are split pro-rata by each buyer's share
+//                     of the total KOIN raised. Oversubscription dilutes
+//                     everyone instead of closing the door.
+//
+// Caps are in KOIN units: a launch that ends below its soft cap is CANCELED -
+// every buyer's KOIN is refunded and all tokens return to the creator. The
+// hard cap bounds how much KOIN a POOL sale accepts (FIXED sales are bounded
+// by selling out, and store their full-sale cost as the hard cap for display).
+//
+// On success the raised KOIN goes to the creator in full (no platform fee),
+// unsold tokens are returned or burned per the launch's unsold_action, and
+// payouts/refunds run in bounded batches (process) so a launch with any
+// number of buyers can always be settled. locked_amount stays escrowed until
+// unlock_time and is then delivered to the creator by claim_locked.
+//
+// All timestamps are block timestamps: milliseconds since the Unix epoch.
+// All KOIN amounts are in satoshi units (1e8 = 1 KOIN); token amounts are in
+// the token's own base units.
+// ---------------------------------------------------------------------------
+
+// Storage / domain objects
+// ---------------------------------------------------------------------------
+
+message launch_object {
+   uint32 id = 1;
+   bytes creator = 2 [(koinos.btype) = ADDRESS];
+   bytes token = 3 [(koinos.btype) = CONTRACT_ID];
+   // 0 = FIXED (flat price), 1 = POOL (pro-rata split)
+   uint32 mode = 4;
+   // FIXED only: KOIN units per 100,000,000 (1e8) token base units
+   uint64 price = 5 [jstype = JS_STRING];
+   uint64 for_sale_amount = 6 [jstype = JS_STRING];
+   uint64 locked_amount = 7 [jstype = JS_STRING];
+   uint64 unlock_time = 8 [jstype = JS_STRING];
+   uint64 start_time = 9 [jstype = JS_STRING];
+   uint64 end_time = 10 [jstype = JS_STRING];
+   // KOIN units; 0 = no soft cap
+   uint64 soft_cap = 11 [jstype = JS_STRING];
+   // KOIN units; POOL: 0 = uncapped; FIXED: computed full-sale cost
+   uint64 hard_cap = 12 [jstype = JS_STRING];
+   // 0 = return unsold/dust to creator, 1 = burn (falls back to return
+   // when the token contract does not support burning)
+   uint32 unsold_action = 13;
+   // 0 ACTIVE, 1 DISTRIBUTING, 2 COMPLETED, 3 REFUNDING, 4 CANCELED
+   uint32 status = 14;
+   uint64 raised = 15 [jstype = JS_STRING];
+   // FIXED: token units sold so far
+   uint64 sold = 16 [jstype = JS_STRING];
+   uint32 buyer_count = 17;
+   // batch progress: next buyer index to pay out / refund
+   uint32 cursor = 18;
+   // token units delivered to buyers so far
+   uint64 distributed = 19 [jstype = JS_STRING];
+   // KOIN units refunded so far (canceled launches)
+   uint64 refunded = 20 [jstype = JS_STRING];
+   bool locked_claimed = 21;
+   uint64 created_at = 22 [jstype = JS_STRING];
+}
+
+message contribution_object {
+   uint32 launch_id = 1;
+   bytes buyer = 2 [(koinos.btype) = ADDRESS];
+   // total KOIN this buyer has put in
+   uint64 koin = 3 [jstype = JS_STRING];
+   // FIXED: token units purchased (known at buy time); POOL: 0 until settled
+   uint64 tokens = 4 [jstype = JS_STRING];
+   // set once the buyer has been paid out (or refunded)
+   bool settled = 5;
+   // position in the launch's buyer index (batch order)
+   uint32 seq = 6;
+}
+
+message global_state {
+   uint32 next_launch_id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Entry points
+// ---------------------------------------------------------------------------
+
+// @description Create a launch. The creator escrows for_sale_amount + locked_amount of the token in this call (creator authority required). FIXED mode needs a positive price; POOL mode a zero price. A launch below its soft cap at the end is canceled and refunded.
+// @read-only false
+// @result create_launch_result
+message create_launch_arguments {
+   bytes creator = 1 [(koinos.btype) = ADDRESS];
+   bytes token = 2 [(koinos.btype) = CONTRACT_ID];
+   uint32 mode = 3;
+   uint64 price = 4 [jstype = JS_STRING];
+   uint64 for_sale_amount = 5 [jstype = JS_STRING];
+   uint64 locked_amount = 6 [jstype = JS_STRING];
+   uint64 unlock_time = 7 [jstype = JS_STRING];
+   uint64 start_time = 8 [jstype = JS_STRING];
+   uint64 end_time = 9 [jstype = JS_STRING];
+   uint64 soft_cap = 10 [jstype = JS_STRING];
+   uint64 hard_cap = 11 [jstype = JS_STRING];
+   uint32 unsold_action = 12;
+}
+
+message create_launch_result {
+   uint32 launch_id = 1;
+}
+
+// @description Buy into a live launch with KOIN (buyer authority required). FIXED mode: pulls exactly the cost of the tokens granted (partially filling the last buy); POOL mode: accepts KOIN up to the hard cap.
+// @read-only false
+// @result contribute_result
+message contribute_arguments {
+   uint32 launch_id = 1;
+   bytes buyer = 2 [(koinos.btype) = ADDRESS];
+   // KOIN units offered
+   uint64 amount = 3 [jstype = JS_STRING];
+}
+
+message contribute_result {
+   // KOIN units actually taken
+   uint64 paid = 1 [jstype = JS_STRING];
+   // FIXED: token units bought in this call; POOL: 0 (settled at the end)
+   uint64 tokens = 2 [jstype = JS_STRING];
+}
+
+// @description Settle a launch once its end time has passed (or a FIXED launch has sold out). Success: KOIN to the creator, unsold tokens returned or burned, payouts open. Below soft cap: all escrowed tokens back to the creator, refunds open. Callable by anyone.
+// @read-only false
+// @result finalize_result
+message finalize_arguments {
+   uint32 launch_id = 1;
+}
+
+message finalize_result {
+   // resulting status: 1 DISTRIBUTING, 2 COMPLETED, 3 REFUNDING, 4 CANCELED
+   uint32 status = 1;
+}
+
+// @description Run one batch of payouts (DISTRIBUTING) or refunds (REFUNDING), at most `limit` buyers per call (default 20, max 30). Callable by anyone; call repeatedly until the launch reports COMPLETED or CANCELED.
+// @read-only false
+// @result process_result
+message process_arguments {
+   uint32 launch_id = 1;
+   uint32 limit = 2;
+}
+
+message process_result {
+   // buyers settled in this call
+   uint32 settled = 1;
+   // buyers still waiting after this call
+   uint32 pending = 2;
+   // resulting status
+   uint32 status = 3;
+}
+
+// @description Deliver a completed launch's locked tokens to its creator once the unlock time has passed. Callable by anyone; the tokens always go to the creator.
+// @read-only false
+// @result claim_locked_result
+message claim_locked_arguments {
+   uint32 launch_id = 1;
+}
+
+message claim_locked_result {
+}
+
+// @description List launches by ascending id: ids strictly greater than `start`, up to `limit` (default 50, max 100)
+// @read-only true
+// @result get_launches_result
+message get_launches_arguments {
+   uint32 start = 1;
+   uint32 limit = 2;
+}
+
+message get_launches_result {
+   repeated launch_object launches = 1;
+}
+
+// @description Get one launch by id
+// @read-only true
+// @result get_launch_result
+message get_launch_arguments {
+   uint32 launch_id = 1;
+}
+
+message get_launch_result {
+   launch_object value = 1;
+}
+
+// @description Get one account's contribution to a launch
+// @read-only true
+// @result get_contribution_result
+message get_contribution_arguments {
+   uint32 launch_id = 1;
+   bytes buyer = 2 [(koinos.btype) = ADDRESS];
+}
+
+message get_contribution_result {
+   contribution_object value = 1;
+}
+
+// @description List a launch's contributions in batch order: seq >= start, up to `limit` (default 50, max 100)
+// @read-only true
+// @result get_buyers_result
+message get_buyers_arguments {
+   uint32 launch_id = 1;
+   uint32 start = 2;
+   uint32 limit = 3;
+}
+
+message get_buyers_result {
+   repeated contribution_object contributions = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+message launch_created_event {
+   launch_object launch = 1;
+}
+
+message contribution_event {
+   uint32 launch_id = 1;
+   bytes buyer = 2 [(koinos.btype) = ADDRESS];
+   uint64 paid = 3 [jstype = JS_STRING];
+   uint64 tokens = 4 [jstype = JS_STRING];
+   uint64 raised = 5 [jstype = JS_STRING];
+}
+
+message launch_finalized_event {
+   uint32 launch_id = 1;
+   uint32 status = 2;
+   uint64 raised = 3 [jstype = JS_STRING];
+   uint64 sold = 4 [jstype = JS_STRING];
+}
+
+message launch_settled_event {
+   uint32 launch_id = 1;
+   // 2 COMPLETED or 4 CANCELED
+   uint32 status = 2;
+}
+
+message locked_claimed_event {
+   uint32 launch_id = 1;
+   bytes creator = 2 [(koinos.btype) = ADDRESS];
+   uint64 amount = 3 [jstype = JS_STRING];
+}

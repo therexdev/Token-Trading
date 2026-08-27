@@ -1,0 +1,68 @@
+{
+    "methods": {
+        "create_launch": {
+            "argument": "launchpad.create_launch_arguments",
+            "return": "launchpad.create_launch_result",
+            "description": "Create a launch. The creator escrows for_sale_amount + locked_amount of the token in this call (creator authority required). FIXED mode needs a positive price; POOL mode a zero price. A launch below its soft cap at the end is canceled and refunded.",
+            "entry-point": "0xc6613e29",
+            "read-only": false
+        },
+        "contribute": {
+            "argument": "launchpad.contribute_arguments",
+            "return": "launchpad.contribute_result",
+            "description": "Buy into a live launch with KOIN (buyer authority required). FIXED mode: pulls exactly the cost of the tokens granted (partially filling the last buy); POOL mode: accepts KOIN up to the hard cap.",
+            "entry-point": "0x8aa73cb6",
+            "read-only": false
+        },
+        "finalize": {
+            "argument": "launchpad.finalize_arguments",
+            "return": "launchpad.finalize_result",
+            "description": "Settle a launch once its end time has passed (or a FIXED launch has sold out). Success: KOIN to the creator, unsold tokens returned or burned, payouts open. Below soft cap: all escrowed tokens back to the creator, refunds open. Callable by anyone.",
+            "entry-point": "0xc298bcd3",
+            "read-only": false
+        },
+        "process": {
+            "argument": "launchpad.process_arguments",
+            "return": "launchpad.process_result",
+            "description": "Run one batch of payouts (DISTRIBUTING) or refunds (REFUNDING), at most `limit` buyers per call (default 20, max 30). Callable by anyone; call repeatedly until the launch reports COMPLETED or CANCELED.",
+            "entry-point": "0x19ed40bf",
+            "read-only": false
+        },
+        "claim_locked": {
+            "argument": "launchpad.claim_locked_arguments",
+            "return": "launchpad.claim_locked_result",
+            "description": "Deliver a completed launch's locked tokens to its creator once the unlock time has passed. Callable by anyone; the tokens always go to the creator.",
+            "entry-point": "0xd6595230",
+            "read-only": false
+        },
+        "get_launches": {
+            "argument": "launchpad.get_launches_arguments",
+            "return": "launchpad.get_launches_result",
+            "description": "List launches by ascending id: ids strictly greater than `start`, up to `limit` (default 50, max 100)",
+            "entry-point": "0xd3c1d94e",
+            "read-only": true
+        },
+        "get_launch": {
+            "argument": "launchpad.get_launch_arguments",
+            "return": "launchpad.get_launch_result",
+            "description": "Get one launch by id",
+            "entry-point": "0xdac82e4f",
+            "read-only": true
+        },
+        "get_contribution": {
+            "argument": "launchpad.get_contribution_arguments",
+            "return": "launchpad.get_contribution_result",
+            "description": "Get one account's contribution to a launch",
+            "entry-point": "0x22680fa9",
+            "read-only": true
+        },
+        "get_buyers": {
+            "argument": "launchpad.get_buyers_arguments",
+            "return": "launchpad.get_buyers_result",
+            "description": "List a launch's contributions in batch order: seq >= start, up to `limit` (default 50, max 100)",
+            "entry-point": "0x753886bd",
+            "read-only": true
+        }
+    },
+    "types": "Cu8YCh5hc3NlbWJseS9wcm90by9sYXVuY2hwYWQucHJvdG8SCWxhdW5jaHBhZBoUa29pbm9zL29wdGlvbnMucHJvdG8ivQUKDWxhdW5jaF9vYmplY3QSDgoCaWQYASABKA1SAmlkEh4KB2NyZWF0b3IYAiABKAxCBIC1GAZSB2NyZWF0b3ISGgoFdG9rZW4YAyABKAxCBIC1GAVSBXRva2VuEhIKBG1vZGUYBCABKA1SBG1vZGUSGAoFcHJpY2UYBSABKARCAjABUgVwcmljZRIqCg9mb3Jfc2FsZV9hbW91bnQYBiABKARCAjABUg1mb3JTYWxlQW1vdW50EicKDWxvY2tlZF9hbW91bnQYByABKARCAjABUgxsb2NrZWRBbW91bnQSIwoLdW5sb2NrX3RpbWUYCCABKARCAjABUgp1bmxvY2tUaW1lEiEKCnN0YXJ0X3RpbWUYCSABKARCAjABUglzdGFydFRpbWUSHQoIZW5kX3RpbWUYCiABKARCAjABUgdlbmRUaW1lEh0KCHNvZnRfY2FwGAsgASgEQgIwAVIHc29mdENhcBIdCghoYXJkX2NhcBgMIAEoBEICMAFSB2hhcmRDYXASIwoNdW5zb2xkX2FjdGlvbhgNIAEoDVIMdW5zb2xkQWN0aW9uEhYKBnN0YXR1cxgOIAEoDVIGc3RhdHVzEhoKBnJhaXNlZBgPIAEoBEICMAFSBnJhaXNlZBIWCgRzb2xkGBAgASgEQgIwAVIEc29sZBIfCgtidXllcl9jb3VudBgRIAEoDVIKYnV5ZXJDb3VudBIWCgZjdXJzb3IYEiABKA1SBmN1cnNvchIkCgtkaXN0cmlidXRlZBgTIAEoBEICMAFSC2Rpc3RyaWJ1dGVkEh4KCHJlZnVuZGVkGBQgASgEQgIwAVIIcmVmdW5kZWQSJQoObG9ja2VkX2NsYWltZWQYFSABKAhSDWxvY2tlZENsYWltZWQSIQoKY3JlYXRlZF9hdBgWIAEoBEICMAFSCWNyZWF0ZWRBdCKuAQoTY29udHJpYnV0aW9uX29iamVjdBIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhoKBWJ1eWVyGAIgASgMQgSAtRgGUgVidXllchIWCgRrb2luGAMgASgEQgIwAVIEa29pbhIaCgZ0b2tlbnMYBCABKARCAjABUgZ0b2tlbnMSGAoHc2V0dGxlZBgFIAEoCFIHc2V0dGxlZBIQCgNzZXEYBiABKA1SA3NlcSI0CgxnbG9iYWxfc3RhdGUSJAoObmV4dF9sYXVuY2hfaWQYASABKA1SDG5leHRMYXVuY2hJZCKiAwoXY3JlYXRlX2xhdW5jaF9hcmd1bWVudHMSHgoHY3JlYXRvchgBIAEoDEIEgLUYBlIHY3JlYXRvchIaCgV0b2tlbhgCIAEoDEIEgLUYBVIFdG9rZW4SEgoEbW9kZRgDIAEoDVIEbW9kZRIYCgVwcmljZRgEIAEoBEICMAFSBXByaWNlEioKD2Zvcl9zYWxlX2Ftb3VudBgFIAEoBEICMAFSDWZvclNhbGVBbW91bnQSJwoNbG9ja2VkX2Ftb3VudBgGIAEoBEICMAFSDGxvY2tlZEFtb3VudBIjCgt1bmxvY2tfdGltZRgHIAEoBEICMAFSCnVubG9ja1RpbWUSIQoKc3RhcnRfdGltZRgIIAEoBEICMAFSCXN0YXJ0VGltZRIdCghlbmRfdGltZRgJIAEoBEICMAFSB2VuZFRpbWUSHQoIc29mdF9jYXAYCiABKARCAjABUgdzb2Z0Q2FwEh0KCGhhcmRfY2FwGAsgASgEQgIwAVIHaGFyZENhcBIjCg11bnNvbGRfYWN0aW9uGAwgASgNUgx1bnNvbGRBY3Rpb24iMwoUY3JlYXRlX2xhdW5jaF9yZXN1bHQSGwoJbGF1bmNoX2lkGAEgASgNUghsYXVuY2hJZCJrChRjb250cmlidXRlX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhoKBWJ1eWVyGAIgASgMQgSAtRgGUgVidXllchIaCgZhbW91bnQYAyABKARCAjABUgZhbW91bnQiRwoRY29udHJpYnV0ZV9yZXN1bHQSFgoEcGFpZBgBIAEoBEICMAFSBHBhaWQSGgoGdG9rZW5zGAIgASgEQgIwAVIGdG9rZW5zIjEKEmZpbmFsaXplX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkIikKD2ZpbmFsaXplX3Jlc3VsdBIWCgZzdGF0dXMYASABKA1SBnN0YXR1cyJGChFwcm9jZXNzX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhQKBWxpbWl0GAIgASgNUgVsaW1pdCJcCg5wcm9jZXNzX3Jlc3VsdBIYCgdzZXR0bGVkGAEgASgNUgdzZXR0bGVkEhgKB3BlbmRpbmcYAiABKA1SB3BlbmRpbmcSFgoGc3RhdHVzGAMgASgNUgZzdGF0dXMiNQoWY2xhaW1fbG9ja2VkX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkIhUKE2NsYWltX2xvY2tlZF9yZXN1bHQiRAoWZ2V0X2xhdW5jaGVzX2FyZ3VtZW50cxIUCgVzdGFydBgBIAEoDVIFc3RhcnQSFAoFbGltaXQYAiABKA1SBWxpbWl0IksKE2dldF9sYXVuY2hlc19yZXN1bHQSNAoIbGF1bmNoZXMYASADKAsyGC5sYXVuY2hwYWQubGF1bmNoX29iamVjdFIIbGF1bmNoZXMiMwoUZ2V0X2xhdW5jaF9hcmd1bWVudHMSGwoJbGF1bmNoX2lkGAEgASgNUghsYXVuY2hJZCJDChFnZXRfbGF1bmNoX3Jlc3VsdBIuCgV2YWx1ZRgBIAEoCzIYLmxhdW5jaHBhZC5sYXVuY2hfb2JqZWN0UgV2YWx1ZSJVChpnZXRfY29udHJpYnV0aW9uX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhoKBWJ1eWVyGAIgASgMQgSAtRgGUgVidXllciJPChdnZXRfY29udHJpYnV0aW9uX3Jlc3VsdBI0CgV2YWx1ZRgBIAEoCzIeLmxhdW5jaHBhZC5jb250cmlidXRpb25fb2JqZWN0UgV2YWx1ZSJfChRnZXRfYnV5ZXJzX2FyZ3VtZW50cxIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhQKBXN0YXJ0GAIgASgNUgVzdGFydBIUCgVsaW1pdBgDIAEoDVIFbGltaXQiWQoRZ2V0X2J1eWVyc19yZXN1bHQSRAoNY29udHJpYnV0aW9ucxgBIAMoCzIeLmxhdW5jaHBhZC5jb250cmlidXRpb25fb2JqZWN0Ug1jb250cmlidXRpb25zIkgKFGxhdW5jaF9jcmVhdGVkX2V2ZW50EjAKBmxhdW5jaBgBIAEoCzIYLmxhdW5jaHBhZC5sYXVuY2hfb2JqZWN0UgZsYXVuY2ginQEKEmNvbnRyaWJ1dGlvbl9ldmVudBIbCglsYXVuY2hfaWQYASABKA1SCGxhdW5jaElkEhoKBWJ1eWVyGAIgASgMQgSAtRgGUgVidXllchIWCgRwYWlkGAMgASgEQgIwAVIEcGFpZBIaCgZ0b2tlbnMYBCABKARCAjABUgZ0b2tlbnMSGgoGcmFpc2VkGAUgASgEQgIwAVIGcmFpc2VkIoEBChZsYXVuY2hfZmluYWxpemVkX2V2ZW50EhsKCWxhdW5jaF9pZBgBIAEoDVIIbGF1bmNoSWQSFgoGc3RhdHVzGAIgASgNUgZzdGF0dXMSGgoGcmFpc2VkGAMgASgEQgIwAVIGcmFpc2VkEhYKBHNvbGQYBCABKARCAjABUgRzb2xkIksKFGxhdW5jaF9zZXR0bGVkX2V2ZW50EhsKCWxhdW5jaF9pZBgBIAEoDVIIbGF1bmNoSWQSFgoGc3RhdHVzGAIgASgNUgZzdGF0dXMibwoUbG9ja2VkX2NsYWltZWRfZXZlbnQSGwoJbGF1bmNoX2lkGAEgASgNUghsYXVuY2hJZBIeCgdjcmVhdG9yGAIgASgMQgSAtRgGUgdjcmVhdG9yEhoKBmFtb3VudBgDIAEoBEICMAFSBmFtb3VudGIGcHJvdG8z"
+}
