@@ -173,3 +173,39 @@ export async function renderGoogleButton(
     width: Math.max(200, Math.min(400, Math.round(width) || 320)),
   });
 }
+
+/**
+ * Show Google One Tap — the small "Continue as …" chip — so a visitor who is
+ * already signed into Google (and has used this wallet before) lands on the
+ * page and is one tap from signed in, without opening the connect modal.
+ *
+ * Deliberately NOT `auto_select` (which would sign in with no interaction):
+ * this is a funds-holding app, so a live signing session should follow a
+ * deliberate tap, not merely opening the tab. Fails soft — if GSI is blocked
+ * or One Tap is suppressed, nothing happens and the connect button still works.
+ */
+export async function showGoogleOneTap(
+  clientId: string,
+  onToken: (idToken: string) => void
+): Promise<void> {
+  try {
+    await loadGoogleIdentity();
+  } catch {
+    return; // blocked/unavailable — the manual connect button remains
+  }
+  const gsi = (window as any).google?.accounts?.id;
+  if (!gsi) return;
+  gsi.initialize({
+    client_id: clientId,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    callback: (response: { credential?: string }) => {
+      if (response?.credential) onToken(response.credential);
+    },
+  });
+  try {
+    gsi.prompt();
+  } catch {
+    // One Tap can throw if suppressed (cooldown, no session) — harmless
+  }
+}

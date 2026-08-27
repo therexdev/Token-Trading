@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore, useSelectedMarket } from "./store/useStore";
+import { showGoogleOneTap } from "./lib/authApi";
 import { Header } from "./components/Header";
 import { StatsBar } from "./components/StatsBar";
 import { PriceChart } from "./components/PriceChart";
@@ -88,6 +89,8 @@ export default function App() {
   const initialized = useStore((state) => state.initialized);
   const initError = useStore((state) => state.initError);
   const account = useStore((state) => state.account);
+  const authConfig = useStore((state) => state.authConfig);
+  const signInWithGoogle = useStore((state) => state.signInWithGoogle);
   const refreshMarketData = useStore((state) => state.refreshMarketData);
   const refreshUser = useStore((state) => state.refreshUser);
   const refreshMarkets = useStore((state) => state.refreshMarkets);
@@ -121,6 +124,18 @@ export default function App() {
     const userTimer = setInterval(() => void refreshUser(), USER_POLL_MS);
     return () => clearInterval(userTimer);
   }, [account, refreshUser]);
+
+  // Google One Tap: once config lands and nobody is signed in, offer the
+  // "Continue as …" chip. One tap → the same Google session flow as the modal.
+  const oneTapTried = useRef(false);
+  useEffect(() => {
+    if (oneTapTried.current || account) return;
+    if (!authConfig?.google || !authConfig.googleClientId) return;
+    oneTapTried.current = true;
+    void showGoogleOneTap(authConfig.googleClientId, (idToken) => {
+      void signInWithGoogle(idToken);
+    });
+  }, [authConfig, account, signInWithGoogle]);
 
   // on phones, tapping a price in the book opens the order sheet prefilled
   // (the sheet's TradePanel consumes prefillPrice once it mounts)
