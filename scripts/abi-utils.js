@@ -9,8 +9,16 @@ import { fileURLToPath } from "url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-export function loadGeneratedAbi() {
-  const abiPath = path.join(here, "../contract/abi/orderbook-abi.json");
+// contract name -> { dir with abi/, basename of the generated files }
+const CONTRACTS = {
+  orderbook: { dir: "../contract", base: "orderbook" },
+  launchpad: { dir: "../launchpad", base: "launchpad" },
+};
+
+export function loadGeneratedAbi(name = "orderbook") {
+  const spec = CONTRACTS[name];
+  if (!spec) throw new Error(`unknown contract "${name}"`);
+  const abiPath = path.join(here, spec.dir, `abi/${spec.base}-abi.json`);
   return JSON.parse(fs.readFileSync(abiPath, "utf8"));
 }
 
@@ -35,7 +43,11 @@ export function toKoilibAbi(generated) {
 }
 
 export function loadOrderbookAbi() {
-  return toKoilibAbi(loadGeneratedAbi());
+  return toKoilibAbi(loadGeneratedAbi("orderbook"));
+}
+
+export function loadLaunchpadAbi() {
+  return toKoilibAbi(loadGeneratedAbi("launchpad"));
 }
 
 /**
@@ -43,10 +55,12 @@ export function loadOrderbookAbi() {
  * methods plus both type encodings so explorers and koilib can decode
  * operations without this repository.
  */
-export function buildRegisteredAbi() {
-  const generated = loadGeneratedAbi();
+export function buildRegisteredAbi(name = "orderbook") {
+  const spec = CONTRACTS[name];
+  if (!spec) throw new Error(`unknown contract "${name}"`);
+  const generated = loadGeneratedAbi(name);
   const koilibAbi = toKoilibAbi(generated);
-  const canonicalPath = path.join(here, "../contract/abi/orderbook.abi");
+  const canonicalPath = path.join(here, spec.dir, `abi/${spec.base}.abi`);
   let binaryTypes;
   try {
     binaryTypes = JSON.parse(fs.readFileSync(canonicalPath, "utf8")).types;
