@@ -21,11 +21,10 @@ import {
   writeMarketHash,
 } from "../lib/marketLink";
 import {
-  adoptWif,
+  adoptSession,
   clearSessionKey,
   getSessionLabel,
   sessionAddress,
-  setSessionLabel,
 } from "../lib/sessionKey";
 import {
   fetchAuthConfig,
@@ -92,6 +91,10 @@ interface AppState {
     minBaseAmount: bigint
   ) => Promise<boolean>;
   setListPairOpen: (open: boolean) => void;
+  /** how the pending-confirmation toast should read for the current signer */
+  signingToastTitle: () => string;
+  /** false + logs out if a Google session expired, so we never fall back to Kondor */
+  guardCanSign: () => boolean;
   pushToast: (toast: Omit<Toast, "id">) => number;
   dismissToast: (id: number) => void;
   setPrefillPrice: (price: string | null) => void;
@@ -266,17 +269,11 @@ export const useStore = create<AppState>((set, get) => ({
   signInWithGoogle: async (idToken: string) => {
     set({ connecting: true });
     try {
+      // usekoinos returns a session token + address — never a key. Signing
+      // happens there; the key never enters this page.
       const result = await loginWithGoogle(idToken);
-      // derive the address from the key itself rather than trusting the
-      // server's word: if the two disagree the key is not what was claimed
-      const address = adoptWif(result.wif);
-      if (address !== result.address) {
-        clearSessionKey();
-        throw new Error(
-          "The signed-in wallet did not match its key — sign-in refused"
-        );
-      }
-      setSessionLabel(result.label);
+      const address = result.address;
+      adoptSession(result.token, address, result.label);
       localStorage.setItem(STORAGE_ACCOUNT, address);
       localStorage.setItem(STORAGE_METHOD, "google");
       if (get().account !== address) set({ balances: {}, myOrders: [] });
@@ -289,7 +286,7 @@ export const useStore = create<AppState>((set, get) => ({
       });
       get().pushToast({
         kind: "success",
-        title: result.created ? "Wallet created" : "Signed in",
+        title: "Signed in",
         detail: `${result.label} · ${address}`,
       });
       void get().refreshUser();
@@ -325,6 +322,35 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   dismissAccountChoices: () => set({ accountChoices: null }),
+
+  signingToastTitle: () =>
+    get().authMethod === "google"
+      ? "Signing…"
+      : "Confirm the transaction in Kondor…",
+
+  guardCanSign: () => {
+    // A Google session that has expired (token gone) must send the user back
+    // through sign-in, never quietly fall through to a Kondor prompt for an
+    // address Kondor doesn't hold.
+    if (get().authMethod === "google" && sessionAddress() !== get().account) {
+      clearSessionKey();
+      localStorage.removeItem(STORAGE_METHOD);
+      set({
+        account: null,
+        authMethod: null,
+        authLabel: null,
+        balances: {},
+        myOrders: [],
+      });
+      get().pushToast({
+        kind: "error",
+        title: "Session expired",
+        detail: "Sign in with Google again to keep trading.",
+      });
+      return false;
+    }
+    return true;
+  },
 
   disconnect: () => {
     localStorage.removeItem(STORAGE_ACCOUNT);
@@ -404,10 +430,11 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   submitOrder: async (params: PlaceOrderParams) => {
+    if (!get().guardCanSign()) return false;
     const { pushToast, dismissToast } = get();
     const pendingId = pushToast({
       kind: "pending",
-      title: "Confirm the transaction in Kondor…",
+      title: get().signingToastTitle(),
     });
     try {
       const handle = await placeOrder(params);
@@ -442,10 +469,11 @@ export const useStore = create<AppState>((set, get) => ({
   submitCancel: async (orderId: bigint) => {
     const account = get().account;
     if (!account) return false;
+    if (!get().guardCanSign()) return false;
     const { pushToast, dismissToast } = get();
     const pendingId = pushToast({
       kind: "pending",
-      title: "Confirm the cancellation in Kondor…",
+      title: get().signingToastTitle(),
     });
     try {
       const handle = await cancelOrder(account, orderId);
@@ -479,10 +507,11 @@ export const useStore = create<AppState>((set, get) => ({
   submitCreateMarket: async (baseToken, quoteToken, minBaseAmount) => {
     const account = get().account;
     if (!account) return false;
+    if (!get().guardCanSign()) return false;
     const { pushToast, dismissToast } = get();
     const pendingId = pushToast({
       kind: "pending",
-      title: "Confirm the listing in Kondor…",
+      title: get().signingToastTitle(),
     });
     try {
       const handle = await createMarket(

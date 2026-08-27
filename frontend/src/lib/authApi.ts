@@ -1,65 +1,70 @@
 /**
- * Talks to the Google sign-in bridge in `server/`.
+ * Talks to the Google sign-in + signer on usekoinos.com (SIGNER_API).
  *
- * The app is also deployed as flat files with no server behind it, so every
- * call here is written to fail soft: when /api/config is missing (or a static
- * host answers the SPA shell instead of JSON) Google sign-in simply reports
- * itself unavailable and the UI stays Kondor-only.
+ * Signing in no longer brings a private key into this page. usekoinos verifies
+ * the Google token, custodies the key, and returns a short-lived SESSION
+ * TOKEN; transactions are signed by usekoinos (see remoteSigner.ts). The key
+ * never touches the browser.
+ *
+ * Every call fails soft: when SIGNER_API is unset (a plain static deploy) or
+ * usekoinos is unreachable, Google reports itself unavailable and the app runs
+ * Kondor-only, exactly as before.
  */
+import { SIGNER_API } from "../config/signer";
 
 export interface AuthConfig {
   google: boolean;
   googleClientId: string | null;
 }
 
-export interface GoogleLoginResult {
-  wif: string;
+export interface GoogleSessionResult {
+  token: string;
   address: string;
   label: string;
-  created: boolean;
 }
 
 const OFF: AuthConfig = { google: false, googleClientId: null };
 
 /**
- * Ask the server whether Google sign-in is configured. Never throws — an
- * unreachable or absent API means "no Google here".
+ * Ask usekoinos whether Google sign-in / signing is configured. Never throws —
+ * an unset SIGNER_API, an unreachable host, or a non-JSON answer all mean
+ * "no Google here", and the app stays Kondor-only.
  */
 export async function fetchAuthConfig(): Promise<AuthConfig> {
+  if (!SIGNER_API) return OFF;
   try {
-    const response = await fetch("/api/config", {
+    const response = await fetch(`${SIGNER_API}/api/signer-config`, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) return OFF;
-    // a static host with an SPA fallback answers index.html for /api/config
     const type = response.headers.get("content-type") || "";
     if (!type.includes("application/json")) return OFF;
     const body = await response.json();
-    const auth = body?.auth;
-    if (!auth?.google || !auth?.googleClientId) return OFF;
-    return { google: true, googleClientId: String(auth.googleClientId) };
+    if (!body?.signer || !body?.google || !body?.googleClientId) return OFF;
+    return { google: true, googleClientId: String(body.googleClientId) };
   } catch {
     return OFF;
   }
 }
 
 /**
- * Exchange a Google ID token for the wallet that identity owns.
+ * Exchange a Google ID token for a signing SESSION on usekoinos.
  *
- * The server forwards it to Aurvania, which is what makes the address the
- * same one this Google account uses on Aurvania and OURO. Unlike the config
- * probe this does throw: a failed sign-in is something the user must see.
+ * Returns a session token and the account address — never a key. The address
+ * is the same one this Google account uses on Aurvania and OURO. Unlike the
+ * config probe this throws: a failed sign-in is something the user must see.
  */
 export async function loginWithGoogle(
   idToken: string
-): Promise<GoogleLoginResult> {
+): Promise<GoogleSessionResult> {
+  if (!SIGNER_API) throw new Error("Google sign-in is not configured");
   let response: Response;
   try {
-    response = await fetch("/api/auth", {
+    response = await fetch(`${SIGNER_API}/api/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "google", idToken }),
+      body: JSON.stringify({ idToken }),
       signal: AbortSignal.timeout(20000),
     });
   } catch {
@@ -73,15 +78,14 @@ export async function loginWithGoogle(
     // fall through to the status-based message below
   }
 
-  if (!response.ok || !body?.wif || !body?.address) {
+  if (!response.ok || !body?.token || !body?.address) {
     throw new Error(body?.error || "Google sign-in failed");
   }
 
   return {
-    wif: String(body.wif),
+    token: String(body.token),
     address: String(body.address),
     label: String(body.label || "Google account"),
-    created: !!body.created,
   };
 }
 

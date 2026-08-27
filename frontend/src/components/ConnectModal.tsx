@@ -161,8 +161,8 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
           ) : (
             <p className="text-xs leading-relaxed text-ink-400">
               Google opens the same Koinos wallet you use on Aurvania and OURO.
-              For safety on a trading app the key is held for this tab only —
-              close it and you sign in again.
+              Your key never touches this page — usekoinos.com signs each trade
+              for you, and the sign-in lasts this browsing session.
             </p>
           )}
         </div>

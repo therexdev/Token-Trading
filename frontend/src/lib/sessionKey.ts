@@ -1,132 +1,108 @@
-import { Signer } from "koilib";
 import type { SignerInterface } from "koilib";
+import { RemoteSigner } from "./remoteSigner";
 
 /**
- * Session-scoped custody for a Google account's key.
+ * Session state for a Google account — which now holds NO private key.
  *
- * Signing in with Google hands this browser a real private key (the WIF
- * Aurvania released), so from that moment the tab can move funds on its own —
- * unlike Kondor, which keeps the key in the extension and only ever returns a
- * signature.
+ * Signing in with Google gives this tab a short-lived session token and the
+ * account address. The key stays on usekoinos.com; signing happens there (see
+ * remoteSigner.ts). So the worst an XSS can do is ask usekoinos to sign during
+ * the token's lifetime, through a rate-limited endpoint — it can never walk
+ * off with a key, because there is none here.
  *
- * That is why this key is deliberately shorter-lived than the one the
- * Discover Koinos gateway keeps: there a stolen key costs a free NFT, here it
- * controls balances and anything escrowed in the orderbook. So:
- *
- *   - the key lives in a module-level variable (memory);
- *   - it is mirrored to sessionStorage, not localStorage, so a refresh keeps
- *     you signed in but closing the tab ends the session and nothing is left
- *     on disk;
- *   - it never leaves this module — callers get a Signer, never the WIF.
- *
- * Signing back in is one Google popup, so the cost of the shorter lifetime is
- * small and it is the same wallet every time.
+ * The token lives in sessionStorage, never localStorage: a refresh keeps you
+ * signed in, closing the tab ends the session, and nothing persists to disk.
+ * (This file kept its name from when it held a WIF; it no longer does.)
  */
 
-const SESSION_WIF = "koinoskit-trade:session-wif";
+const SESSION_TOKEN = "koinoskit-trade:session-token";
+const SESSION_ADDR = "koinoskit-trade:session-addr";
 const SESSION_LABEL = "koinoskit-trade:session-label";
 
-let memoryWif: string | null = null;
-let memoryLabel: string | null = null;
-let cachedSigner: SignerInterface | null = null;
-let cachedFor: string | null = null;
+let memToken: string | null = null;
+let memAddr: string | null = null;
+let memLabel: string | null = null;
+let cachedSigner: RemoteSigner | null = null;
 
-/** Safari in private mode throws on any sessionStorage access. */
-function readSession(key: string): string | null {
+function read(key: string): string | null {
   try {
     return sessionStorage.getItem(key);
   } catch {
     return null;
   }
 }
-
-function writeSession(key: string, value: string | null): void {
+function write(key: string, value: string | null): void {
   try {
     if (value === null) sessionStorage.removeItem(key);
     else sessionStorage.setItem(key, value);
   } catch {
-    // memory-only for this session
+    // memory-only this session
   }
 }
 
-function currentWif(): string | null {
-  if (memoryWif) return memoryWif;
-  const stored = readSession(SESSION_WIF);
-  if (stored) memoryWif = stored;
-  return memoryWif;
+function token(): string | null {
+  if (memToken) return memToken;
+  memToken = read(SESSION_TOKEN);
+  return memToken;
 }
 
 /**
- * Adopt the key a Google sign-in released. Returns the address it derives, so
- * the caller can verify it against what the server reported rather than
- * trusting either side alone.
+ * Adopt the session a Google sign-in returned. No key is involved — only a
+ * token authorizing this account to sign through usekoinos.
  */
-export function adoptWif(wif: string): string {
-  const trimmed = String(wif).trim();
-  // Signer.fromWif throws on a malformed key, which is the validation we want
-  // before anything is stored.
-  const signer = Signer.fromWif(trimmed);
-  const address = signer.getAddress();
-  memoryWif = trimmed;
-  cachedSigner = signer as unknown as SignerInterface;
-  cachedFor = address;
-  writeSession(SESSION_WIF, trimmed);
-  return address;
+export function adoptSession(
+  tokenValue: string,
+  address: string,
+  label: string,
+): void {
+  memToken = String(tokenValue);
+  memAddr = String(address);
+  memLabel = label;
+  cachedSigner = null; // rebuilt on next use with the new token
+  write(SESSION_TOKEN, memToken);
+  write(SESSION_ADDR, memAddr);
+  write(SESSION_LABEL, memLabel);
 }
 
 export function setSessionLabel(label: string | null): void {
-  memoryLabel = label;
-  writeSession(SESSION_LABEL, label);
+  memLabel = label;
+  write(SESSION_LABEL, label);
+}
+export function getSessionLabel(): string | null {
+  if (memLabel) return memLabel;
+  memLabel = read(SESSION_LABEL);
+  return memLabel;
 }
 
-export function getSessionLabel(): string | null {
-  if (memoryLabel) return memoryLabel;
-  memoryLabel = readSession(SESSION_LABEL);
-  return memoryLabel;
+/** The address this session controls, or null when there is no live session. */
+export function sessionAddress(): string | null {
+  if (!token()) return null;
+  if (memAddr) return memAddr;
+  memAddr = read(SESSION_ADDR);
+  return memAddr;
 }
 
 /**
- * The address the held key controls, or null when there is no session key.
- * Used on boot to decide whether a remembered Google account is still live in
- * this tab or has to sign in again.
+ * A signer for the session account, or null when this tab has no session.
+ * It is a RemoteSigner — signing goes to usekoinos, never a local key.
  */
-export function sessionAddress(): string | null {
-  const wif = currentWif();
-  if (!wif) return null;
-  try {
-    if (cachedFor && cachedSigner) return cachedFor;
-    const signer = Signer.fromWif(wif);
-    cachedSigner = signer as unknown as SignerInterface;
-    cachedFor = signer.getAddress();
-    return cachedFor;
-  } catch {
-    // a corrupted entry is not recoverable — drop it rather than wedge boot
-    clearSessionKey();
-    return null;
-  }
-}
-
-/** Signer for the held key, or null when this tab has none. */
 export function getSessionSigner(): SignerInterface | null {
-  const wif = currentWif();
-  if (!wif) return null;
-  if (cachedSigner) return cachedSigner;
-  try {
-    const signer = Signer.fromWif(wif);
-    cachedSigner = signer as unknown as SignerInterface;
-    cachedFor = signer.getAddress();
-    return cachedSigner;
-  } catch {
-    clearSessionKey();
-    return null;
+  const t = token();
+  const addr = sessionAddress();
+  if (!t || !addr) return null;
+  if (cachedSigner && cachedSigner.getAddress() === addr) {
+    return cachedSigner as unknown as SignerInterface;
   }
+  cachedSigner = new RemoteSigner(addr, t, clearSessionKey);
+  return cachedSigner as unknown as SignerInterface;
 }
 
 export function clearSessionKey(): void {
-  memoryWif = null;
-  memoryLabel = null;
+  memToken = null;
+  memAddr = null;
+  memLabel = null;
   cachedSigner = null;
-  cachedFor = null;
-  writeSession(SESSION_WIF, null);
-  writeSession(SESSION_LABEL, null);
+  write(SESSION_TOKEN, null);
+  write(SESSION_ADDR, null);
+  write(SESSION_LABEL, null);
 }
