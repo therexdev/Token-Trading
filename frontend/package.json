@@ -11,7 +11,7 @@
     "sync-abi": "node -e \"const fs=require('fs');fs.copyFileSync('../contract/abi/orderbook-abi.json','src/lib/orderbook-abi.json');console.log('abi synced')\""
   },
   "dependencies": {
-    "koilib": "^9.2.0",
+    "koilib": "^9.3.1",
     "kondor-js": "^1.2.0",
     "lightweight-charts": "^4.2.3",
     "react": "^18.3.1",

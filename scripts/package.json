@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Deployment and administration scripts for the Koinos orderbook DEX",
   "dependencies": {
-    "koilib": "^9.2.0"
+    "koilib": "^9.3.1"
   },
   "scripts": {
     "generate-key": "node generate-key.js",
