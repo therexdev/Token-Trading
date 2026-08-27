@@ -97,66 +97,41 @@ export function CreateLaunchPage() {
     setTokenMeta(meta);
   };
 
-  const mint = async () => {
-    if (!account) return;
-    if (!mintName.trim() || !mintSymbol.trim() || !mintSupply.trim()) {
-      pushToast({
-        kind: "error",
-        title: "Missing details",
-        detail: "Name, symbol and supply are required to mint.",
-      });
-      return;
-    }
-    setMinting(true);
-    const toastId = pushToast({
-      kind: "pending",
-      title: "Minting your token…",
-      detail: "usekoinos is deploying the contract (two transactions)",
-    });
-    void toastId;
-    try {
-      const minted = await mintTokenViaUsekoinos({
+  /**
+   * The token the FORM is being written against. In mint mode the token does
+   * not exist yet, so its symbol/decimals come straight from the mint fields -
+   * that is what lets token details and sale terms be filled in together and
+   * submitted as one.
+   */
+  const formToken = useMemo(() => {
+    if (source === "mint") {
+      return {
+        symbol: mintSymbol.trim().toUpperCase() || "tokens",
         name: mintName.trim(),
-        symbol: mintSymbol.trim().toUpperCase(),
-        decimals: Number(mintDecimals) || 8,
-        supply: mintSupply.trim(),
-        mintable: false,
-        sessionToken: authMethod === "google" ? getSessionToken() : null,
-        kondorAddress: authMethod === "google" ? null : account,
-      });
-      setTokenAddress(minted.address);
-      const meta = await probeToken(minted.address, true);
-      setTokenMeta(
-        meta || {
-          symbol: mintSymbol.trim().toUpperCase(),
-          name: mintName.trim(),
-          decimals: Number(mintDecimals) || 8,
-          allowances: true,
-        }
-      );
-      setSource("existing");
-      pushToast({
-        kind: "success",
-        title: `${mintSymbol.trim().toUpperCase()} minted 🎉`,
-        detail: `The full supply is in your wallet — now set the sale terms.`,
-      });
-    } catch (error: any) {
-      pushToast({
-        kind: "error",
-        title: "Mint failed",
-        detail: error?.message || String(error),
-      });
-    } finally {
-      setMinting(false);
+        decimals: Math.max(0, Math.min(18, Number(mintDecimals) || 8)),
+        allowances: true, // freshly minted tokens are standard KCS-4
+      };
     }
-  };
+    return tokenMeta;
+  }, [source, mintSymbol, mintName, mintDecimals, tokenMeta]);
 
   const validation = useMemo((): string | null => {
-    if (!tokenMeta) return "Pick a token first";
+    if (source === "mint") {
+      if (!mintName.trim() || !mintSymbol.trim()) return "Name the token";
+      if (!mintSupply.trim()) return "Set the total supply";
+    }
+    if (!formToken) return "Pick a token first";
     try {
-      const forSaleUnits = parseUnits(forSale || "0", tokenMeta.decimals);
+      const forSaleUnits = parseUnits(forSale || "0", formToken.decimals);
       if (forSaleUnits <= 0n) return "Set how many tokens are for sale";
-      const lockedUnits = parseUnits(locked || "0", tokenMeta.decimals);
+      const lockedUnits = parseUnits(locked || "0", formToken.decimals);
+      if (source === "mint") {
+        // the sale can only escrow what the mint creates
+        const supplyUnits = parseUnits(mintSupply.trim() || "0", formToken.decimals);
+        if (supplyUnits <= 0n) return "Set the total supply";
+        if (forSaleUnits + lockedUnits > supplyUnits)
+          return "For sale + locked exceeds the minted supply";
+      }
       const start = new Date(startAt).getTime();
       const end = new Date(endAt).getTime();
       if (!end || end <= Date.now()) return "The end must be in the future";
@@ -167,7 +142,7 @@ export function CreateLaunchPage() {
           return "The unlock must not be before the end";
       }
       if (mode === MODE_FIXED) {
-        const contractPrice = priceToContract(price || "0", tokenMeta.decimals, 8);
+        const contractPrice = priceToContract(price || "0", formToken.decimals, 8);
         if (contractPrice <= 0n) return "Set a price";
       }
       const soft = parseDecimalScaled(softCap || "0", 8);
@@ -178,19 +153,83 @@ export function CreateLaunchPage() {
     } catch (error: any) {
       return error?.message || "Check the amounts";
     }
-  }, [tokenMeta, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap]);
+  }, [source, mintName, mintSymbol, mintSupply, formToken, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap]);
+
+  /** mint via usekoinos and return the token ready for createLaunch */
+  const doMint = async (): Promise<{ address: string; meta: ProbedTokenMeta }> => {
+    const minted = await mintTokenViaUsekoinos({
+      name: mintName.trim(),
+      symbol: mintSymbol.trim().toUpperCase(),
+      decimals: Number(mintDecimals) || 8,
+      supply: mintSupply.trim(),
+      mintable: false,
+      sessionToken: authMethod === "google" ? getSessionToken() : null,
+      kondorAddress: authMethod === "google" ? null : account,
+    });
+    const meta = (await probeToken(minted.address, true)) || {
+      symbol: mintSymbol.trim().toUpperCase(),
+      name: mintName.trim(),
+      decimals: Number(mintDecimals) || 8,
+      allowances: true,
+    };
+    return { address: minted.address, meta };
+  };
 
   const submit = async () => {
-    if (!account || !tokenMeta || validation) return;
+    if (!account || validation) return;
     if (!guardCanSign()) return;
     setSubmitting(true);
+
+    // 1. In mint mode the token is created first, as part of the same submit.
+    let launchToken = tokenAddress.trim();
+    let launchMeta = tokenMeta;
+    if (source === "mint") {
+      setMinting(true);
+      pushToast({
+        kind: "pending",
+        title: `Minting ${mintSymbol.trim().toUpperCase()}…`,
+        detail: "usekoinos is deploying your token (takes ~half a minute)",
+      });
+      try {
+        const minted = await doMint();
+        launchToken = minted.address;
+        launchMeta = minted.meta;
+        // remember the minted token: if the launch step below fails (or is
+        // cancelled), it is NOT lost - the form flips to "I have a token"
+        // with the fresh address, and resubmitting only retries the launch
+        setTokenAddress(minted.address);
+        setTokenMeta(minted.meta);
+        setSource("existing");
+        pushToast({
+          kind: "success",
+          title: `${minted.meta.symbol} minted 🎉`,
+          detail: "Full supply is in your wallet — opening the sale…",
+        });
+      } catch (error: any) {
+        pushToast({
+          kind: "error",
+          title: "Mint failed",
+          detail: error?.message || String(error),
+        });
+        setMinting(false);
+        setSubmitting(false);
+        return;
+      }
+      setMinting(false);
+    }
+    if (!launchMeta) {
+      setSubmitting(false);
+      return;
+    }
+
+    // 2. Escrow and open the launch.
     pushToast({ kind: "pending", title: signingToastTitle() });
     try {
-      const decimals = tokenMeta.decimals;
+      const decimals = launchMeta.decimals;
       const handle = await createLaunch({
         creator: account,
-        token: tokenAddress.trim(),
-        tokenAllowances: tokenMeta.allowances,
+        token: launchToken,
+        tokenAllowances: launchMeta.allowances,
         mode,
         price: mode === MODE_FIXED ? priceToContract(price, decimals, 8) : 0n,
         forSale: parseUnits(forSale, decimals),
@@ -221,7 +260,11 @@ export function CreateLaunchPage() {
       pushToast({
         kind: "error",
         title: "Launch creation failed",
-        detail: error?.message || String(error),
+        detail:
+          (error?.message || String(error)) +
+          (source === "existing" && launchToken && tokenAddress === launchToken
+            ? ""
+            : " — your minted token is safe in your wallet; just press the button again to retry the launch."),
       });
     } finally {
       setSubmitting(false);
@@ -362,13 +405,11 @@ export function CreateLaunchPage() {
                   />
                 </Field>
               </div>
-              <button
-                onClick={() => void mint()}
-                disabled={minting}
-                className="w-full rounded-md bg-accent py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-40"
-              >
-                {minting ? "Minting…" : "Mint token (free — usekoinos pays the mana)"}
-              </button>
+              <p className="text-[11px] leading-relaxed text-ink-500">
+                Nothing to click here — fill in the sale below and the launch
+                button mints the token and opens the sale in one go. Minting is
+                free (usekoinos pays the mana).
+              </p>
             </div>
           )}
         </div>
@@ -400,7 +441,7 @@ export function CreateLaunchPage() {
 
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label={`For sale (${tokenMeta?.symbol || "tokens"})`}>
+              <Field label={`For sale (${formToken?.symbol || "tokens"})`}>
                 <input
                   value={forSale}
                   onChange={(event) => setForSale(event.target.value)}
@@ -491,7 +532,7 @@ export function CreateLaunchPage() {
             unlock.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={`Locked amount (${tokenMeta?.symbol || "tokens"})`}>
+            <Field label={`Locked amount (${formToken?.symbol || "tokens"})`}>
               <input
                 value={locked}
                 onChange={(event) => setLocked(event.target.value)}
@@ -518,10 +559,14 @@ export function CreateLaunchPage() {
           className="w-full rounded-md bg-up py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-40"
         >
           {submitting
-            ? "Creating…"
+            ? minting
+              ? "Minting your token…"
+              : "Creating the launch…"
             : validation
               ? validation
-              : "Escrow tokens & open the launch"}
+              : source === "mint"
+                ? `Mint ${formToken?.symbol || "the token"} & open the launch`
+                : "Escrow tokens & open the launch"}
         </button>
         <p className="mt-2 text-center text-[11px] text-ink-500">
           Creating the launch escrows the for-sale + locked tokens from your
