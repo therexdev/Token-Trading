@@ -406,19 +406,22 @@ deployed site or the wasm — and it inherits a large tree from
 
 | override | why |
 | --- | --- |
+| `protobufjs: ^8.7.2` + `protobufjs-cli: ^2.6.2` + `@koinos/abi-proto-gen: ^1.0.2` | removes `protobufjs@6.11.6` entirely (12 advisories); the old `abi-proto-gen@1.0.0` required `protobufjs/cli/pbjs`, a path only in protobufjs 6 |
 | `glob-promise: ^6.0.7` | v5 dragged in `npm-install-peers`, which vendored the npm 6 CLI |
 | `lodash: ^4.18.1` | prototype pollution / `_.template` code injection, reached via `chevrotain` |
 | `npm: file:../../tools/npm-stub` | `somap` declares the npm CLI as a dependency by mistake and never requires it — see [`contract/tools/npm-stub`](contract/tools/npm-stub/README.md) |
 
-That takes `contract/` from 63 advisories to 4, all of which are the same
-root cause: **`protobufjs` is pinned at 6.11.6** by
-`@koinos/abi-proto-gen@1.0.0`, which requires `protobufjs/cli/pbjs` — a path
-that only exists in protobufjs 6. It is a build-time dependency that only
-ever parses this repository's own `assembly/proto/orderbook.proto`, so the
-advisories (all of which need attacker-controlled `.proto` or JSON
-descriptor input) are not reachable here.
+`contract/` is now at **0 advisories**. The contract wasm is byte-identical
+before and after (the overrides touch only the build toolchain, never the
+compiled output).
 
-Upgrading it means moving to `@koinos/abi-proto-gen@1.0.2`, which emits the
-ABI with different field casing (`marketId` → `market_id`, `entryPoint` →
-`entry_point`). That would require reworking the frontend's koilib calls and
-re-registering the ABI on-chain, so it is deliberately left alone.
+> **ABI casing caveat.** `@koinos/abi-proto-gen@1.0.2` emits the generated ABI
+> with snake_case field names (`market_id`, `entry_point`) where 1.0.0 emitted
+> camelCase (`marketId`, `entryPoint`). The **committed** ABIs
+> (`contract/abi/orderbook-abi.json` and `frontend/src/lib/orderbook-abi.json`)
+> are the camelCase source of truth the frontend's koilib calls depend on, and
+> must stay that way. So after a `contract` build, **do not** commit the
+> regenerated `contract/abi/*` or run `frontend`'s `sync-abi` without
+> converting back to camelCase — `git checkout -- contract/abi/` to discard the
+> casing-only regeneration. The live on-chain contract is unaffected; it is
+> already deployed and its ABI is not re-registered by a build.
