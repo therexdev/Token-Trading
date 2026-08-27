@@ -41,13 +41,12 @@ The curated tokens:
 ```
 contract/   AssemblyScript smart contract (matching engine + escrow)
 frontend/   React trading UI (Vite + Tailwind + lightweight-charts + koilib/kondor)
-server/     Node host for app.tradekoinos.com — serves the build, bridges Google sign-in
 scripts/    Deployment & admin scripts (deploy, create markets, inspect state)
 docs/       Screenshots and assets
 ```
 
-The UI runs either way: as flat files with Kondor alone (trade.koinoskit.site,
-uploaded over FTP), or behind `server/`, which adds Google sign-in. See
+The UI is a static build with no server of its own. It works with Kondor
+alone; Google sign-in and signing, when configured, run on usekoinos.com. See
 [Sign-in](#sign-in).
 
 ## How it works
@@ -148,63 +147,56 @@ are handled as `BigInt` in the tokens' smallest units.
 
 Two ways in, and the app adapts to whichever is available:
 
-**Kondor** — the default, and the only option when the app is served as flat
-files. The key never leaves the extension; the app receives signatures.
+**Kondor** — the default, and the only option in a plain static build. The key
+never leaves the extension; the app receives signatures.
 
 **Google** — the same Koinos wallet a Google account already has on Aurvania
-and OURO. That shared address is not a derivation anyone can recompute: it
-comes from Aurvania's account store, which holds the encrypted key and
-releases it on a verified login. `server/` forwards the Google ID token to
-`aurvania.com/api/account` and passes the answer back to the browser.
+and OURO, signed for by **usekoinos.com**. The private key never enters this
+page. Sign-in returns a short-lived session token (not a key); each
+transaction is prepared here, sent to `usekoinos.com/api/sign`, signed there
+with the key it custodies, and the signature comes back for the app to
+broadcast. An XSS on this page can at most ask usekoinos to sign during the
+token's lifetime, through a rate-limited endpoint — it can never steal a key,
+because there is none here.
 
-The hop through `server/` is not optional — the browser cannot make that call
-itself, because Aurvania rejects unfamiliar User-Agents and a browser cannot
-set one. So Google sign-in only exists where this Node app is running. The UI
-asks `/api/config` at boot and hides the button when nothing answers, which is
-why the FTP deployment stays Kondor-only with no build flag to remember.
+Set `VITE_SIGNER_API=https://usekoinos.com` at build time to enable the Google
+button. Unset, the app is Kondor-only with no other change — so a plain static
+deploy is unaffected. The client id is served from
+`usekoinos.com/api/signer-config`, so it is not baked into the build.
 
-`server/` custodies nothing. It has no key store, no database, and no runtime
-dependencies — Node builtins only. The WIF passes through in memory on its way
-to the browser and is never logged or written to disk.
+### How the client signs without a key
 
-### The key in the browser
+`frontend/src/lib/remoteSigner.ts` is a koilib signer that holds only the
+session token and the address. It implements the same
+`getAddress`/`signTransaction`/`sendTransaction` surface as the Kondor signer,
+so the single signing seam in `koinos.ts` (`getSignerFor`) is unchanged — it
+just gets a `RemoteSigner` for a Google session and the Kondor signer
+otherwise, chosen by matching the address.
 
-A Google sign-in hands the tab a real private key, so from that moment the
-page can move funds on its own. That is a different risk from the Discover
-Koinos gateway, where the same flow guards a free NFT — here the key controls
-balances and anything escrowed in the orderbook.
+- `sessionKey.ts` stores the token in **sessionStorage**, never localStorage
+  and never a key: a refresh keeps you signed in, closing the tab ends the
+  session, nothing persists to disk.
+- `guardCanSign()` sends an expired Google session back through sign-in rather
+  than silently falling through to a Kondor prompt.
 
-So a Google session is deliberately shorter-lived than the gateway's:
-`frontend/src/lib/sessionKey.ts` keeps the key in memory, mirrored to
-**sessionStorage**, never localStorage. A refresh keeps you signed in; closing
-the tab ends the session and leaves nothing on disk. Signing back in is one
-Google popup, and it is the same wallet every time.
+The server side lives in the **discover-koinos** repo (usekoinos.com):
+`/api/session`, `/api/sign`, `/api/signer-config`, gated on `LOGIN_SECRET` and
+CORS-allowed only for the origins in that gateway's `SIGNER_ORIGINS`.
 
-Two more guards worth knowing about before changing that file:
+Kondor is still the strongest option — the key never leaves the extension at
+all — and is worth recommending to anyone holding size.
 
-- `signInWithGoogle` derives the address from the key itself and refuses the
-  sign-in if it disagrees with the address the server reported.
-- `getSignerFor` picks a signer by matching the address, not by reading a
-  stored flag, so a stale session key can never sign for a Kondor account.
-
-Kondor remains the stronger option, and is what to recommend to anyone holding
-size.
-
-### Running it
+### Building it
 
 ```bash
-npm install          # also builds frontend/dist via postinstall
-npm start            # serves the build on $PORT (default 3000)
+npm install          # builds the static site into dist/ (postinstall)
+npm run build        # or build explicitly
 ```
 
-On Hostinger, deploy the repository as a Node app (startup file
-`server/server.js`) and set the variables in `.env.example` — at minimum
-`TRUST_PROXY_HOPS=1` and `VITE_ORDERBOOK_ADDRESS`. `GOOGLE_CLIENT_ID` can stay
-empty: the server inherits Aurvania's client id at boot, and logs which of the
-two it ended up using.
-
-If Google sign-in is off, the boot log says why. The usual cause is Aurvania
-being unreachable at start-up, which is a restart away from fixed.
+`npm run build` produces `dist/` (and mirrors it to the repo root) for a
+static host — no server to run. Set `VITE_ORDERBOOK_ADDRESS` (defaults to the
+live mainnet orderbook if unset) and `VITE_SIGNER_API=https://usekoinos.com`
+to enable Google. See `.env.example`.
 
 ## Deployment guide
 

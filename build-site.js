@@ -51,7 +51,7 @@ if (!fs.existsSync(path.join(built, 'index.html'))) {
 /* Publish the site to EVERY location a host might serve from, so the deploy
    works no matter how the pipeline is configured:
 
-     frontend/dist/  what server/server.js serves (Node app running)
+     frontend/dist/  the canonical build output
      dist/           for publishers with an "output directory" setting
      repo root       for publishers that copy the app folder itself into the
                      web root (Hostinger's git deploy does this) — index.html

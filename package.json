@@ -2,13 +2,9 @@
   "name": "trade-koinos",
   "version": "1.0.0",
   "private": true,
-  "description": "Trade Koinos — orderbook DEX frontend plus the Google sign-in bridge (app.tradekoinos.com)",
-  "main": "server/server.js",
+  "description": "Trade Koinos — orderbook DEX frontend (app.tradekoinos.com). Static build; Google sign-in and signing run on usekoinos.com.",
   "scripts": {
-    "build": "node build-site.js",
-    "start": "node server/server.js",
-    "dev": "node server/server.js",
-    "postinstall": "npm run build"
+    "build": "node build-site.js"
   },
   "engines": {
     "node": ">=18"
