@@ -1,10 +1,10 @@
-import { Contract, Provider, Transaction, utils } from "koilib";
+import { Contract, Transaction, utils } from "koilib";
 import type { SignerInterface } from "koilib";
 import * as kondor from "kondor-js";
 import { orderbookAbi } from "./abi";
+import { createProvider } from "./rpcProvider";
 import {
   ORDERBOOK_ADDRESS,
-  RPC_URLS,
   REST_URL,
   TOKENS,
   RETIRED_ADDRESSES,
@@ -18,8 +18,8 @@ import {
 import { parseUnits } from "./format";
 import { getSessionSigner } from "./sessionKey";
 
-// All configured endpoints go to the Provider so it can fail over between them.
-export const provider = new Provider(RPC_URLS);
+// Fails over across all configured endpoints (see rpcProvider).
+export const provider = createProvider();
 
 export function getOrderbookContract(signer?: SignerInterface): Contract {
   return new Contract({

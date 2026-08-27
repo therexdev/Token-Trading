@@ -40,7 +40,8 @@ export const ORDERBOOK_ADDRESS: string =
 // on another node instead of a blank market screen. Add one with
 // VITE_KOINOS_RPC="https://api.koinos.io,https://second-node".
 export const RPC_URLS: string[] = (
-  import.meta.env.VITE_KOINOS_RPC || "https://api.koinos.io"
+  import.meta.env.VITE_KOINOS_RPC ||
+  "https://api.koinos.io,https://api.koinosblocks.com"
 )
   .split(",")
   .map((url: string) => url.trim())
