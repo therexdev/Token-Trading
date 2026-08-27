@@ -16,14 +16,21 @@
 # never a key — but a strict CSP still matters: it shrinks what an injected
 # script could do in the window a session is live.
 #
-# The bundle has no inline <script>, so script-src stays strict; React sets
-# inline style attributes, so style-src keeps 'unsafe-inline'. connect-src is
-# broad because the Koinos RPC/REST endpoint is chosen at build time and may be
-# any https host (usekoinos.com is reached the same way). The accounts.google.com
-# allowances are what Google Identity Services + One Tap need (its script, its
+# The bundle has no inline <script>, so no inline-script allowance is needed;
+# React sets inline style attributes, so style-src keeps 'unsafe-inline'.
+# 'unsafe-eval' is required: koilib decodes Koinos contract results through
+# protobufjs, whose codegen builds its encoders/decoders with `new Function()`
+# (see @protobufjs/codegen) — without it every market read throws and the app
+# shows "Could not load markets". This does NOT loosen the main XSS defences:
+# inline <script> and external script hosts are still blocked, so an injected
+# tag still cannot run; 'unsafe-eval' only lets already-trusted 'self' code
+# compile functions from strings. connect-src is broad because the Koinos
+# RPC/REST endpoint is chosen at build time and may be any https host
+# (usekoinos.com is reached the same way). The accounts.google.com allowances
+# are what Google Identity Services + One Tap need (its script, its
 # button/One-Tap iframe, and its injected styles).
 <IfModule mod_headers.c>
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-src https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-src https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "DENY"

@@ -197,6 +197,11 @@ export async function showGoogleOneTap(
   if (!gsi) return;
   gsi.initialize({
     client_id: clientId,
+    // FedCM is now required for One Tap: as Chrome restricts third-party
+    // cookies, the legacy One Tap iframe is suppressed and prompt() silently
+    // shows nothing. Opting in lets the browser mediate the chip so it still
+    // appears. (The manual "Continue with Google" button is unaffected.)
+    use_fedcm_for_prompt: true,
     auto_select: false,
     cancel_on_tap_outside: true,
     callback: (response: { credential?: string }) => {
