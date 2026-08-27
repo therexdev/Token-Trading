@@ -15,6 +15,10 @@ import { SIGNER_API } from "../config/signer";
 export interface AuthConfig {
   google: boolean;
   googleClientId: string | null;
+  /** launchpad contract address usekoinos' keeper watches (null = none) */
+  launchpad: string | null;
+  /** whether usekoinos can mint fresh tokens right now */
+  tokenLaunch: boolean;
 }
 
 export interface GoogleSessionResult {
@@ -23,7 +27,12 @@ export interface GoogleSessionResult {
   label: string;
 }
 
-const OFF: AuthConfig = { google: false, googleClientId: null };
+const OFF: AuthConfig = {
+  google: false,
+  googleClientId: null,
+  launchpad: null,
+  tokenLaunch: false,
+};
 
 /**
  * Ask usekoinos whether Google sign-in / signing is configured. Never throws —
@@ -41,8 +50,19 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
     const type = response.headers.get("content-type") || "";
     if (!type.includes("application/json")) return OFF;
     const body = await response.json();
-    if (!body?.signer || !body?.google || !body?.googleClientId) return OFF;
-    return { google: true, googleClientId: String(body.googleClientId) };
+    // launchpad/mint availability rides along even when Google is off
+    const extras = {
+      launchpad: body?.launchpad ? String(body.launchpad) : null,
+      tokenLaunch: !!body?.tokenLaunch,
+    };
+    if (!body?.signer || !body?.google || !body?.googleClientId) {
+      return { ...OFF, ...extras };
+    }
+    return {
+      google: true,
+      googleClientId: String(body.googleClientId),
+      ...extras,
+    };
   } catch {
     return OFF;
   }

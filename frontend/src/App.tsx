@@ -14,6 +14,27 @@ import { ListPairModal } from "./components/ListPairModal";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
 import { SIDE_BUY, SIDE_SELL } from "./lib/types";
 import { marketFromHash } from "./lib/marketLink";
+import { LaunchpadListPage } from "./components/launchpad/LaunchpadListPage";
+import { LaunchpadDetailPage } from "./components/launchpad/LaunchpadDetailPage";
+import { CreateLaunchPage } from "./components/launchpad/CreateLaunchPage";
+
+// ---------------------------------------------------------------------------
+// Hash routing. Market deep links (#/market/…) belong to the trade view;
+// the launchpad lives beside it under #/launchpads and #/launchpad/….
+// ---------------------------------------------------------------------------
+type View =
+  | { name: "trade" }
+  | { name: "launchpads" }
+  | { name: "launchpad"; id: number }
+  | { name: "launchpad-create" };
+
+function viewFromHash(hash: string): View {
+  if (hash.startsWith("#/launchpads")) return { name: "launchpads" };
+  if (hash.startsWith("#/launchpad/create")) return { name: "launchpad-create" };
+  const detail = hash.match(/^#\/launchpad\/(\d+)/);
+  if (detail) return { name: "launchpad", id: Number(detail[1]) };
+  return { name: "trade" };
+}
 
 const MARKET_POLL_MS = 4000;
 const USER_POLL_MS = 10000;
@@ -102,6 +123,9 @@ export default function App() {
   const [tab, setTab] = useState<MobileTab>("chart");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetSide, setSheetSide] = useState<number>(SIDE_BUY);
+  const [view, setView] = useState<View>(() =>
+    viewFromHash(window.location.hash)
+  );
 
   useEffect(() => {
     if (!ORDERBOOK_ADDRESS) return;
@@ -145,9 +169,11 @@ export default function App() {
 
   // a market link pasted into (or navigated to in) an already-open tab
   // switches pairs without a reload; the app's own URL updates use
-  // replaceState, which never fires hashchange, so this cannot loop
+  // replaceState, which never fires hashchange, so this cannot loop.
+  // The same listener drives the launchpad <-> trade view switch.
   useEffect(() => {
     const onHashChange = () => {
+      setView(viewFromHash(window.location.hash));
       const state = useStore.getState();
       const linked = marketFromHash(window.location.hash, state.markets);
       if (linked && linked.marketId !== state.selectedMarketId) {
@@ -167,10 +193,16 @@ export default function App() {
 
   return (
     <div className="app-shell flex flex-col bg-ink-950 text-white">
-      <Header />
-      <StatsBar />
+      <Header section={view.name === "trade" ? "trade" : "launchpad"} />
+      {view.name === "trade" && <StatsBar />}
 
-      {!initialized ? (
+      {view.name === "launchpads" ? (
+        <LaunchpadListPage />
+      ) : view.name === "launchpad" ? (
+        <LaunchpadDetailPage id={view.id} />
+      ) : view.name === "launchpad-create" ? (
+        <CreateLaunchPage />
+      ) : !initialized ? (
         <div className="flex flex-1 items-center justify-center text-sm text-ink-400">
           <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           loading markets…

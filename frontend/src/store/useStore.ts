@@ -15,6 +15,7 @@ import {
 } from "../lib/koinos";
 import type { MarketInfo, OrderInfo, TradeInfo } from "../lib/types";
 import { TOKENS, type TokenConfig } from "../config/tokens";
+import { setLaunchpadAddress } from "../config/launchpad";
 import {
   MARKET_HASH_PREFIX,
   marketFromHash,
@@ -172,7 +173,12 @@ export const useStore = create<AppState>((set, get) => ({
     // probe the sign-in bridge alongside the chain reads rather than before
     // them: served as flat files there is no /api/config to answer, and the
     // orderbook must not wait on that finding out
-    void fetchAuthConfig().then((authConfig) => set({ authConfig }));
+    void fetchAuthConfig().then((authConfig) => {
+      // a static deploy without VITE_LAUNCHPAD_ADDRESS learns the launchpad
+      // contract from usekoinos instead
+      setLaunchpadAddress(authConfig.launchpad);
+      set({ authConfig });
+    });
     try {
       // correct static decimals with the on-chain values before anything else;
       // a transient RPC miss here is non-fatal — the static defaults stand in

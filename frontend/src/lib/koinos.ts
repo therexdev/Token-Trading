@@ -452,7 +452,7 @@ function extractError(error: any): string {
   return String(error);
 }
 
-async function sendOperations(
+export async function sendOperations(
   owner: string,
   operations: { pushTo: (tx: Transaction) => Promise<void> }[]
 ): Promise<TxHandle> {

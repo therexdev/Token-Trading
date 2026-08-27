@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStore, useSelectedMarket } from "../store/useStore";
 import { NETWORK } from "../config/tokens";
 import { formatUnits, shortAddress } from "../lib/format";
 import { isKondorAvailable } from "../lib/koinos";
+import { launchpadEnabled } from "../lib/launchpad";
 import { ConnectModal } from "./ConnectModal";
 
-export function Header() {
+export function Header({ section = "trade" }: { section?: "trade" | "launchpad" }) {
   const account = useStore((state) => state.account);
   const connecting = useStore((state) => state.connecting);
   const connect = useStore((state) => state.connect);
@@ -25,6 +26,14 @@ export function Header() {
     if (authConfig?.google) setConnectOpen(true);
     else void connect();
   }, [authConfig?.google, connect]);
+
+  // launchpad pages live outside this component but need the same connect
+  // flow - they ask for it with a window event instead of prop-drilling
+  useEffect(() => {
+    const open = () => startConnect();
+    window.addEventListener("tk-open-connect", open);
+    return () => window.removeEventListener("tk-open-connect", open);
+  }, [startConnect]);
 
   // the balance strip shows the curated tokens, plus whichever discovered
   // tokens the selected market trades
@@ -60,6 +69,31 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {(launchpadEnabled() || authConfig?.launchpad) && (
+        <nav className="flex items-center gap-0.5 rounded-md bg-ink-850 p-0.5 text-xs font-semibold">
+          <a
+            href="#/"
+            className={`rounded px-2.5 py-1 transition ${
+              section === "trade"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Trade
+          </a>
+          <a
+            href="#/launchpads"
+            className={`rounded px-2.5 py-1 transition ${
+              section === "launchpad"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Launchpad
+          </a>
+        </nav>
+      )}
 
       <div className="flex-1" />
 
