@@ -174,14 +174,34 @@ export const useStore = create<AppState>((set, get) => ({
     // orderbook must not wait on that finding out
     void fetchAuthConfig().then((authConfig) => set({ authConfig }));
     try {
-      // correct static decimals with the on-chain values before anything else
-      const decimals = await fetchTokenDecimals();
-      for (const token of TOKENS) {
-        if (decimals[token.symbol] !== undefined) {
-          token.decimals = decimals[token.symbol];
+      // correct static decimals with the on-chain values before anything else;
+      // a transient RPC miss here is non-fatal — the static defaults stand in
+      try {
+        const decimals = await fetchTokenDecimals();
+        for (const token of TOKENS) {
+          if (decimals[token.symbol] !== undefined) {
+            token.decimals = decimals[token.symbol];
+          }
+        }
+      } catch {
+        // keep the built-in decimals; markets can still load without this
+      }
+      // The public RPC intermittently answers get_markets with "context
+      // deadline exceeded" under load. A single miss on first load must not
+      // strand the user on the error screen, so retry a few times with backoff
+      // before giving up — a later good answer is the common case.
+      let loaded: Awaited<ReturnType<typeof fetchMarkets>> | null = null;
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 4 && !loaded; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 800 * attempt));
+        try {
+          loaded = await fetchMarkets();
+        } catch (error) {
+          lastErr = error;
         }
       }
-      const { markets, tokens, allPairs } = await fetchMarkets();
+      if (!loaded) throw lastErr || new Error("Failed to reach the Koinos RPC");
+      const { markets, tokens, allPairs } = loaded;
       const hash = window.location.hash;
       const linked = marketFromHash(hash, markets);
       const savedRaw = localStorage.getItem(STORAGE_MARKET);
@@ -388,7 +408,41 @@ export const useStore = create<AppState>((set, get) => ({
   refreshMarkets: async () => {
     try {
       const { markets, tokens, allPairs } = await fetchMarkets();
-      set({ markets, tokens, allPairs });
+      const state = get();
+      // Self-heal: if init() was stranded on the error screen by a transient
+      // RPC failure, a later successful poll clears it and finishes the
+      // initialization it never reached (pick a market, drop the error) — so
+      // the app recovers on its own without the user reloading.
+      if (markets.length && (state.initError || state.selectedMarketId === null)) {
+        const savedRaw = localStorage.getItem(STORAGE_MARKET);
+        const savedMarket = savedRaw ? Number(savedRaw) : NaN;
+        const defaultMarket =
+          markets.find(
+            (m) => m.base.symbol === "KOIN" && m.quote.symbol === "vUSDT"
+          ) || markets[0];
+        const selected =
+          (savedRaw ? markets.find((m) => m.marketId === savedMarket) : null) ||
+          defaultMarket;
+        const wasUnselected = state.selectedMarketId === null;
+        set({
+          markets,
+          tokens,
+          allPairs,
+          initError: null,
+          initialized: true,
+          selectedMarketId: wasUnselected
+            ? selected
+              ? selected.marketId
+              : null
+            : state.selectedMarketId,
+        });
+        if (selected && wasUnselected) {
+          writeMarketHash(selected);
+          void get().refreshMarketData();
+        }
+      } else {
+        set({ markets, tokens, allPairs });
+      }
     } catch {
       // keep previous data on transient RPC errors
     }

@@ -4,7 +4,7 @@ import * as kondor from "kondor-js";
 import { orderbookAbi } from "./abi";
 import {
   ORDERBOOK_ADDRESS,
-  RPC_URL,
+  RPC_URLS,
   REST_URL,
   TOKENS,
   RETIRED_ADDRESSES,
@@ -18,7 +18,8 @@ import {
 import { parseUnits } from "./format";
 import { getSessionSigner } from "./sessionKey";
 
-export const provider = new Provider([RPC_URL]);
+// All configured endpoints go to the Provider so it can fail over between them.
+export const provider = new Provider(RPC_URLS);
 
 export function getOrderbookContract(signer?: SignerInterface): Contract {
   return new Contract({

@@ -34,8 +34,19 @@ export const RETIRED_ADDRESSES: string[] = [
 export const ORDERBOOK_ADDRESS: string =
   import.meta.env.VITE_ORDERBOOK_ADDRESS || "";
 
-export const RPC_URL: string =
-  import.meta.env.VITE_KOINOS_RPC || "https://api.koinos.io";
+// One or more JSON-RPC endpoints, comma-separated. Extra nodes act as
+// failover: koilib's Provider moves to the next when one errors, so a single
+// node answering get_markets with "context deadline exceeded" becomes a retry
+// on another node instead of a blank market screen. Add one with
+// VITE_KOINOS_RPC="https://api.koinos.io,https://second-node".
+export const RPC_URLS: string[] = (
+  import.meta.env.VITE_KOINOS_RPC || "https://api.koinos.io"
+)
+  .split(",")
+  .map((url: string) => url.trim())
+  .filter(Boolean);
+
+export const RPC_URL: string = RPC_URLS[0] || "https://api.koinos.io";
 
 /** REST API base (same host as the JSON-RPC endpoint unless overridden) */
 export const REST_URL: string =
