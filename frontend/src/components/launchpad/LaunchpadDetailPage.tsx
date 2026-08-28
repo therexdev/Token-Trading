@@ -46,6 +46,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
   const now = useNow();
   const account = useStore((state) => state.account);
   const pushToast = useStore((state) => state.pushToast);
+  const dismissToast = useStore((state) => state.dismissToast);
   const guardCanSign = useStore((state) => state.guardCanSign);
   const signingToastTitle = useStore((state) => state.signingToastTitle);
 
@@ -105,16 +106,19 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
     if (!launch || !account || !preview) return;
     if (!guardCanSign()) return;
     setBusy(true);
-    const toastId = pushToast({ kind: "pending", title: signingToastTitle() });
+    const signToast = pushToast({ kind: "pending", title: signingToastTitle() });
+    let miningToast = 0;
     try {
       const handle = await contribute(account, launch.id, preview.units);
-      pushToast({
+      dismissToast(signToast);
+      miningToast = pushToast({
         kind: "pending",
         title: "Buying in…",
         detail: "Waiting for the transaction to confirm",
         txId: handle.id,
       });
       await handle.wait();
+      dismissToast(miningToast);
       pushToast({
         kind: "success",
         title: "You're in 🎉",
@@ -127,6 +131,8 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
       setAmount("");
       void load();
     } catch (error: any) {
+      dismissToast(signToast);
+      if (miningToast) dismissToast(miningToast);
       pushToast({
         kind: "error",
         title: "Buy-in failed",

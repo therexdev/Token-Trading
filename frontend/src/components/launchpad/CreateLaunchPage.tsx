@@ -8,12 +8,13 @@ import {
   UNSOLD_RETURN,
   UNSOLD_BURN,
 } from "../../lib/launchpad";
-import { probeToken, type ProbedTokenMeta } from "../../lib/koinos";
+import { probeToken, fetchBalance, type ProbedTokenMeta } from "../../lib/koinos";
 import { getSessionToken } from "../../lib/sessionKey";
 import {
   parseUnits,
   parseDecimalScaled,
   priceToContract,
+  formatUnits,
 } from "../../lib/format";
 
 function Field({
@@ -49,6 +50,7 @@ export function CreateLaunchPage() {
   const authMethod = useStore((state) => state.authMethod);
   const authConfig = useStore((state) => state.authConfig);
   const pushToast = useStore((state) => state.pushToast);
+  const dismissToast = useStore((state) => state.dismissToast);
   const guardCanSign = useStore((state) => state.guardCanSign);
   const signingToastTitle = useStore((state) => state.signingToastTitle);
 
@@ -56,6 +58,7 @@ export function CreateLaunchPage() {
   const [source, setSource] = useState<"existing" | "mint">("existing");
   const [tokenAddress, setTokenAddress] = useState("");
   const [tokenMeta, setTokenMeta] = useState<ProbedTokenMeta | null>(null);
+  const [tokenBalance, setTokenBalance] = useState<bigint | null>(null);
   const [probing, setProbing] = useState(false);
   // mint form
   const [mintName, setMintName] = useState("");
@@ -95,6 +98,16 @@ export function CreateLaunchPage() {
       return;
     }
     setTokenMeta(meta);
+    // how much of it the creator actually holds - the escrow ceiling
+    if (account) {
+      try {
+        setTokenBalance(
+          await fetchBalance({ address, decimals: meta.decimals } as any, account)
+        );
+      } catch {
+        setTokenBalance(null); // unknown balance: let the chain be the judge
+      }
+    }
   };
 
   /**
@@ -131,6 +144,8 @@ export function CreateLaunchPage() {
         if (supplyUnits <= 0n) return "Set the total supply";
         if (forSaleUnits + lockedUnits > supplyUnits)
           return "For sale + locked exceeds the minted supply";
+      } else if (tokenBalance !== null && forSaleUnits + lockedUnits > tokenBalance) {
+        return `You hold ${formatUnits(tokenBalance, formToken.decimals, 4)} ${formToken.symbol} — lower the amounts`;
       }
       const start = new Date(startAt).getTime();
       const end = new Date(endAt).getTime();
@@ -153,7 +168,7 @@ export function CreateLaunchPage() {
     } catch (error: any) {
       return error?.message || "Check the amounts";
     }
-  }, [source, mintName, mintSymbol, mintSupply, formToken, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap]);
+  }, [source, mintName, mintSymbol, mintSupply, formToken, tokenBalance, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap]);
 
   /** mint via usekoinos and return the token ready for createLaunch */
   const doMint = async (): Promise<{ address: string; meta: ProbedTokenMeta }> => {
@@ -185,7 +200,7 @@ export function CreateLaunchPage() {
     let launchMeta = tokenMeta;
     if (source === "mint") {
       setMinting(true);
-      pushToast({
+      const mintToast = pushToast({
         kind: "pending",
         title: `Minting ${mintSymbol.trim().toUpperCase()}…`,
         detail: "usekoinos is deploying your token (takes ~half a minute)",
@@ -199,13 +214,16 @@ export function CreateLaunchPage() {
         // with the fresh address, and resubmitting only retries the launch
         setTokenAddress(minted.address);
         setTokenMeta(minted.meta);
+        setTokenBalance(parseUnits(mintSupply.trim() || "0", minted.meta.decimals));
         setSource("existing");
+        dismissToast(mintToast);
         pushToast({
           kind: "success",
           title: `${minted.meta.symbol} minted 🎉`,
           detail: "Full supply is in your wallet — opening the sale…",
         });
       } catch (error: any) {
+        dismissToast(mintToast);
         pushToast({
           kind: "error",
           title: "Mint failed",
@@ -223,7 +241,8 @@ export function CreateLaunchPage() {
     }
 
     // 2. Escrow and open the launch.
-    pushToast({ kind: "pending", title: signingToastTitle() });
+    const signToast = pushToast({ kind: "pending", title: signingToastTitle() });
+    let miningToast = 0;
     try {
       const decimals = launchMeta.decimals;
       const handle = await createLaunch({
@@ -241,13 +260,15 @@ export function CreateLaunchPage() {
         hardCap: mode === MODE_POOL ? parseDecimalScaled(hardCap || "0", 8) : 0n,
         unsoldAction,
       });
-      pushToast({
+      dismissToast(signToast);
+      miningToast = pushToast({
         kind: "pending",
         title: "Creating the launch…",
         detail: "Escrowing your tokens on-chain",
         txId: handle.id,
       });
       await handle.wait();
+      dismissToast(miningToast);
       pushToast({
         kind: "success",
         title: "Launch is up 🚀",
@@ -257,6 +278,8 @@ export function CreateLaunchPage() {
       // land on the list; the newest launch is on top
       window.location.hash = "#/launchpads";
     } catch (error: any) {
+      dismissToast(signToast);
+      if (miningToast) dismissToast(miningToast);
       pushToast({
         kind: "error",
         title: "Launch creation failed",
@@ -346,6 +369,7 @@ export function CreateLaunchPage() {
                     onChange={(event) => {
                       setTokenAddress(event.target.value);
                       setTokenMeta(null);
+                      setTokenBalance(null);
                     }}
                     placeholder="1ABC…"
                     className={inputClass}
