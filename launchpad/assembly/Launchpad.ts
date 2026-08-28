@@ -769,6 +769,64 @@ export class Launchpad {
     return new launchpad.claim_locked_result();
   }
 
+  cancel_launch(
+    args: launchpad.cancel_launch_arguments
+  ): launchpad.cancel_launch_result {
+    const found = this.getLaunch(args.launch_id);
+    System.require(found != null, "launchpad: unknown launch");
+    const launch = found!;
+
+    System.require(
+      launch.status == STATUS_ACTIVE,
+      "launchpad: launch already settled"
+    );
+    // once the window has closed the sale settles by its published terms -
+    // a creator cannot yank a successful raise away from its buyers
+    System.require(
+      this.blockTimestamp() < launch.end_time,
+      "launchpad: the sale has ended - it settles by its terms now"
+    );
+    System.requireAuthority(
+      authority.authorization_type.contract_call,
+      launch.creator!
+    );
+
+    // identical to the below-soft-cap path of finalize: every escrowed token
+    // straight back to the creator, buyers refunded through process() batches
+    const escrowTotal =
+      launch.for_sale_amount + launch.locked_amount + launch.liquidity_tokens;
+    System.require(
+      new Token(launch.token!).transfer(
+        this.contractId,
+        launch.creator!,
+        escrowTotal
+      ),
+      "launchpad: token return to creator failed"
+    );
+    launch.locked_claimed = true;
+    launch.liquidity_state = LIQ_NONE;
+    launch.status =
+      launch.buyer_count > 0 ? STATUS_REFUNDING : STATUS_CANCELED;
+    launch.cursor = 0;
+    this.saveLaunch(launch);
+
+    const event = new launchpad.launch_finalized_event();
+    event.launch_id = launch.id;
+    event.status = launch.status;
+    event.raised = launch.raised;
+    event.sold = launch.sold;
+    const impacted: Uint8Array[] = [launch.creator!];
+    System.event(
+      "launchpad.launch_finalized",
+      Protobuf.encode(event, launchpad.launch_finalized_event.encode),
+      impacted
+    );
+
+    const result = new launchpad.cancel_launch_result();
+    result.status = launch.status;
+    return result;
+  }
+
   provide_liquidity(
     args: launchpad.provide_liquidity_arguments
   ): launchpad.provide_liquidity_result {

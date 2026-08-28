@@ -1112,6 +1112,78 @@ export namespace launchpad {
   }
 
   @unmanaged
+  export class cancel_launch_arguments {
+    static encode(message: cancel_launch_arguments, writer: Writer): void {
+      if (message.launch_id != 0) {
+        writer.uint32(8);
+        writer.uint32(message.launch_id);
+      }
+    }
+
+    static decode(reader: Reader, length: i32): cancel_launch_arguments {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new cancel_launch_arguments();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.launch_id = reader.uint32();
+            break;
+
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    launch_id: u32;
+
+    constructor(launch_id: u32 = 0) {
+      this.launch_id = launch_id;
+    }
+  }
+
+  @unmanaged
+  export class cancel_launch_result {
+    static encode(message: cancel_launch_result, writer: Writer): void {
+      if (message.status != 0) {
+        writer.uint32(8);
+        writer.uint32(message.status);
+      }
+    }
+
+    static decode(reader: Reader, length: i32): cancel_launch_result {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new cancel_launch_result();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1:
+            message.status = reader.uint32();
+            break;
+
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    status: u32;
+
+    constructor(status: u32 = 0) {
+      this.status = status;
+    }
+  }
+
+  @unmanaged
   export class provide_liquidity_arguments {
     static encode(message: provide_liquidity_arguments, writer: Writer): void {
       if (message.launch_id != 0) {

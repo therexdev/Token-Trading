@@ -195,7 +195,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell flex flex-col bg-ink-950 text-white">
+    <div className="app-shell flex flex-col overflow-x-clip bg-ink-950 text-white">
       <Header
         section={
           view.name === "trade"

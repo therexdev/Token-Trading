@@ -1,5 +1,5 @@
 
-÷%
+ß&
 assembly/proto/launchpad.proto	launchpadkoinos/options.proto"é
 launch_object
 id (Rid
@@ -88,7 +88,11 @@ start_time (B0R	startTime
 status (Rstatus"5
 claim_locked_arguments
 	launch_id (RlaunchId"
-claim_locked_result":
+claim_locked_result"6
+cancel_launch_arguments
+	launch_id (RlaunchId".
+cancel_launch_result
+status (Rstatus":
 provide_liquidity_arguments
 	launch_id (RlaunchId"d
 provide_liquidity_result'

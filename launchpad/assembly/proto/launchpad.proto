@@ -191,6 +191,18 @@ message claim_locked_arguments {
 message claim_locked_result {
 }
 
+// @description Cancel a launch before its end time (creator authority only). Every escrowed token (for-sale, locked, liquidity) returns to the creator immediately; buyers' KOIN comes back through process() refund batches. After the end time the sale settles by its terms instead.
+// @read-only false
+// @result cancel_launch_result
+message cancel_launch_arguments {
+   uint32 launch_id = 1;
+}
+
+message cancel_launch_result {
+   // resulting status: 3 REFUNDING or 4 CANCELED
+   uint32 status = 1;
+}
+
 // @description Pair the held-back KOIN with the escrowed liquidity tokens on KoinDX (creates the pair if needed) and lock the LP tokens here until lp_unlock_time. Callable by anyone once a launch with liquidity settles; retryable - a failed KoinDX call changes nothing.
 // @read-only false
 // @result provide_liquidity_result

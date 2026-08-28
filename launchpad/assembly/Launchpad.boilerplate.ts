@@ -82,6 +82,19 @@ export class Launchpad {
     return res;
   }
 
+  cancel_launch(
+    args: launchpad.cancel_launch_arguments
+  ): launchpad.cancel_launch_result {
+    // const launch_id = args.launch_id;
+
+    // YOUR CODE HERE
+
+    const res = new launchpad.cancel_launch_result();
+    // res.status = ;
+
+    return res;
+  }
+
   provide_liquidity(
     args: launchpad.provide_liquidity_arguments
   ): launchpad.provide_liquidity_result {

@@ -509,3 +509,132 @@ export async function uploadTokenLogo(params: UploadLogoParams): Promise<void> {
     throw new Error(data?.error || "Logo upload failed");
   }
 }
+
+/** one page of a launch's contributions (batch order) */
+export interface BuyerEntry {
+  buyer: string;
+  koin: bigint;
+  tokens: bigint;
+  settled: boolean;
+}
+
+export async function fetchBuyers(
+  launchId: number,
+  start = 0,
+  limit = 100
+): Promise<BuyerEntry[]> {
+  if (!launchpadEnabled()) return [];
+  const { result } = await getLaunchpadContract().functions.get_buyers({
+    launchId,
+    start,
+    limit,
+  });
+  return ((result?.contributions as any[]) || []).map((raw) => ({
+    buyer: String(raw.buyer || ""),
+    koin: asBigInt(raw.koin),
+    tokens: asBigInt(raw.tokens),
+    settled: !!raw.settled,
+  }));
+}
+
+/** creator cancels a still-running launch: tokens back, buyers auto-refunded */
+export async function cancelLaunch(
+  creator: string,
+  launchId: number
+): Promise<TxHandle> {
+  const launchpad = getLaunchpadContract();
+  return sendOperations(creator, [
+    {
+      pushTo: async (tx) => {
+        await tx.pushOperation(launchpad.functions.cancel_launch, { launchId });
+      },
+    },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Launch profiles (social links, stored on usekoinos, creator-gated)
+// ---------------------------------------------------------------------------
+
+export type LaunchLinks = Partial<
+  Record<
+    "website" | "x" | "telegram" | "discord" | "github" | "facebook" | "youtube",
+    string
+  >
+>;
+
+export async function fetchLaunchLinks(launchId: number): Promise<LaunchLinks> {
+  if (!SIGNER_API) return {};
+  try {
+    const response = await fetch(
+      `${SIGNER_API}/api/launchpad-profile/${launchId}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!response.ok) return {};
+    const body = await response.json();
+    return (body?.links as LaunchLinks) || {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveLaunchLinks(params: {
+  launchId: number;
+  links: LaunchLinks;
+  sessionToken?: string | null;
+  kondorAddress?: string | null;
+}): Promise<void> {
+  if (!SIGNER_API) throw new Error("Link storage is not configured");
+  const body: Record<string, unknown> = {
+    launchId: params.launchId,
+    links: params.links,
+  };
+  if (params.sessionToken) {
+    body.sessionToken = params.sessionToken;
+  } else if (params.kondorAddress) {
+    const ts = Date.now();
+    const message = `discover-koinos:launchpad-profile:${ts}`;
+    const signer = getSignerFor(params.kondorAddress);
+    const signature = await (signer as any).signMessage(message);
+    body.address = params.kondorAddress;
+    body.ts = ts;
+    body.sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  } else {
+    throw new Error("Sign in before saving links");
+  }
+  const response = await fetch(`${SIGNER_API}/api/launchpad-profile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20000),
+  });
+  let data: any = null;
+  try {
+    data = await response.json();
+  } catch {
+    /* fall through */
+  }
+  if (!response.ok || !data?.ok) {
+    throw new Error(data?.error || "Saving links failed");
+  }
+}
+
+/** a token's on-chain total supply (base units), null when unreadable */
+export async function fetchTokenSupply(address: string): Promise<bigint | null> {
+  try {
+    const { result } = await getTokenContract(address).functions.totalSupply();
+    return asBigInt((result as any)?.value);
+  } catch {
+    return null;
+  }
+}
+
+/** links to trade the token once it is live */
+export function koindxSwapUrl(token: string): string {
+  return `https://app.koindx.com/swap?output=${encodeURIComponent(token)}`;
+}
+
+export function tradeKoinosMarketHash(token: string): string {
+  const koin = TOKENS.find((t) => t.symbol === "KOIN")!;
+  return `#/market/${token}_${koin.address}`;
+}

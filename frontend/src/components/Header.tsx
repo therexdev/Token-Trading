@@ -48,7 +48,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
   return (
     <>
     {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
-    <header className="flex shrink-0 items-center gap-3 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:gap-4 lg:px-4">
+    <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:flex-nowrap lg:gap-4 lg:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0">
           <rect width="32" height="32" rx="7" fill="#151a23" />

@@ -86,6 +86,9 @@ export function CreateLaunchPage() {
   // ---- logo (optional, stored on usekoinos) ----
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
 
+  // ---- project links (optional; editable later from the launch page) ----
+  const [links, setLinks] = useState<Record<string, string>>({});
+
   // ---- KoinDX auto-liquidity (optional) ----
   const [liqEnabled, setLiqEnabled] = useState(false);
   const [liqPercent, setLiqPercent] = useState("50");
@@ -374,6 +377,28 @@ export function CreateLaunchPage() {
             title: "Logo not saved",
             detail: logoError?.message || "You can retry from the create page later.",
           });
+        }
+      }
+      // attach the project links to the new launch (its id = the newest one
+      // by this creator); best-effort, editable later from the launch page
+      const linkValues = Object.values(links).some((v) => v && v.trim());
+      if (linkValues) {
+        try {
+          const { fetchLaunches, saveLaunchLinks } = await import(
+            "../../lib/launchpad"
+          );
+          const all = await fetchLaunches();
+          const minted = all.find((l) => l.creator === account);
+          if (minted) {
+            await saveLaunchLinks({
+              launchId: minted.id,
+              links: links as any,
+              sessionToken: getSessionToken(),
+              kondorAddress: getSessionToken() ? null : account,
+            });
+          }
+        } catch {
+          /* the launch page has an Edit links button for retries */
         }
       }
       pushToast({
@@ -704,6 +729,32 @@ export function CreateLaunchPage() {
                 className={`${inputClass} disabled:opacity-40`}
               />
             </Field>
+          </div>
+        </div>
+
+        {/* ---- project links (optional) ---- */}
+        <div className="mb-5 rounded-lg border border-ink-700 bg-ink-900 p-4">
+          <h2 className="mb-1 text-xs font-bold uppercase tracking-wider text-ink-400">
+            Project links (optional)
+          </h2>
+          <p className="mb-3 text-[11px] leading-relaxed text-ink-500">
+            Shown as icons at the top of your launch page. You can add or
+            change these later from the launch page while signed in.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {["website", "x", "telegram", "discord", "github", "facebook", "youtube"].map(
+              (key) => (
+                <input
+                  key={key}
+                  value={links[key] || ""}
+                  onChange={(event) =>
+                    setLinks({ ...links, [key]: event.target.value })
+                  }
+                  placeholder={key === "x" ? "X (Twitter) URL" : `${key} URL`}
+                  className={inputClass}
+                />
+              )
+            )}
           </div>
         </div>
 
