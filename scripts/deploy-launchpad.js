@@ -30,12 +30,19 @@ async function main() {
   // Version guard: this exact require() message only exists in builds that
   // have cancel_launch (and everything before it). Uploading an older wasm
   // silently strips features on-chain - a stale build must never deploy.
-  if (!bytecode.includes("it settles by its terms now")) {
+  // AssemblyScript stores string literals as UTF-16LE in the binary, so
+  // search that encoding (plus UTF-8 in case a future toolchain changes it).
+  const marker = "it settles by its terms now";
+  if (
+    !bytecode.includes(Buffer.from(marker, "utf16le")) &&
+    !bytecode.includes(Buffer.from(marker, "utf8"))
+  ) {
     throw new Error(
       "STALE BUILD: launchpad/build/release/contract.wasm is an OLD version " +
-        "(missing cancel_launch / liquidity). Fix: git pull (watch for " +
-        "errors!), then cd launchpad && npm run build - the build must " +
-        "print ~37,900 bytes, not 30,654 - then deploy again."
+        `(${bytecode.length} bytes; missing cancel_launch / liquidity). ` +
+        "Fix: git pull (watch for errors!), then cd launchpad && " +
+        "npm run build - the build must print ~37,900 bytes, not 30,654 - " +
+        "then deploy again."
     );
   }
   const abi = buildRegisteredAbi("launchpad");
