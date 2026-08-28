@@ -27,6 +27,17 @@ async function main() {
   }
 
   const bytecode = fs.readFileSync(wasmPath);
+  // Version guard: this exact require() message only exists in builds that
+  // have cancel_launch (and everything before it). Uploading an older wasm
+  // silently strips features on-chain - a stale build must never deploy.
+  if (!bytecode.includes("it settles by its terms now")) {
+    throw new Error(
+      "STALE BUILD: launchpad/build/release/contract.wasm is an OLD version " +
+        "(missing cancel_launch / liquidity). Fix: git pull (watch for " +
+        "errors!), then cd launchpad && npm run build - the build must " +
+        "print ~37,900 bytes, not 30,654 - then deploy again."
+    );
+  }
   const abi = buildRegisteredAbi("launchpad");
 
   console.log(`network  : ${network}`);
