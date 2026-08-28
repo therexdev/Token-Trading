@@ -48,7 +48,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
   return (
     <>
     {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
-    <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:flex-nowrap lg:gap-4 lg:px-4">
+    <header className="flex shrink-0 items-center gap-2 border-b border-ink-700 bg-ink-900 px-2 py-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0">
           <rect width="32" height="32" rx="7" fill="#151a23" />
@@ -71,10 +71,10 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
       </div>
 
       {(launchpadEnabled() || authConfig?.launchpad) && (
-        <nav className="flex items-center gap-0.5 rounded-md bg-ink-850 p-0.5 text-xs font-semibold">
+        <nav className="flex min-w-0 shrink items-center gap-0.5 overflow-x-auto rounded-md bg-ink-850 p-0.5 text-xs font-semibold [scrollbar-width:none]">
           <a
             href="#/"
-            className={`rounded px-2.5 py-1 transition ${
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "trade"
                 ? "bg-ink-700 text-white"
                 : "text-ink-400 hover:text-white"
@@ -84,7 +84,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
           </a>
           <a
             href="#/launchpads"
-            className={`rounded px-2.5 py-1 transition ${
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "launchpad"
                 ? "bg-ink-700 text-white"
                 : "text-ink-400 hover:text-white"
@@ -94,7 +94,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
           </a>
           <a
             href="#/locks"
-            className={`hidden rounded px-2.5 py-1 transition sm:block ${
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "locks"
                 ? "bg-ink-700 text-white"
                 : "text-ink-400 hover:text-white"
@@ -182,7 +182,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
         <button
           onClick={startConnect}
           disabled={connecting}
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 lg:py-1.5"
+          className="shrink-0 whitespace-nowrap rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm lg:py-1.5"
         >
           {connecting ? "Connecting…" : "Sign in"}
         </button>
@@ -190,7 +190,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
         <button
           onClick={connect}
           disabled={connecting}
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 lg:py-1.5"
+          className="shrink-0 whitespace-nowrap rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm lg:py-1.5"
         >
           {connecting ? "Connecting…" : "Connect Kondor"}
         </button>
@@ -199,7 +199,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
           href="https://chromewebstore.google.com/detail/kondor/ghipkefkpgkladckmlmdnadmcchefhjl"
           target="_blank"
           rel="noreferrer"
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 lg:py-1.5"
+          className="shrink-0 whitespace-nowrap rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 sm:px-4 sm:py-2 sm:text-sm lg:py-1.5"
         >
           Install Kondor
         </a>

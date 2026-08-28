@@ -146,6 +146,120 @@ function Donut({
   );
 }
 
+type StepState = "done" | "active" | "pending" | "failed";
+
+function Step({ state, children }: { state: StepState; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 py-1">
+      {state === "done" ? (
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-up text-[11px] font-bold text-white">✓</span>
+      ) : state === "active" ? (
+        <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      ) : state === "failed" ? (
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-down text-[11px] font-bold text-white">!</span>
+      ) : (
+        <span className="h-5 w-5 shrink-0 rounded-full border-2 border-ink-600" />
+      )}
+      <span className={`text-xs ${state === "done" ? "text-ink-200" : state === "active" ? "text-white" : state === "failed" ? "text-down" : "text-ink-500"}`}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The launch's settlement, as a live checklist. Everything here is automatic
+ * (the usekoinos keeper drives it) - the list exists so nobody has to wonder
+ * what "processing" means or whether it finished.
+ */
+function SettlementChecklist({
+  launch,
+  marketListed,
+  symbol,
+}: {
+  launch: LaunchInfo;
+  marketListed: boolean;
+  symbol: string;
+}) {
+  const refundTrack = launch.status === 3 || launch.status === 4;
+  const finalized = launch.status !== 0;
+  const paid = launch.cursor >= launch.buyerCount;
+
+  if (refundTrack) {
+    return (
+      <div className="mb-4 rounded-lg border border-ink-700 bg-ink-900 p-4">
+        <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-400">
+          Refund progress
+        </h2>
+        <Step state="done">Sale ended below its terms (or was canceled)</Step>
+        <Step state="done">All escrowed tokens returned to the creator</Step>
+        <Step state={launch.status === 4 ? "done" : "active"}>
+          Buyers refunded ({launch.cursor}/{launch.buyerCount})
+        </Step>
+        {launch.status === 4 && (
+          <div className="mt-1 text-[11px] text-ink-500">
+            Everything is back where it started — nothing left to do.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const liq = launch.liquidityBps > 0;
+  return (
+    <div className="mb-4 rounded-lg border border-ink-700 bg-ink-900 p-4">
+      <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-400">
+        Settlement progress <span className="normal-case text-ink-500">(automatic)</span>
+      </h2>
+      <Step state="done">Sale ended</Step>
+      <Step state={finalized ? "done" : "active"}>
+        Finalized — raise sent to the creator
+        {liq ? " (minus the liquidity share)" : ""}
+      </Step>
+      <Step state={!finalized ? "pending" : paid ? "done" : "active"}>
+        Buyers paid out ({launch.cursor}/{launch.buyerCount})
+      </Step>
+      {liq && (
+        <Step
+          state={
+            launch.liquidityState === LIQ_PROVIDED
+              ? "done"
+              : launch.liquidityState === LIQ_RECLAIMED
+                ? "failed"
+                : finalized
+                  ? "active"
+                  : "pending"
+          }
+        >
+          {launch.liquidityState === LIQ_RECLAIMED
+            ? "KoinDX listing failed — earmark returned to the creator"
+            : `Liquidity added on KoinDX (${fmtKoin(launch.liquidityKoin)} KOIN + ${fmtToken(launch, launch.liquidityTokens)} ${symbol})`}
+        </Step>
+      )}
+      {liq && launch.liquidityState !== LIQ_RECLAIMED && (
+        <Step state={launch.liquidityState === LIQ_PROVIDED ? "done" : "pending"}>
+          LP tokens locked until {fmtDate(launch.lpUnlockTime)}
+        </Step>
+      )}
+      {launch.locked > 0n && (
+        <Step state={finalized ? "done" : "pending"}>
+          Creator tokens locked until {fmtDate(launch.unlockTime)}
+        </Step>
+      )}
+      <Step state={marketListed ? "done" : finalized ? "active" : "pending"}>
+        {symbol}/KOIN market listed on Trade Koinos
+      </Step>
+      {launch.status === 2 &&
+        (!liq || launch.liquidityState !== LIQ_PENDING) &&
+        marketListed && (
+          <div className="mt-1 text-[11px] text-up">
+            All done 🎉 — trading is live.
+          </div>
+        )}
+    </div>
+  );
+}
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
@@ -170,6 +284,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
   const dismissToast = useStore((state) => state.dismissToast);
   const guardCanSign = useStore((state) => state.guardCanSign);
   const signingToastTitle = useStore((state) => state.signingToastTitle);
+  const markets = useStore((state) => state.markets);
 
   const [launch, setLaunch] = useState<LaunchInfo | null>(null);
   const [missing, setMissing] = useState(false);
@@ -499,38 +614,17 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
           </div>
         )}
 
-        {/* status banner */}
-        {phase === "ended" && (
-          <div className="mb-4 rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs text-ink-200">
-            The sale has ended. Settlement is automatic — payouts are processed
-            by usekoinos within a couple of minutes, no claiming needed.
-          </div>
-        )}
-        {phase === "distributing" && (
-          <div className="mb-4 rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs text-ink-200">
-            Distributing tokens to {launch.buyerCount} buyer
-            {launch.buyerCount === 1 ? "" : "s"} — {launch.cursor} settled so
-            far. This finishes automatically.
-          </div>
-        )}
-        {phase === "refunding" && (
-          <div className="mb-4 rounded-lg border border-down/40 bg-down/10 p-3 text-xs text-ink-200">
-            The sale ended below its soft cap and is being canceled — every
-            buyer's KOIN is refunded automatically.
-          </div>
-        )}
-        {phase === "canceled" && (
-          <div className="mb-4 rounded-lg border border-down/40 bg-down/10 p-3 text-xs text-ink-200">
-            This sale ended below its soft cap. All buy-ins were refunded and
-            the tokens returned to the creator.
-          </div>
-        )}
-        {phase === "completed" && (
-          <div className="mb-4 rounded-lg border border-up/40 bg-up/10 p-3 text-xs text-ink-200">
-            Sale completed — {fmtKoin(launch.raised)} KOIN raised,{" "}
-            {launch.buyerCount} buyer{launch.buyerCount === 1 ? "" : "s"} paid
-            out automatically.
-          </div>
+        {/* settlement checklist: everything after the end, checked off live */}
+        {phase !== "upcoming" && phase !== "live" && (
+          <SettlementChecklist
+            launch={launch}
+            symbol={symbol}
+            marketListed={markets.some(
+              (m) =>
+                m.base.address === launch.token ||
+                m.quote.address === launch.token
+            )}
+          />
         )}
 
         <div className="grid gap-4 md:grid-cols-[1fr_300px]">
