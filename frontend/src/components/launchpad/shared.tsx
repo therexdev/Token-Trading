@@ -1,7 +1,46 @@
 import { useEffect, useState } from "react";
 import type { LaunchInfo, LaunchPhase } from "../../lib/launchpad";
-import { MODE_FIXED, launchPhase } from "../../lib/launchpad";
+import { MODE_FIXED, launchPhase, tokenLogoUrl } from "../../lib/launchpad";
 import { formatUnits, formatScaled } from "../../lib/format";
+
+/**
+ * A token's logo (stored on usekoinos), falling back to a symbol monogram.
+ * The 302 endpoint 404s when no logo exists - onError flips to the fallback.
+ */
+export function TokenLogo({
+  address,
+  symbol,
+  size = 40,
+}: {
+  address: string;
+  symbol: string;
+  size?: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  const url = tokenLogoUrl(address);
+  const dim = { width: size, height: size };
+  if (!url || failed) {
+    return (
+      <div
+        style={dim}
+        className="flex shrink-0 items-center justify-center rounded-full bg-ink-700 font-bold text-ink-200"
+      >
+        <span style={{ fontSize: Math.max(10, size * 0.3) }}>
+          {(symbol || "?").slice(0, 3)}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={`${symbol} logo`}
+      style={dim}
+      onError={() => setFailed(true)}
+      className="shrink-0 rounded-full border border-ink-700 bg-ink-950 object-cover"
+    />
+  );
+}
 
 export const PHASE_LABEL: Record<LaunchPhase, string> = {
   upcoming: "Upcoming",

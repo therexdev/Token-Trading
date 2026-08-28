@@ -34,6 +34,27 @@ const PRICE_SCALE: u64 = 100000000;
 // transfers lie.
 const KOIN_B58: string = "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK";
 
+// KoinDX periphery (router) on mainnet, and its entry points - taken from
+// @koindx/v2-sdk 1.3.0. Token addresses travel as base58 STRINGS there.
+const DEX_PERIPHERY_B58: string = "17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s";
+const DEX_GET_PAIR_ENTRY: u32 = 4024190401;
+const DEX_CREATE_PAIR_ENTRY: u32 = 678105445;
+const DEX_ADD_LIQUIDITY_ENTRY: u32 = 117856717;
+
+// Liquidity lifecycle
+const LIQ_NONE: u32 = 0;
+const LIQ_PENDING: u32 = 1;
+const LIQ_PROVIDED: u32 = 2;
+const LIQ_RECLAIMED: u32 = 3;
+
+// A fresh pair takes the deposit at exactly the desired ratio; the 2% slack
+// only matters when someone pre-seeded the pair at a nearby price.
+const LIQ_MIN_BPS: u64 = 9800;
+
+// How long provide_liquidity gets retried before the creator may reclaim the
+// earmarked KOIN + tokens (a pre-seeded hostile pair could block adds forever)
+const RECLAIM_GRACE_MS: u64 = 604800000; // 7 days
+
 // KCS-4 decimals() entry point id (see @koinos/sdk-as Token)
 const TOKEN_DECIMALS_ENTRY: u32 = 0xee80fd2f;
 
@@ -313,12 +334,42 @@ export class Launchpad {
       );
     }
 
+    // auto-liquidity terms
+    System.require(
+      args.liquidity_bps <= 10000,
+      "launchpad: liquidity_bps cannot exceed 10000 (100%)"
+    );
+    if (args.liquidity_bps > 0) {
+      System.require(
+        args.liquidity_tokens > 0,
+        "launchpad: liquidity needs a token amount"
+      );
+      System.require(
+        args.lp_unlock_time >= args.end_time,
+        "launchpad: lp_unlock_time must not be before end_time"
+      );
+      System.require(
+        args.lp_unlock_time - args.end_time <= MAX_LOCK_AFTER_END,
+        "launchpad: LP lock cannot run longer than 10 years past the end"
+      );
+    } else {
+      System.require(
+        args.liquidity_tokens == 0,
+        "launchpad: liquidity_tokens without liquidity_bps"
+      );
+    }
+
     // the creator must have authorized this call: their tokens are escrowed
     System.requireAuthority(authority.authorization_type.contract_call, creator);
 
-    const escrowTotal = args.for_sale_amount + args.locked_amount;
+    let escrowTotal = args.for_sale_amount + args.locked_amount;
     System.require(
       escrowTotal >= args.for_sale_amount,
+      "launchpad: escrow overflow"
+    );
+    escrowTotal += args.liquidity_tokens;
+    System.require(
+      escrowTotal >= args.liquidity_tokens,
       "launchpad: escrow overflow"
     );
     const token = new Token(tokenAddress);
@@ -352,6 +403,14 @@ export class Launchpad {
     launch.refunded = 0;
     launch.locked_claimed = false;
     launch.created_at = now;
+    launch.liquidity_bps = args.liquidity_bps;
+    launch.liquidity_tokens = args.liquidity_tokens;
+    launch.lp_unlock_time = args.liquidity_bps > 0 ? args.lp_unlock_time : 0;
+    launch.liquidity_state = args.liquidity_bps > 0 ? LIQ_PENDING : LIQ_NONE;
+    launch.pair = new Uint8Array(0);
+    launch.lp_amount = 0;
+    launch.lp_claimed = false;
+    launch.liquidity_koin = 0;
 
     this.saveLaunch(launch);
     this.saveGlobalState(state);
@@ -490,12 +549,23 @@ export class Launchpad {
     const succeeded = launch.raised > 0 && launch.raised >= launch.soft_cap;
 
     if (succeeded) {
-      // the raised KOIN goes to the creator in full (no platform fee);
+      // the creator receives the raise minus the share earmarked for KoinDX
+      // liquidity (paired later by provide_liquidity); no platform fee.
       // KOIN is a system token, so this cannot re-enter user code
-      System.require(
-        this.koin().transfer(this.contractId, launch.creator!, launch.raised),
-        "launchpad: KOIN payout to creator failed"
-      );
+      if (launch.liquidity_bps > 0) {
+        launch.liquidity_koin = mulDivFloor(
+          launch.raised,
+          u64(launch.liquidity_bps),
+          10000
+        );
+      }
+      const creatorKoin = launch.raised - launch.liquidity_koin;
+      if (creatorKoin > 0) {
+        System.require(
+          this.koin().transfer(this.contractId, launch.creator!, creatorKoin),
+          "launchpad: KOIN payout to creator failed"
+        );
+      }
       if (launch.mode == MODE_FIXED) {
         const unsold = launch.for_sale_amount - launch.sold;
         this.disposeUnsold(launch, unsold);
@@ -504,9 +574,11 @@ export class Launchpad {
         launch.buyer_count > 0 ? STATUS_DISTRIBUTING : STATUS_COMPLETED;
     } else {
       // canceled: every escrowed token goes straight back to the creator
-      // (for-sale AND locked - a canceled launch holds nothing hostage);
-      // the buyers' KOIN goes back through process() batches
-      const escrowTotal = launch.for_sale_amount + launch.locked_amount;
+      // (for-sale, locked AND the liquidity earmark - a canceled launch
+      // holds nothing hostage); the buyers' KOIN goes back through
+      // process() batches
+      const escrowTotal =
+        launch.for_sale_amount + launch.locked_amount + launch.liquidity_tokens;
       System.require(
         new Token(launch.token!).transfer(
           this.contractId,
@@ -516,6 +588,7 @@ export class Launchpad {
         "launchpad: token return to creator failed"
       );
       launch.locked_claimed = true; // nothing left to claim later
+      launch.liquidity_state = LIQ_NONE; // earmark returned with the rest
       launch.status =
         launch.buyer_count > 0 ? STATUS_REFUNDING : STATUS_CANCELED;
     }
@@ -694,6 +767,230 @@ export class Launchpad {
     );
 
     return new launchpad.claim_locked_result();
+  }
+
+  provide_liquidity(
+    args: launchpad.provide_liquidity_arguments
+  ): launchpad.provide_liquidity_result {
+    const found = this.getLaunch(args.launch_id);
+    System.require(found != null, "launchpad: unknown launch");
+    const launch = found!;
+
+    System.require(
+      launch.liquidity_state == LIQ_PENDING,
+      "launchpad: no liquidity pending on this launch"
+    );
+    System.require(
+      launch.status == STATUS_DISTRIBUTING ||
+        launch.status == STATUS_COMPLETED,
+      "launchpad: launch has not settled successfully"
+    );
+    System.require(
+      launch.liquidity_koin > 0,
+      "launchpad: nothing was raised for liquidity"
+    );
+
+    const periphery = Base58.decode(DEX_PERIPHERY_B58);
+    const tokenB58 = Base58.encode(launch.token!);
+    const token = new Token(launch.token!);
+
+    // allow the router to pull both sides from this contract
+    System.require(
+      this.koin().approve(this.contractId, periphery, launch.liquidity_koin),
+      "launchpad: KOIN approve for KoinDX failed"
+    );
+    System.require(
+      token.approve(this.contractId, periphery, launch.liquidity_tokens),
+      "launchpad: token approve for KoinDX failed"
+    );
+
+    // create the pair if it does not exist yet (idempotent on KoinDX's side;
+    // a failure here only matters if add_liquidity then fails too)
+    const pairArgs = new launchpad.dex_pair_call();
+    pairArgs.token_a = KOIN_B58;
+    pairArgs.token_b = tokenB58;
+    const pairArgsBytes = Protobuf.encode(
+      pairArgs,
+      launchpad.dex_pair_call.encode
+    );
+    System.call(periphery, DEX_CREATE_PAIR_ENTRY, pairArgsBytes);
+
+    // pair the earmarked KOIN with the escrowed tokens; a fresh pair takes
+    // the exact ratio, the min guards only bite if someone pre-seeded it
+    const addArgs = new launchpad.dex_add_liquidity_call();
+    addArgs.from = this.contractId;
+    addArgs.receiver = this.contractId;
+    addArgs.token_a = KOIN_B58;
+    addArgs.token_b = tokenB58;
+    addArgs.amount_a_desired = launch.liquidity_koin;
+    addArgs.amount_b_desired = launch.liquidity_tokens;
+    addArgs.amount_a_min = mulDivFloor(launch.liquidity_koin, LIQ_MIN_BPS, 10000);
+    addArgs.amount_b_min = mulDivFloor(
+      launch.liquidity_tokens,
+      LIQ_MIN_BPS,
+      10000
+    );
+    const addRes = System.call(
+      periphery,
+      DEX_ADD_LIQUIDITY_ENTRY,
+      Protobuf.encode(addArgs, launchpad.dex_add_liquidity_call.encode)
+    );
+    System.require(
+      addRes.code == 0,
+      "launchpad: KoinDX add_liquidity failed - retry later"
+    );
+    let lpAmount: u64 = 0;
+    const addBuffer = addRes.res.object;
+    if (addBuffer) {
+      lpAmount = Protobuf.decode<launchpad.dex_add_liquidity_answer>(
+        addBuffer,
+        launchpad.dex_add_liquidity_answer.decode
+      ).liquidity;
+    }
+    System.require(lpAmount > 0, "launchpad: KoinDX returned no liquidity");
+
+    // remember the pair (= the LP token contract) for the lock + claim
+    const getRes = System.call(periphery, DEX_GET_PAIR_ENTRY, pairArgsBytes);
+    System.require(getRes.code == 0, "launchpad: KoinDX get_pair failed");
+    const getBuffer = getRes.res.object;
+    System.require(getBuffer != null, "launchpad: KoinDX returned no pair");
+    const pair = Protobuf.decode<launchpad.dex_address>(
+      getBuffer!,
+      launchpad.dex_address.decode
+    ).value;
+    System.require(
+      pair != null && pair!.length > 0,
+      "launchpad: KoinDX returned an empty pair"
+    );
+
+    launch.pair = pair;
+    launch.lp_amount = lpAmount;
+    launch.liquidity_state = LIQ_PROVIDED;
+    this.saveLaunch(launch);
+
+    const event = new launchpad.liquidity_provided_event();
+    event.launch_id = launch.id;
+    event.pair = pair;
+    event.lp_amount = lpAmount;
+    event.koin = launch.liquidity_koin;
+    event.tokens = launch.liquidity_tokens;
+    const impacted: Uint8Array[] = [launch.creator!];
+    System.event(
+      "launchpad.liquidity_provided",
+      Protobuf.encode(event, launchpad.liquidity_provided_event.encode),
+      impacted
+    );
+
+    const result = new launchpad.provide_liquidity_result();
+    result.liquidity_state = launch.liquidity_state;
+    result.lp_amount = lpAmount;
+    return result;
+  }
+
+  claim_liquidity(
+    args: launchpad.claim_liquidity_arguments
+  ): launchpad.claim_liquidity_result {
+    const found = this.getLaunch(args.launch_id);
+    System.require(found != null, "launchpad: unknown launch");
+    const launch = found!;
+
+    System.require(
+      launch.liquidity_state == LIQ_PROVIDED && !launch.lp_claimed,
+      "launchpad: no locked liquidity to claim"
+    );
+    System.require(
+      this.blockTimestamp() >= launch.lp_unlock_time,
+      "launchpad: liquidity is still locked"
+    );
+
+    // callable by anyone (the keeper auto-delivers); the destination is
+    // always the creator
+    launch.lp_claimed = true;
+    this.saveLaunch(launch);
+    System.require(
+      new Token(launch.pair!).transfer(
+        this.contractId,
+        launch.creator!,
+        launch.lp_amount
+      ),
+      "launchpad: LP transfer failed"
+    );
+
+    const event = new launchpad.lp_claimed_event();
+    event.launch_id = launch.id;
+    event.creator = launch.creator;
+    event.lp_amount = launch.lp_amount;
+    const impacted: Uint8Array[] = [launch.creator!];
+    System.event(
+      "launchpad.lp_claimed",
+      Protobuf.encode(event, launchpad.lp_claimed_event.encode),
+      impacted
+    );
+
+    return new launchpad.claim_liquidity_result();
+  }
+
+  reclaim_liquidity(
+    args: launchpad.reclaim_liquidity_arguments
+  ): launchpad.reclaim_liquidity_result {
+    const found = this.getLaunch(args.launch_id);
+    System.require(found != null, "launchpad: unknown launch");
+    const launch = found!;
+
+    System.require(
+      launch.liquidity_state == LIQ_PENDING,
+      "launchpad: liquidity is not stuck"
+    );
+    System.require(
+      launch.status == STATUS_DISTRIBUTING ||
+        launch.status == STATUS_COMPLETED,
+      "launchpad: launch has not settled successfully"
+    );
+    // only after the keeper has had a week of retries: the stuck state is
+    // publicly visible on the launch page that whole time
+    System.require(
+      this.blockTimestamp() >= launch.end_time + RECLAIM_GRACE_MS,
+      "launchpad: give the keeper its 7-day grace period first"
+    );
+    System.requireAuthority(
+      authority.authorization_type.contract_call,
+      launch.creator!
+    );
+
+    launch.liquidity_state = LIQ_RECLAIMED;
+    this.saveLaunch(launch);
+    if (launch.liquidity_koin > 0) {
+      System.require(
+        this.koin().transfer(
+          this.contractId,
+          launch.creator!,
+          launch.liquidity_koin
+        ),
+        "launchpad: KOIN reclaim failed"
+      );
+    }
+    if (launch.liquidity_tokens > 0) {
+      System.require(
+        new Token(launch.token!).transfer(
+          this.contractId,
+          launch.creator!,
+          launch.liquidity_tokens
+        ),
+        "launchpad: token reclaim failed"
+      );
+    }
+
+    const event = new launchpad.liquidity_reclaimed_event();
+    event.launch_id = launch.id;
+    event.creator = launch.creator;
+    const impacted: Uint8Array[] = [launch.creator!];
+    System.event(
+      "launchpad.liquidity_reclaimed",
+      Protobuf.encode(event, launchpad.liquidity_reclaimed_event.encode),
+      impacted
+    );
+
+    return new launchpad.reclaim_liquidity_result();
   }
 
   // -------------------------------------------------------------------------

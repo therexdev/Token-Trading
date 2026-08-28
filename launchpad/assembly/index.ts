@@ -59,6 +59,45 @@ export function main(): i32 {
       break;
     }
 
+    case 0x27a28ddf: {
+      const args = Protobuf.decode<ProtoNamespace.provide_liquidity_arguments>(
+        contractArgs.args,
+        ProtoNamespace.provide_liquidity_arguments.decode
+      );
+      const res = c.provide_liquidity(args);
+      retbuf = Protobuf.encode(
+        res,
+        ProtoNamespace.provide_liquidity_result.encode
+      );
+      break;
+    }
+
+    case 0x7dbff552: {
+      const args = Protobuf.decode<ProtoNamespace.claim_liquidity_arguments>(
+        contractArgs.args,
+        ProtoNamespace.claim_liquidity_arguments.decode
+      );
+      const res = c.claim_liquidity(args);
+      retbuf = Protobuf.encode(
+        res,
+        ProtoNamespace.claim_liquidity_result.encode
+      );
+      break;
+    }
+
+    case 0x115ceef0: {
+      const args = Protobuf.decode<ProtoNamespace.reclaim_liquidity_arguments>(
+        contractArgs.args,
+        ProtoNamespace.reclaim_liquidity_arguments.decode
+      );
+      const res = c.reclaim_liquidity(args);
+      retbuf = Protobuf.encode(
+        res,
+        ProtoNamespace.reclaim_liquidity_result.encode
+      );
+      break;
+    }
+
     case 0xd3c1d94e: {
       const args = Protobuf.decode<ProtoNamespace.get_launches_arguments>(
         contractArgs.args,

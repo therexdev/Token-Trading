@@ -30,6 +30,11 @@ export const MODE_POOL = 1;
 export const UNSOLD_RETURN = 0;
 export const UNSOLD_BURN = 1;
 
+export const LIQ_NONE = 0;
+export const LIQ_PENDING = 1;
+export const LIQ_PROVIDED = 2;
+export const LIQ_RECLAIMED = 3;
+
 export const STATUS_ACTIVE = 0;
 export const STATUS_DISTRIBUTING = 1;
 export const STATUS_COMPLETED = 2;
@@ -63,6 +68,14 @@ export interface LaunchInfo {
   refunded: bigint;
   lockedClaimed: boolean;
   createdAt: number;
+  liquidityBps: number;
+  liquidityTokens: bigint;
+  lpUnlockTime: number;
+  liquidityState: number;
+  pair: string;
+  lpAmount: bigint;
+  lpClaimed: boolean;
+  liquidityKoin: bigint;
 }
 
 export interface ContributionInfo {
@@ -170,6 +183,14 @@ async function parseLaunch(raw: any): Promise<LaunchInfo> {
     refunded: asBigInt(raw.refunded),
     lockedClaimed: !!raw.lockedClaimed,
     createdAt: asNumber(raw.createdAt),
+    liquidityBps: asNumber(raw.liquidityBps),
+    liquidityTokens: asBigInt(raw.liquidityTokens),
+    lpUnlockTime: asNumber(raw.lpUnlockTime),
+    liquidityState: asNumber(raw.liquidityState),
+    pair: String(raw.pair || ""),
+    lpAmount: asBigInt(raw.lpAmount),
+    lpClaimed: !!raw.lpClaimed,
+    liquidityKoin: asBigInt(raw.liquidityKoin),
   };
 }
 
@@ -246,6 +267,10 @@ export interface CreateLaunchParams {
   softCap: bigint;
   hardCap: bigint; // POOL only; FIXED computes its own
   unsoldAction: number;
+  /** share of the raised KOIN paired on KoinDX, in basis points (0 = off) */
+  liquidityBps: number;
+  liquidityTokens: bigint;
+  lpUnlockTime: number;
 }
 
 export async function createLaunch(
@@ -282,6 +307,11 @@ export async function createLaunch(
         softCap: params.softCap.toString(),
         hardCap: params.hardCap.toString(),
         unsoldAction: params.unsoldAction,
+        liquidityBps: params.liquidityBps,
+        liquidityTokens: params.liquidityTokens.toString(),
+        lpUnlockTime: String(
+          params.liquidityBps > 0 ? params.lpUnlockTime : 0
+        ),
       });
     },
   });
@@ -391,4 +421,91 @@ export async function mintTokenViaUsekoinos(
     throw new Error(data?.error || "Token mint failed");
   }
   return { address: String(data.address), txid: String(data.txid || "") };
+}
+
+/** deliver a completed launch's unlocked creator tokens (anyone may call) */
+export async function claimLocked(
+  caller: string,
+  launchId: number
+): Promise<TxHandle> {
+  const launchpad = getLaunchpadContract();
+  return sendOperations(caller, [
+    {
+      pushTo: async (tx) => {
+        await tx.pushOperation(launchpad.functions.claim_locked, { launchId });
+      },
+    },
+  ]);
+}
+
+/** deliver a launch's unlocked KoinDX LP tokens to its creator (anyone) */
+export async function claimLiquidity(
+  caller: string,
+  launchId: number
+): Promise<TxHandle> {
+  const launchpad = getLaunchpadContract();
+  return sendOperations(caller, [
+    {
+      pushTo: async (tx) => {
+        await tx.pushOperation(launchpad.functions.claim_liquidity, {
+          launchId,
+        });
+      },
+    },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Token logos (stored on usekoinos)
+// ---------------------------------------------------------------------------
+
+/** direct <img src> for a token's logo; 404s when none is set */
+export function tokenLogoUrl(address: string): string | null {
+  if (!SIGNER_API || !address) return null;
+  return `${SIGNER_API}/api/token-logo/${encodeURIComponent(address)}`;
+}
+
+export interface UploadLogoParams {
+  token: string;
+  /** base64 data URL (PNG/JPEG/GIF/WebP) */
+  logo: string;
+  sessionToken?: string | null;
+  kondorAddress?: string | null;
+}
+
+/** attach a logo to a token (first writer wins; only the setter may replace) */
+export async function uploadTokenLogo(params: UploadLogoParams): Promise<void> {
+  if (!SIGNER_API) throw new Error("Logo storage is not configured");
+  const body: Record<string, unknown> = {
+    token: params.token,
+    logo: params.logo,
+  };
+  if (params.sessionToken) {
+    body.sessionToken = params.sessionToken;
+  } else if (params.kondorAddress) {
+    const ts = Date.now();
+    const message = `discover-koinos:launchpad-logo:${ts}`;
+    const signer = getSignerFor(params.kondorAddress);
+    const signature = await (signer as any).signMessage(message);
+    body.address = params.kondorAddress;
+    body.ts = ts;
+    body.sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  } else {
+    throw new Error("Sign in before uploading a logo");
+  }
+  const response = await fetch(`${SIGNER_API}/api/launchpad-logo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30000),
+  });
+  let data: any = null;
+  try {
+    data = await response.json();
+  } catch {
+    /* fall through */
+  }
+  if (!response.ok || !data?.ok) {
+    throw new Error(data?.error || "Logo upload failed");
+  }
 }

@@ -70,6 +70,22 @@ message launch_object {
    uint64 refunded = 20 [jstype = JS_STRING];
    bool locked_claimed = 21;
    uint64 created_at = 22 [jstype = JS_STRING];
+   // auto-liquidity: this share of the raised KOIN (basis points, 0 = off)
+   // is paired with liquidity_tokens on KoinDX at settlement; the LP tokens
+   // stay escrowed here until lp_unlock_time, then claim_liquidity delivers
+   // them to the creator
+   uint32 liquidity_bps = 23;
+   uint64 liquidity_tokens = 24 [jstype = JS_STRING];
+   uint64 lp_unlock_time = 25 [jstype = JS_STRING];
+   // 0 none, 1 pending, 2 provided, 3 reclaimed by the creator (KoinDX
+   // add failed past the grace period)
+   uint32 liquidity_state = 26;
+   // the KoinDX pair (= LP token contract) once provided
+   bytes pair = 27 [(koinos.btype) = ADDRESS];
+   uint64 lp_amount = 28 [jstype = JS_STRING];
+   bool lp_claimed = 29;
+   // KOIN held back from the creator payout for the pairing, fixed at finalize
+   uint64 liquidity_koin = 30 [jstype = JS_STRING];
 }
 
 message contribution_object {
@@ -109,6 +125,10 @@ message create_launch_arguments {
    uint64 soft_cap = 10 [jstype = JS_STRING];
    uint64 hard_cap = 11 [jstype = JS_STRING];
    uint32 unsold_action = 12;
+   // optional auto-liquidity on KoinDX (see launch_object)
+   uint32 liquidity_bps = 13;
+   uint64 liquidity_tokens = 14 [jstype = JS_STRING];
+   uint64 lp_unlock_time = 15 [jstype = JS_STRING];
 }
 
 message create_launch_result {
@@ -169,6 +189,38 @@ message claim_locked_arguments {
 }
 
 message claim_locked_result {
+}
+
+// @description Pair the held-back KOIN with the escrowed liquidity tokens on KoinDX (creates the pair if needed) and lock the LP tokens here until lp_unlock_time. Callable by anyone once a launch with liquidity settles; retryable - a failed KoinDX call changes nothing.
+// @read-only false
+// @result provide_liquidity_result
+message provide_liquidity_arguments {
+   uint32 launch_id = 1;
+}
+
+message provide_liquidity_result {
+   uint32 liquidity_state = 1;
+   uint64 lp_amount = 2 [jstype = JS_STRING];
+}
+
+// @description Deliver a launch's unlocked KoinDX LP tokens to its creator once lp_unlock_time has passed. Callable by anyone; the destination is always the creator.
+// @read-only false
+// @result claim_liquidity_result
+message claim_liquidity_arguments {
+   uint32 launch_id = 1;
+}
+
+message claim_liquidity_result {
+}
+
+// @description Creator escape hatch: if providing liquidity has kept failing for 7 days past the sale end, reclaim the earmarked KOIN + tokens (creator authority). The launch page shows this state to buyers.
+// @read-only false
+// @result reclaim_liquidity_result
+message reclaim_liquidity_arguments {
+   uint32 launch_id = 1;
+}
+
+message reclaim_liquidity_result {
 }
 
 // @description List launches by ascending id: ids strictly greater than `start`, up to `limit` (default 50, max 100)
@@ -252,4 +304,55 @@ message locked_claimed_event {
    uint32 launch_id = 1;
    bytes creator = 2 [(koinos.btype) = ADDRESS];
    uint64 amount = 3 [jstype = JS_STRING];
+}
+
+message liquidity_provided_event {
+   uint32 launch_id = 1;
+   bytes pair = 2 [(koinos.btype) = ADDRESS];
+   uint64 lp_amount = 3 [jstype = JS_STRING];
+   uint64 koin = 4 [jstype = JS_STRING];
+   uint64 tokens = 5 [jstype = JS_STRING];
+}
+
+message liquidity_reclaimed_event {
+   uint32 launch_id = 1;
+   bytes creator = 2 [(koinos.btype) = ADDRESS];
+}
+
+message lp_claimed_event {
+   uint32 launch_id = 1;
+   bytes creator = 2 [(koinos.btype) = ADDRESS];
+   uint64 lp_amount = 3 [jstype = JS_STRING];
+}
+
+// ---------------------------------------------------------------------------
+// KoinDX periphery call shapes. Local definitions - the wire format only
+// cares about field numbers and types, which mirror @koindx/v2-sdk's
+// periphery ABI exactly (token addresses travel as base58 STRINGS there).
+// ---------------------------------------------------------------------------
+
+message dex_pair_call {
+   string token_a = 1;
+   string token_b = 2;
+}
+
+message dex_address {
+   bytes value = 1 [(koinos.btype) = ADDRESS];
+}
+
+message dex_add_liquidity_call {
+   bytes from = 1 [(koinos.btype) = ADDRESS];
+   bytes receiver = 2 [(koinos.btype) = ADDRESS];
+   string token_a = 3;
+   string token_b = 4;
+   uint64 amount_a_desired = 5 [jstype = JS_STRING];
+   uint64 amount_b_desired = 6 [jstype = JS_STRING];
+   uint64 amount_a_min = 7 [jstype = JS_STRING];
+   uint64 amount_b_min = 8 [jstype = JS_STRING];
+}
+
+message dex_add_liquidity_answer {
+   uint64 liquidity = 1 [jstype = JS_STRING];
+   uint64 amount_a = 2 [jstype = JS_STRING];
+   uint64 amount_b = 3 [jstype = JS_STRING];
 }

@@ -17,6 +17,7 @@ import { marketFromHash } from "./lib/marketLink";
 import { LaunchpadListPage } from "./components/launchpad/LaunchpadListPage";
 import { LaunchpadDetailPage } from "./components/launchpad/LaunchpadDetailPage";
 import { CreateLaunchPage } from "./components/launchpad/CreateLaunchPage";
+import { LocksPage } from "./components/launchpad/LocksPage";
 
 // ---------------------------------------------------------------------------
 // Hash routing. Market deep links (#/market/…) belong to the trade view;
@@ -26,9 +27,11 @@ type View =
   | { name: "trade" }
   | { name: "launchpads" }
   | { name: "launchpad"; id: number }
-  | { name: "launchpad-create" };
+  | { name: "launchpad-create" }
+  | { name: "locks" };
 
 function viewFromHash(hash: string): View {
+  if (hash.startsWith("#/locks")) return { name: "locks" };
   if (hash.startsWith("#/launchpads")) return { name: "launchpads" };
   if (hash.startsWith("#/launchpad/create")) return { name: "launchpad-create" };
   const detail = hash.match(/^#\/launchpad\/(\d+)/);
@@ -193,7 +196,15 @@ export default function App() {
 
   return (
     <div className="app-shell flex flex-col bg-ink-950 text-white">
-      <Header section={view.name === "trade" ? "trade" : "launchpad"} />
+      <Header
+        section={
+          view.name === "trade"
+            ? "trade"
+            : view.name === "locks"
+              ? "locks"
+              : "launchpad"
+        }
+      />
       {view.name === "trade" && <StatsBar />}
 
       {view.name === "launchpads" ? (
@@ -202,6 +213,8 @@ export default function App() {
         <LaunchpadDetailPage id={view.id} />
       ) : view.name === "launchpad-create" ? (
         <CreateLaunchPage />
+      ) : view.name === "locks" ? (
+        <LocksPage />
       ) : !initialized ? (
         <div className="flex flex-1 items-center justify-center text-sm text-ink-400">
           <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />

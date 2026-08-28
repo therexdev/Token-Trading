@@ -7,6 +7,9 @@ import {
   launchPhase,
   MODE_FIXED,
   UNSOLD_BURN,
+  LIQ_PENDING,
+  LIQ_PROVIDED,
+  LIQ_RECLAIMED,
   LAUNCH_PRICE_SCALE,
   type LaunchInfo,
   type ContributionInfo,
@@ -16,6 +19,7 @@ import {
   PhaseChip,
   ModeChip,
   ProgressBar,
+  TokenLogo,
   useNow,
   countdown,
   fmtKoin,
@@ -24,6 +28,39 @@ import {
 } from "./shared";
 
 const REFRESH_MS = 10000;
+
+/** human listing price implied by a KOIN amount over a token amount */
+function listPriceText(
+  koinUnits: bigint,
+  tokenUnits: bigint,
+  launch: LaunchInfo
+): string {
+  if (tokenUnits <= 0n) return "—";
+  const decimals = launch.tokenMeta?.decimals ?? 8;
+  // KOIN(1e8) per whole token(10^decimals)
+  const priceNumber =
+    (Number(koinUnits) / 1e8) / (Number(tokenUnits) / 10 ** decimals);
+  if (!Number.isFinite(priceNumber)) return "—";
+  return priceNumber.toLocaleString("en-US", {
+    maximumSignificantDigits: 4,
+  });
+}
+
+/** " (−37% vs the launch price)" comparison suffix, FIXED launches only */
+function launchPriceCompare(launch: LaunchInfo, raise: bigint): string {
+  if (launch.mode !== MODE_FIXED || launch.price <= 0n) return "";
+  const decimals = launch.tokenMeta?.decimals ?? 8;
+  const liqKoin = (raise * BigInt(launch.liquidityBps)) / 10000n;
+  if (launch.liquidityTokens <= 0n) return "";
+  const listing =
+    (Number(liqKoin) / 1e8) / (Number(launch.liquidityTokens) / 10 ** decimals);
+  const launchPrice =
+    (Number(launch.price) / 1e8) * (10 ** decimals / 1e8);
+  if (!Number.isFinite(listing) || launchPrice <= 0) return "";
+  const diff = ((listing - launchPrice) / launchPrice) * 100;
+  const sign = diff >= 0 ? "+" : "";
+  return ` (${sign}${diff.toFixed(0)}% vs the launch price)`;
+}
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -173,7 +210,8 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
           ← All launches
         </a>
 
-        <div className="mb-4 mt-2 flex flex-wrap items-center gap-2">
+        <div className="mb-4 mt-2 flex flex-wrap items-center gap-3">
+          <TokenLogo address={launch.token} symbol={symbol} size={44} />
           <h1 className="text-xl font-bold text-white">
             {launch.tokenMeta?.name || symbol}{" "}
             <span className="text-ink-400">{symbol}</span>
@@ -300,6 +338,13 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
                     ? "burned 🔥"
                     : "returned to the creator"}
                 </Row>
+                {launch.liquidityBps > 0 && (
+                  <Row label="KoinDX liquidity">
+                    {(launch.liquidityBps / 100).toFixed(0)}% of the raise +{" "}
+                    {fmtToken(launch, launch.liquidityTokens)} {symbol}, LP
+                    locked until {fmtDate(launch.lpUnlockTime)}
+                  </Row>
+                )}
                 <Row label="Creator lock">
                   {launch.locked > 0n ? (
                     <>
@@ -329,6 +374,85 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
                 </Row>
               </div>
             </div>
+
+            {launch.liquidityBps > 0 && (
+              <div className="rounded-lg border border-ink-700 bg-ink-900 p-4">
+                <h2 className="mb-1 text-xs font-bold uppercase tracking-wider text-ink-400">
+                  KoinDX listing
+                </h2>
+                {launch.liquidityState === LIQ_PROVIDED ? (
+                  <div className="text-xs leading-relaxed text-ink-200">
+                    Listed 🎉 — {fmtKoin(launch.liquidityKoin)} KOIN +{" "}
+                    {fmtToken(launch, launch.liquidityTokens)} {symbol} went into
+                    the pool (listing price{" "}
+                    <span className="font-mono text-white">
+                      {listPriceText(launch.liquidityKoin, launch.liquidityTokens, launch)}
+                    </span>{" "}
+                    KOIN). LP tokens are locked until{" "}
+                    {fmtDate(launch.lpUnlockTime)}
+                    {launch.lpClaimed ? " (delivered to the creator)" : ""} — see
+                    the <a href="#/locks" className="text-accent hover:underline">locks page</a>.
+                  </div>
+                ) : launch.liquidityState === LIQ_RECLAIMED ? (
+                  <div className="text-xs leading-relaxed text-down">
+                    ⚠️ The KoinDX listing could not be completed and the
+                    earmarked KOIN + tokens were returned to the creator after
+                    the 7-day grace period.
+                  </div>
+                ) : launch.liquidityState === LIQ_PENDING &&
+                  (phase === "distributing" || phase === "completed") ? (
+                  <div className="text-xs leading-relaxed text-ink-200">
+                    Pairing {fmtKoin(launch.liquidityKoin)} KOIN with{" "}
+                    {fmtToken(launch, launch.liquidityTokens)} {symbol} on KoinDX
+                    — happens automatically within a couple of minutes.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 text-xs leading-relaxed text-ink-300">
+                    <div>
+                      After a successful sale,{" "}
+                      <span className="text-white">
+                        {(launch.liquidityBps / 100).toFixed(0)}% of the KOIN
+                        raised
+                      </span>{" "}
+                      is paired with{" "}
+                      <span className="text-white">
+                        {fmtToken(launch, launch.liquidityTokens)} {symbol}
+                      </span>{" "}
+                      on KoinDX, and the LP tokens lock until{" "}
+                      {fmtDate(launch.lpUnlockTime)}.
+                    </div>
+                    {launch.softCap > 0n && (
+                      <div>
+                        At the soft cap: lists at ≈{" "}
+                        <span className="font-mono text-white">
+                          {listPriceText(
+                            (launch.softCap * BigInt(launch.liquidityBps)) / 10000n,
+                            launch.liquidityTokens,
+                            launch
+                          )}
+                        </span>{" "}
+                        KOIN per {symbol}
+                        {launchPriceCompare(launch, launch.softCap)}
+                      </div>
+                    )}
+                    {launch.hardCap > 0n && (
+                      <div>
+                        At a full sale: lists at ≈{" "}
+                        <span className="font-mono text-white">
+                          {listPriceText(
+                            (launch.hardCap * BigInt(launch.liquidityBps)) / 10000n,
+                            launch.liquidityTokens,
+                            launch
+                          )}
+                        </span>{" "}
+                        KOIN per {symbol}
+                        {launchPriceCompare(launch, launch.hardCap)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* right: buy box + my position */}

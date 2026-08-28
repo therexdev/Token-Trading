@@ -1,6 +1,6 @@
 
-ï
-assembly/proto/launchpad.proto	launchpadkoinos/options.proto"½
+÷%
+assembly/proto/launchpad.proto	launchpadkoinos/options.proto"é
 launch_object
 id (Rid
 creator (B€µRcreator
@@ -28,7 +28,16 @@ buyerCount
 refunded (B0Rrefunded%
 locked_claimed (RlockedClaimed!
 
-created_at (B0R	createdAt"®
+created_at (B0R	createdAt#
+liquidity_bps (RliquidityBps-
+liquidity_tokens (B0RliquidityTokens(
+lp_unlock_time (B0RlpUnlockTime'
+liquidity_state (RliquidityState
+pair (B€µRpair
+	lp_amount (B0RlpAmount
+
+lp_claimed (R	lpClaimed)
+liquidity_koin (B0RliquidityKoin"®
 contribution_object
 	launch_id (RlaunchId
 buyer (B€µRbuyer
@@ -37,7 +46,7 @@ created_at (B0R	createdAt"®
 settled (Rsettled
 seq (Rseq"4
 global_state$
-next_launch_id (RnextLaunchId"¢
+next_launch_id (RnextLaunchId" 
 create_launch_arguments
 creator (B€µRcreator
 token (B€µRtoken
@@ -53,7 +62,10 @@ start_time (B0R	startTime
 soft_cap
  (B0RsoftCap
 hard_cap (B0RhardCap#
-unsold_action (RunsoldAction"3
+unsold_action (RunsoldAction#
+liquidity_bps (RliquidityBps-
+liquidity_tokens (B0RliquidityTokens(
+lp_unlock_time (B0RlpUnlockTime"3
 create_launch_result
 	launch_id (RlaunchId"k
 contribute_arguments
@@ -76,7 +88,18 @@ start_time (B0R	startTime
 status (Rstatus"5
 claim_locked_arguments
 	launch_id (RlaunchId"
-claim_locked_result"D
+claim_locked_result":
+provide_liquidity_arguments
+	launch_id (RlaunchId"d
+provide_liquidity_result'
+liquidity_state (RliquidityState
+	lp_amount (B0RlpAmount"8
+claim_liquidity_arguments
+	launch_id (RlaunchId"
+claim_liquidity_result":
+reclaim_liquidity_arguments
+	launch_id (RlaunchId"
+reclaim_liquidity_result"D
 get_launches_arguments
 start (Rstart
 limit (Rlimit"K
@@ -116,4 +139,37 @@ start_time (B0R	startTime
 locked_claimed_event
 	launch_id (RlaunchId
 creator (B€µRcreator
-amount (B0Ramountbproto3
+amount (B0Ramount"¦
+liquidity_provided_event
+	launch_id (RlaunchId
+pair (B€µRpair
+	lp_amount (B0RlpAmount
+koin (B0Rkoin
+tokens (B0Rtokens"X
+liquidity_reclaimed_event
+	launch_id (RlaunchId
+creator (B€µRcreator"p
+lp_claimed_event
+	launch_id (RlaunchId
+creator (B€µRcreator
+	lp_amount (B0RlpAmount"A
+dex_pair_call
+token_a (	RtokenA
+token_b (	RtokenB")
+dex_address
+value (B€µRvalue"®
+dex_add_liquidity_call
+from (B€µRfrom 
+receiver (B€µRreceiver
+token_a (	RtokenA
+token_b (	RtokenB,
+amount_a_desired (B0RamountADesired,
+amount_b_desired (B0RamountBDesired$
+amount_a_min (B0R
+amountAMin$
+amount_b_min (B0R
+amountBMin"z
+dex_add_liquidity_answer 
+	liquidity (B0R	liquidity
+amount_a (B0RamountA
+amount_b (B0RamountBbproto3

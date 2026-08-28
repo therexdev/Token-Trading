@@ -3,6 +3,7 @@ import { useStore } from "../../store/useStore";
 import {
   createLaunch,
   mintTokenViaUsekoinos,
+  uploadTokenLogo,
   MODE_FIXED,
   MODE_POOL,
   UNSOLD_RETURN,
@@ -82,6 +83,32 @@ export function CreateLaunchPage() {
   const [unsoldAction, setUnsoldAction] = useState(UNSOLD_RETURN);
   const [submitting, setSubmitting] = useState(false);
 
+  // ---- logo (optional, stored on usekoinos) ----
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+
+  // ---- KoinDX auto-liquidity (optional) ----
+  const [liqEnabled, setLiqEnabled] = useState(false);
+  const [liqPercent, setLiqPercent] = useState("50");
+  const [liqTokens, setLiqTokens] = useState("");
+  const [lpUnlockAt, setLpUnlockAt] = useState(
+    toLocalInput(Date.now() + 180 * 86400000)
+  );
+
+  const onLogoFile = (file: File | null) => {
+    if (!file) return setLogoDataUrl(null);
+    if (file.size > 1_500_000) {
+      pushToast({
+        kind: "error",
+        title: "Logo too large",
+        detail: "Keep it under 1.5MB (PNG, JPEG, GIF or WebP).",
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setLogoDataUrl(String(reader.result || "") || null);
+    reader.readAsDataURL(file);
+  };
+
   const probe = async () => {
     const address = tokenAddress.trim();
     if (!address) return;
@@ -138,13 +165,27 @@ export function CreateLaunchPage() {
       const forSaleUnits = parseUnits(forSale || "0", formToken.decimals);
       if (forSaleUnits <= 0n) return "Set how many tokens are for sale";
       const lockedUnits = parseUnits(locked || "0", formToken.decimals);
+      const liqTokenUnits = liqEnabled
+        ? parseUnits(liqTokens || "0", formToken.decimals)
+        : 0n;
+      if (liqEnabled) {
+        const pct = Number(liqPercent);
+        if (!Number.isFinite(pct) || pct <= 0 || pct > 100)
+          return "Liquidity % must be between 1 and 100";
+        if (liqTokenUnits <= 0n) return "Set the liquidity token amount";
+        const lpUnlock = new Date(lpUnlockAt).getTime();
+        const endT = new Date(endAt).getTime();
+        if (!lpUnlock || lpUnlock < endT)
+          return "The LP unlock must not be before the end";
+      }
+      const escrowNeed = forSaleUnits + lockedUnits + liqTokenUnits;
       if (source === "mint") {
         // the sale can only escrow what the mint creates
         const supplyUnits = parseUnits(mintSupply.trim() || "0", formToken.decimals);
         if (supplyUnits <= 0n) return "Set the total supply";
-        if (forSaleUnits + lockedUnits > supplyUnits)
-          return "For sale + locked exceeds the minted supply";
-      } else if (tokenBalance !== null && forSaleUnits + lockedUnits > tokenBalance) {
+        if (escrowNeed > supplyUnits)
+          return "For sale + locked + liquidity exceeds the minted supply";
+      } else if (tokenBalance !== null && escrowNeed > tokenBalance) {
         return `You hold ${formatUnits(tokenBalance, formToken.decimals, 4)} ${formToken.symbol} — lower the amounts`;
       }
       const start = new Date(startAt).getTime();
@@ -168,7 +209,51 @@ export function CreateLaunchPage() {
     } catch (error: any) {
       return error?.message || "Check the amounts";
     }
-  }, [source, mintName, mintSymbol, mintSupply, formToken, tokenBalance, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap]);
+  }, [source, mintName, mintSymbol, mintSupply, formToken, tokenBalance, forSale, locked, startAt, endAt, unlockAt, mode, price, softCap, hardCap, liqEnabled, liqPercent, liqTokens, lpUnlockAt]);
+
+  /**
+   * What the KoinDX listing would look like: implied listing price at the
+   * soft cap and at a full sale, next to the launch price. The whole point
+   * is that buyers (and the creator) see the end state before committing.
+   */
+  const listingPreview = useMemo(() => {
+    if (!liqEnabled || !formToken) return null;
+    const pct = Number(liqPercent);
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return null;
+    const tokensNum = Number(liqTokens);
+    if (!Number.isFinite(tokensNum) || tokensNum <= 0) return null;
+    const forSaleNum = Number(forSale);
+    const priceNum = Number(price);
+    const softNum = Number(softCap) || 0;
+    const hardNum =
+      mode === MODE_FIXED
+        ? Number.isFinite(forSaleNum) && Number.isFinite(priceNum)
+          ? forSaleNum * priceNum
+          : 0
+        : Number(hardCap) || 0;
+
+    const listAt = (raiseKoin: number) => {
+      if (!raiseKoin) return null;
+      const listing = (raiseKoin * (pct / 100)) / tokensNum;
+      let vs = "";
+      if (mode === MODE_FIXED && priceNum > 0) {
+        const diff = ((listing - priceNum) / priceNum) * 100;
+        vs = ` (${diff >= 0 ? "+" : ""}${diff.toFixed(0)}% vs launch price)`;
+      } else if (mode === MODE_POOL && forSaleNum > 0) {
+        const launchPrice = raiseKoin / forSaleNum;
+        const diff = ((listing - launchPrice) / launchPrice) * 100;
+        vs = ` (${diff >= 0 ? "+" : ""}${diff.toFixed(0)}% vs the pool price at that raise)`;
+      }
+      return {
+        price: listing.toLocaleString("en-US", { maximumSignificantDigits: 4 }),
+        vs,
+      };
+    };
+    return {
+      soft: softNum > 0 ? listAt(softNum) : null,
+      full: hardNum > 0 ? listAt(hardNum) : null,
+    };
+  }, [liqEnabled, liqPercent, liqTokens, formToken, forSale, price, softCap, hardCap, mode]);
 
   /** mint via usekoinos and return the token ready for createLaunch */
   const doMint = async (): Promise<{ address: string; meta: ProbedTokenMeta }> => {
@@ -259,6 +344,11 @@ export function CreateLaunchPage() {
         softCap: parseDecimalScaled(softCap || "0", 8),
         hardCap: mode === MODE_POOL ? parseDecimalScaled(hardCap || "0", 8) : 0n,
         unsoldAction,
+        liquidityBps: liqEnabled ? Math.round(Number(liqPercent) * 100) : 0,
+        liquidityTokens: liqEnabled
+          ? parseUnits(liqTokens || "0", decimals)
+          : 0n,
+        lpUnlockTime: new Date(lpUnlockAt).getTime(),
       });
       dismissToast(signToast);
       miningToast = pushToast({
@@ -269,6 +359,23 @@ export function CreateLaunchPage() {
       });
       await handle.wait();
       dismissToast(miningToast);
+      if (logoDataUrl) {
+        // best-effort: a failed logo upload never fails the launch
+        try {
+          await uploadTokenLogo({
+            token: launchToken,
+            logo: logoDataUrl,
+            sessionToken: authMethod === "google" ? getSessionToken() : null,
+            kondorAddress: authMethod === "google" ? null : account,
+          });
+        } catch (logoError: any) {
+          pushToast({
+            kind: "info",
+            title: "Logo not saved",
+            detail: logoError?.message || "You can retry from the create page later.",
+          });
+        }
+      }
       pushToast({
         kind: "success",
         title: "Launch is up 🚀",
@@ -436,6 +543,29 @@ export function CreateLaunchPage() {
               </p>
             </div>
           )}
+
+          <div className="mt-3 border-t border-ink-800 pt-3">
+            <Field
+              label="Token logo (optional)"
+              hint="PNG/JPEG/GIF/WebP up to 1.5MB — shown on the launch page and the token's usekoinos page."
+            >
+              <div className="flex items-center gap-3">
+                {logoDataUrl && (
+                  <img
+                    src={logoDataUrl}
+                    alt="logo preview"
+                    className="h-10 w-10 rounded-full border border-ink-600 object-cover"
+                  />
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  onChange={(event) => onLogoFile(event.target.files?.[0] || null)}
+                  className="text-xs text-ink-300 file:mr-3 file:rounded-md file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
+                />
+              </div>
+            </Field>
+          </div>
         </div>
 
         {/* ---- step 2: the sale ---- */}
@@ -575,6 +705,95 @@ export function CreateLaunchPage() {
               />
             </Field>
           </div>
+        </div>
+
+        {/* ---- step 4: KoinDX liquidity ---- */}
+        <div className="mb-5 rounded-lg border border-ink-700 bg-ink-900 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-400">
+              4 · KoinDX listing (optional)
+            </h2>
+            <button
+              onClick={() => setLiqEnabled(!liqEnabled)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                liqEnabled ? "bg-up text-white" : "bg-ink-700 text-ink-300"
+              }`}
+            >
+              {liqEnabled ? "On" : "Off"}
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] leading-relaxed text-ink-500">
+            When the sale succeeds, part of the raised KOIN is automatically
+            paired with tokens you set aside and listed on KoinDX. The LP
+            tokens stay locked until the date you pick — visible to every
+            buyer, so they know the liquidity cannot be pulled.
+          </p>
+          {liqEnabled && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="% of raised KOIN to liquidity">
+                  <input
+                    value={liqPercent}
+                    onChange={(event) => setLiqPercent(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="50"
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label={`Tokens set aside (${formToken?.symbol || "tokens"})`}>
+                  <input
+                    value={liqTokens}
+                    onChange={(event) => setLiqTokens(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="100000"
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <Field
+                label="Liquidity locked until"
+                hint="The LP tokens are escrowed on-chain until this date, then delivered to you from the Locks page."
+              >
+                <input
+                  type="datetime-local"
+                  value={lpUnlockAt}
+                  onChange={(event) => setLpUnlockAt(event.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              {listingPreview && (listingPreview.soft || listingPreview.full) && (
+                <div className="rounded-md border border-accent/30 bg-accent/5 p-3 text-[11px] leading-relaxed text-ink-200">
+                  <div className="mb-1 font-semibold uppercase tracking-wider text-ink-400">
+                    Projected KoinDX list price
+                  </div>
+                  {listingPreview.soft && (
+                    <div>
+                      At the soft cap: ≈{" "}
+                      <span className="font-mono text-white">
+                        {listingPreview.soft.price}
+                      </span>{" "}
+                      KOIN per {formToken?.symbol}
+                      {listingPreview.soft.vs}
+                    </div>
+                  )}
+                  {listingPreview.full && (
+                    <div>
+                      At a full sale: ≈{" "}
+                      <span className="font-mono text-white">
+                        {listingPreview.full.price}
+                      </span>{" "}
+                      KOIN per {formToken?.symbol}
+                      {listingPreview.full.vs}
+                    </div>
+                  )}
+                  <div className="mt-1 text-ink-500">
+                    A list price close to (or above) the launch price protects
+                    your buyers from an instant drop at listing.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <button

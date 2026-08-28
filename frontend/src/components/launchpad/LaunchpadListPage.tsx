@@ -11,6 +11,7 @@ import {
   PhaseChip,
   ModeChip,
   ProgressBar,
+  TokenLogo,
   useNow,
   countdown,
   fmtKoin,
@@ -30,10 +31,13 @@ function LaunchCard({ launch, now }: { launch: LaunchInfo; now: number }) {
       className="block rounded-lg border border-ink-700 bg-ink-900 p-4 transition hover:border-accent"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-bold text-white">
-            {launch.tokenMeta?.name || symbol}
-            <span className="ml-1.5 text-ink-400">{symbol}</span>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <TokenLogo address={launch.token} symbol={symbol} size={34} />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold text-white">
+              {launch.tokenMeta?.name || symbol}
+              <span className="ml-1.5 text-ink-400">{symbol}</span>
+            </div>
           </div>
         </div>
         <PhaseChip launch={launch} now={now} />

@@ -17,6 +17,9 @@ export class Launchpad {
     // const soft_cap = args.soft_cap;
     // const hard_cap = args.hard_cap;
     // const unsold_action = args.unsold_action;
+    // const liquidity_bps = args.liquidity_bps;
+    // const liquidity_tokens = args.liquidity_tokens;
+    // const lp_unlock_time = args.lp_unlock_time;
 
     // YOUR CODE HERE
 
@@ -75,6 +78,44 @@ export class Launchpad {
     // YOUR CODE HERE
 
     const res = new launchpad.claim_locked_result();
+
+    return res;
+  }
+
+  provide_liquidity(
+    args: launchpad.provide_liquidity_arguments
+  ): launchpad.provide_liquidity_result {
+    // const launch_id = args.launch_id;
+
+    // YOUR CODE HERE
+
+    const res = new launchpad.provide_liquidity_result();
+    // res.liquidity_state = ;
+    // res.lp_amount = ;
+
+    return res;
+  }
+
+  claim_liquidity(
+    args: launchpad.claim_liquidity_arguments
+  ): launchpad.claim_liquidity_result {
+    // const launch_id = args.launch_id;
+
+    // YOUR CODE HERE
+
+    const res = new launchpad.claim_liquidity_result();
+
+    return res;
+  }
+
+  reclaim_liquidity(
+    args: launchpad.reclaim_liquidity_arguments
+  ): launchpad.reclaim_liquidity_result {
+    // const launch_id = args.launch_id;
+
+    // YOUR CODE HERE
+
+    const res = new launchpad.reclaim_liquidity_result();
 
     return res;
   }

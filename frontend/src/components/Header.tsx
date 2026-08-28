@@ -6,7 +6,7 @@ import { isKondorAvailable } from "../lib/koinos";
 import { launchpadEnabled } from "../lib/launchpad";
 import { ConnectModal } from "./ConnectModal";
 
-export function Header({ section = "trade" }: { section?: "trade" | "launchpad" }) {
+export function Header({ section = "trade" }: { section?: "trade" | "launchpad" | "locks" }) {
   const account = useStore((state) => state.account);
   const connecting = useStore((state) => state.connecting);
   const connect = useStore((state) => state.connect);
@@ -91,6 +91,16 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
             }`}
           >
             Launchpad
+          </a>
+          <a
+            href="#/locks"
+            className={`hidden rounded px-2.5 py-1 transition sm:block ${
+              section === "locks"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Locks
           </a>
         </nav>
       )}
