@@ -277,7 +277,9 @@ export async function createLaunch(
   params: CreateLaunchParams
 ): Promise<TxHandle> {
   const launchpad = getLaunchpadContract();
-  const escrow = params.forSale + params.locked;
+  // must match the contract's escrow pull exactly: for-sale + creator lock
+  // + the tokens earmarked for KoinDX liquidity
+  const escrow = params.forSale + params.locked + params.liquidityTokens;
   const operations: { pushTo: (tx: Transaction) => Promise<void> }[] = [];
 
   if (params.tokenAllowances) {

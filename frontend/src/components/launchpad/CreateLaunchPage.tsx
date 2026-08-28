@@ -863,8 +863,8 @@ export function CreateLaunchPage() {
                 : "Escrow tokens & open the launch"}
         </button>
         <p className="mt-2 text-center text-[11px] text-ink-500">
-          Creating the launch escrows the for-sale + locked tokens from your
-          wallet in one transaction.
+          Creating the launch escrows the for-sale, locked, and liquidity
+          tokens from your wallet in one transaction.
         </p>
       </div>
     </div>
