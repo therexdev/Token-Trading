@@ -49,6 +49,12 @@ function run(cmd, args, attempts = 5) {
   }
 }
 
+// abi/ and build/ are generated (not tracked in git), so a fresh checkout -
+// or a pull that removed the old tracked copies - must recreate them before
+// protoc writes into them
+fs.mkdirSync(path.join(root, "abi"), { recursive: true });
+fs.mkdirSync(path.join(root, "build", mode), { recursive: true });
+
 console.log("1/6 generating ABI...");
 run(bin("protoc"), [
   `--plugin=protoc-gen-abi=${bin("koinos-abi-proto-gen")}`,
