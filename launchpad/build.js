@@ -56,6 +56,32 @@ run(bin("protoc"), [
   "assembly/proto/launchpad.proto",
 ]);
 
+// The abi-proto-gen shipped with protobufjs 8 emits the koilib type
+// descriptor with snake_case field names, while the orderbook's older
+// generator - and therefore every koilib call site in this project -
+// speaks camelCase (marketId, minBaseAmount, ...). Passing camelCase
+// arguments against a snake_case descriptor makes protobufjs silently
+// drop every multi-word field (observed live: create_launch arrived with
+// for_sale_amount = 0). Normalize the descriptor to camelCase so the
+// launchpad ABI behaves exactly like the orderbook one.
+console.log("1b/6 normalizing ABI field names to camelCase...");
+{
+  const camel = (s) => s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+  const renameFields = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (node.fields && typeof node.fields === "object") {
+      const renamed = {};
+      for (const [name, def] of Object.entries(node.fields)) renamed[camel(name)] = def;
+      node.fields = renamed;
+    }
+    if (node.nested) for (const child of Object.values(node.nested)) renameFields(child);
+  };
+  const abiJsonPath = path.join(root, "abi", "launchpad-abi.json");
+  const abiJson = JSON.parse(fs.readFileSync(abiJsonPath, "utf8"));
+  renameFields(abiJson.types);
+  fs.writeFileSync(abiJsonPath, JSON.stringify(abiJson, null, 2));
+}
+
 console.log("2/6 generating proto serializers...");
 run(bin("protoc"), [
   `--plugin=protoc-gen-as=${bin("as-proto-gen")}`,
