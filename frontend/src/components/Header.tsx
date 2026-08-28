@@ -59,7 +59,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
           <rect x="22" y="10" width="4" height="12" rx="1" fill="#2ebd85" />
           <rect x="23.5" y="7" width="1" height="17" fill="#2ebd85" />
         </svg>
-        <div className="min-w-0 leading-tight">
+        <div className="hidden min-w-0 leading-tight sm:block">
           <div className="whitespace-nowrap text-sm font-semibold tracking-wide text-white">
             Trade <span className="text-accent">Koinos</span>
           </div>
@@ -134,7 +134,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
                 ? `${authLabel ?? "Google account"} · ${account} — switch account`
                 : "Switch account"
             }
-            className="flex max-w-[13rem] items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 lg:py-1.5"
+            className="flex max-w-[7.5rem] items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-2 py-1.5 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 sm:max-w-[13rem] sm:px-3 sm:py-2 lg:py-1.5"
           >
             {connecting ? (
               "Connecting…"

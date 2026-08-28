@@ -447,6 +447,15 @@ function extractError(error: any): string {
     } catch {
       // not json
     }
+    // a bare exit(1) with no message is what a contract dispatcher does for
+    // an entry point it does not know - i.e. the on-chain contract is an
+    // older version than this app expects
+    if (/did not contain error data/i.test(error.message)) {
+      return (
+        error.message +
+        " — this usually means the deployed contract is an older version missing this feature (redeploy the launchpad contract)"
+      );
+    }
     return error.message;
   }
   return String(error);
