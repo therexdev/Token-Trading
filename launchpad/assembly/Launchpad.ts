@@ -43,7 +43,6 @@ const KOIN_DEX_ID: string = "koin";
 // @koindx/v2-sdk 1.3.0. Token addresses travel as base58 STRINGS there.
 const DEX_PERIPHERY_B58: string = "17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s";
 const DEX_GET_PAIR_ENTRY: u32 = 4024190401;
-const DEX_CREATE_PAIR_ENTRY: u32 = 678105445;
 const DEX_ADD_LIQUIDITY_ENTRY: u32 = 117856717;
 
 // Liquidity lifecycle
@@ -867,8 +866,13 @@ export class Launchpad {
       "launchpad: token approve for KoinDX failed"
     );
 
-    // create the pair if it does not exist yet (idempotent on KoinDX's side;
-    // a failure here only matters if add_liquidity then fails too)
+    // NO create_pair here, ever: KoinDX pools are born from a dedicated
+    // 2-op transaction (official bytecode upload + create_pair) that only
+    // the keeper can send - see usekoinos tools/koindx.js. Calling
+    // create_pair from inside this contract can never satisfy that check,
+    // and its require uses a REVERSION code that unwinds this whole
+    // transaction even though we ignore the call result (observed live).
+    // The keeper guarantees the pool exists before calling us.
     const pairArgs = new launchpad.dex_pair_call();
     pairArgs.token_a = KOIN_DEX_ID;
     pairArgs.token_b = tokenB58;
@@ -876,7 +880,6 @@ export class Launchpad {
       pairArgs,
       launchpad.dex_pair_call.encode
     );
-    System.call(periphery, DEX_CREATE_PAIR_ENTRY, pairArgsBytes);
 
     // pair the earmarked KOIN with the escrowed tokens; a fresh pair takes
     // the exact ratio, the min guards only bite if someone pre-seeded it
