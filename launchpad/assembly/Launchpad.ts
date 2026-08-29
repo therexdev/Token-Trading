@@ -33,6 +33,11 @@ const PRICE_SCALE: u64 = 100000000;
 // "payment token" per launch would let a creator take payment in a token whose
 // transfers lie.
 const KOIN_B58: string = "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK";
+// KoinDX identifies KOIN by its chain NAMESPACE, not its address: every
+// canonical pair is keyed by the literal string "koin" (see the koindx
+// token-list). Passing the base58 address would create/query a parallel
+// pair the KoinDX app can never see.
+const KOIN_DEX_ID: string = "koin";
 
 // KoinDX periphery (router) on mainnet, and its entry points - taken from
 // @koindx/v2-sdk 1.3.0. Token addresses travel as base58 STRINGS there.
@@ -865,7 +870,7 @@ export class Launchpad {
     // create the pair if it does not exist yet (idempotent on KoinDX's side;
     // a failure here only matters if add_liquidity then fails too)
     const pairArgs = new launchpad.dex_pair_call();
-    pairArgs.token_a = KOIN_B58;
+    pairArgs.token_a = KOIN_DEX_ID;
     pairArgs.token_b = tokenB58;
     const pairArgsBytes = Protobuf.encode(
       pairArgs,
@@ -878,7 +883,7 @@ export class Launchpad {
     const addArgs = new launchpad.dex_add_liquidity_call();
     addArgs.from = this.contractId;
     addArgs.receiver = this.contractId;
-    addArgs.token_a = KOIN_B58;
+    addArgs.token_a = KOIN_DEX_ID;
     addArgs.token_b = tokenB58;
     addArgs.amount_a_desired = launch.liquidity_koin;
     addArgs.amount_b_desired = launch.liquidity_tokens;
