@@ -87,8 +87,19 @@ async function main() {
   // registering the ABI on-chain lets explorers and koilib discover it
   const { transaction } = await contract.deploy({ abi });
   console.log(`transaction ${transaction.id} submitted, waiting...`);
-  const { blockNumber } = await transaction.wait("byBlock", 60000);
-  console.log(`deployed in block ${blockNumber}`);
+  // Big uploads regularly outlive a short watch, and public RPCs answer
+  // some polls with junk while the transaction mines fine - so watch for
+  // longer, and treat a timeout as "check the explorer", not failure.
+  try {
+    const { blockNumber } = await transaction.wait("byBlock", 180000);
+    console.log(`deployed in block ${blockNumber}`);
+  } catch (waitError) {
+    console.log(`\nStill not visible after 3 minutes - that does NOT mean it failed.`);
+    console.log(`Check:  https://koinosblocks.com/tx/${transaction.id}`);
+    console.log(`If that page shows a block, the deploy landed and you are done.`);
+    console.log(`Only if it is still missing after ~10 minutes, run this deploy again.`);
+    return;
+  }
   console.log(`\nNext:`);
   console.log(`  frontend : set VITE_LAUNCHPAD_ADDRESS=${signer.getAddress()} and rebuild`);
   console.log(`  usekoinos: set LAUNCHPAD_ADDRESS=${signer.getAddress()} so the keeper settles launches`);
