@@ -150,6 +150,8 @@ Two ways in, and the app adapts to whichever is available:
 **Kondor** — the default, and the only option in a plain static build. The key
 never leaves the extension; the app receives signatures.
 
+**Koinos Bio Wallet** — choose Bio Wallet, then scan the displayed QR from the wallet's **Connect** button. Trade Koinos receives only the smart-account address and an expiring session secret. Orders and cancellations appear in Bio Wallet for explicit passkey approval; the wallet prepares, sponsors, signs and broadcasts the transaction without exposing key material to this site. Set `VITE_BIO_WALLET_API` to the deployed wallet origin.
+
 **Google** — the same Koinos wallet a Google account already has on Aurvania
 and OURO, signed for by **usekoinos.com**. The private key never enters this
 page. Sign-in returns a short-lived session token (not a key); each

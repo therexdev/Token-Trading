@@ -31,6 +31,7 @@ import {
   loginWithGoogle,
   type AuthConfig,
 } from "../lib/authApi";
+import { loadBioSession, saveBioSession, type BioSession } from "../lib/bioWallet";
 
 export interface Toast {
   id: number;
@@ -76,6 +77,7 @@ interface AppState {
   init: () => Promise<void>;
   connect: () => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
+  connectBio: (session: BioSession) => void;
   chooseAccount: (address: string) => void;
   dismissAccountChoices: () => void;
   disconnect: () => void;
@@ -101,7 +103,7 @@ interface AppState {
 }
 
 let toastCounter = 1;
-export type AuthMethod = "kondor" | "google" | null;
+export type AuthMethod = "kondor" | "google" | "bio" | null;
 const STORAGE_ACCOUNT = "koinoskit-trade:account";
 const STORAGE_METHOD = "koinoskit-trade:auth-method";
 // bumped to v2 so any stale saved selection is dropped and the app lands on
@@ -134,6 +136,15 @@ function restoreSession(): {
       return { account: null, authMethod: null, authLabel: null };
     }
     return { account: live, authMethod: "google", authLabel: getSessionLabel() };
+  }
+
+  if (method === "bio") {
+    const live = loadBioSession();
+    if (!live || (saved && live.address !== saved)) {
+      localStorage.removeItem(STORAGE_ACCOUNT); localStorage.removeItem(STORAGE_METHOD); saveBioSession(null);
+      return { account: null, authMethod: null, authLabel: null };
+    }
+    return { account: live.address, authMethod: "bio", authLabel: "Bio Wallet" };
   }
 
   return { account: saved, authMethod: saved ? "kondor" : null, authLabel: null };
@@ -269,6 +280,7 @@ export const useStore = create<AppState>((set, get) => ({
   signInWithGoogle: async (idToken: string) => {
     set({ connecting: true });
     try {
+      saveBioSession(null);
       // usekoinos returns a session token + address — never a key. Signing
       // happens there; the key never enters this page.
       const result = await loginWithGoogle(idToken);
@@ -301,10 +313,21 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  connectBio: (session: BioSession) => {
+    clearSessionKey(); saveBioSession(session);
+    localStorage.setItem(STORAGE_ACCOUNT, session.address);
+    localStorage.setItem(STORAGE_METHOD, "bio");
+    if (get().account !== session.address) set({ balances: {}, myOrders: [] });
+    set({ account: session.address, authMethod: "bio", authLabel: "Bio Wallet", accountChoices: null, connecting: false });
+    get().pushToast({ kind: "success", title: "Bio Wallet connected", detail: session.address });
+    void get().refreshUser();
+  },
+
   chooseAccount: (address: string) => {
     // picking a Kondor account replaces any Google session outright — the
     // held key must not outlive the account it belongs to
     clearSessionKey();
+    saveBioSession(null);
     localStorage.setItem(STORAGE_ACCOUNT, address);
     localStorage.setItem(STORAGE_METHOD, "kondor");
     if (get().account !== address) {
@@ -324,11 +347,19 @@ export const useStore = create<AppState>((set, get) => ({
   dismissAccountChoices: () => set({ accountChoices: null }),
 
   signingToastTitle: () =>
-    get().authMethod === "google"
+    get().authMethod === "bio"
+      ? "Approve this transaction in Bio Wallet…"
+      : get().authMethod === "google"
       ? "Signing…"
       : "Confirm the transaction in Kondor…",
 
   guardCanSign: () => {
+    if (get().authMethod === "bio" && loadBioSession()?.address !== get().account) {
+      localStorage.removeItem(STORAGE_METHOD); saveBioSession(null);
+      set({ account: null, authMethod: null, authLabel: null, balances: {}, myOrders: [] });
+      get().pushToast({ kind: "error", title: "Bio Wallet disconnected", detail: "Connect it again to keep trading." });
+      return false;
+    }
     // A Google session that has expired (token gone) must send the user back
     // through sign-in, never quietly fall through to a Kondor prompt for an
     // address Kondor doesn't hold.
@@ -357,6 +388,7 @@ export const useStore = create<AppState>((set, get) => ({
     localStorage.removeItem(STORAGE_METHOD);
     // the whole point of signing out is that the key stops being usable
     clearSessionKey();
+    saveBioSession(null);
     set({
       account: null,
       authMethod: null,

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "../store/useStore";
 import { isKondorAvailable } from "../lib/koinos";
 import { renderGoogleButton } from "../lib/authApi";
+import { QRCodeSVG } from "qrcode.react";
+import { createBioPair, readBioPair, type BioPair } from "../lib/bioWallet";
 
 const KONDOR_URL =
   "https://chromewebstore.google.com/detail/kondor/ghipkefkpgkladckmlmdnadmcchefhjl";
@@ -16,11 +18,14 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
   const connecting = useStore((state) => state.connecting);
   const signInWithGoogle = useStore((state) => state.signInWithGoogle);
   const authConfig = useStore((state) => state.authConfig);
+  const connectBio = useStore((state) => state.connectBio);
 
   const slotRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
+  const [bioPair, setBioPair] = useState<BioPair | null>(null);
+  const [bioError, setBioError] = useState<string | null>(null);
   const kondor = isKondorAvailable();
 
   useEffect(() => {
@@ -62,6 +67,22 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
     };
   }, [authConfig?.googleClientId, onClose, signInWithGoogle]);
 
+  useEffect(() => {
+    if (!bioPair) return;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const status = await readBioPair(bioPair);
+        if (!stopped && status.connected && status.address) {
+          connectBio({ sessionId: bioPair.sessionId, secret: bioPair.secret, address: String(status.address) });
+          onClose();
+        }
+      } catch (error: any) { if (!stopped) setBioError(error?.message || "Connection expired"); }
+    };
+    void check(); const timer = setInterval(check, 1500);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [bioPair, connectBio, onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
@@ -81,6 +102,23 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="space-y-3 p-4">
+          {bioPair ? (
+            <div className="rounded-md border border-ink-600 bg-white p-4 text-center">
+              <QRCodeSVG value={bioPair.uri} size={210} className="mx-auto max-w-full" />
+              <p className="mt-3 text-xs font-semibold text-ink-900">Bio Wallet → Connect → scan this code</p>
+              <button onClick={() => setBioPair(null)} className="mt-2 text-xs text-ink-600 underline">Choose another wallet</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setBioError(null); void createBioPair().then(setBioPair).catch((e) => setBioError(e.message)); }}
+              className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              Connect Bio Wallet
+            </button>
+          )}
+          {bioError && <p className="text-xs leading-relaxed text-down">{bioError}</p>}
+
+          {!bioPair && <>
           {kondor ? (
             <button
               onClick={() => {
@@ -102,6 +140,8 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
               Install Kondor
             </a>
           )}
+
+          </>}
 
           <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-ink-500">
             <span className="h-px flex-1 bg-ink-700" />
