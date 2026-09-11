@@ -17,6 +17,7 @@ import {
 } from "./types";
 import { parseUnits } from "./format";
 import { getSessionSigner } from "./sessionKey";
+import { getBioSigner } from "./bioWallet";
 
 export const provider = new Provider([RPC_URL]);
 
@@ -70,6 +71,8 @@ export function getKondorSigner(address: string): SignerInterface {
  * a stale session key can never sign for a Kondor account, or the reverse.
  */
 export function getSignerFor(address: string): SignerInterface {
+  const bio = getBioSigner(address);
+  if (bio) return bio;
   const session = getSessionSigner();
   if (session && session.getAddress() === address) return session;
   return getKondorSigner(address);

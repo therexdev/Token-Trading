@@ -2,29 +2,22 @@ import { useCallback, useMemo, useState } from "react";
 import { useStore, useSelectedMarket } from "../store/useStore";
 import { NETWORK } from "../config/tokens";
 import { formatUnits, shortAddress } from "../lib/format";
-import { isKondorAvailable } from "../lib/koinos";
 import { ConnectModal } from "./ConnectModal";
 
 export function Header() {
   const account = useStore((state) => state.account);
   const connecting = useStore((state) => state.connecting);
-  const connect = useStore((state) => state.connect);
   const disconnect = useStore((state) => state.disconnect);
   const balances = useStore((state) => state.balances);
   const tokens = useStore((state) => state.tokens);
-  const authConfig = useStore((state) => state.authConfig);
   const authMethod = useStore((state) => state.authMethod);
   const authLabel = useStore((state) => state.authLabel);
   const market = useSelectedMarket();
   const [connectOpen, setConnectOpen] = useState(false);
 
-  // with a sign-in bridge behind the app there is a choice to offer; served
-  // as flat files there is only Kondor, so skip the modal and go straight
-  // there exactly as before
   const startConnect = useCallback(() => {
-    if (authConfig?.google) setConnectOpen(true);
-    else void connect();
-  }, [authConfig?.google, connect]);
+    setConnectOpen(true);
+  }, []);
 
   // the balance strip shows the curated tokens, plus whichever discovered
   // tokens the selected market trades
@@ -132,7 +125,7 @@ export function Header() {
             </svg>
           </button>
         </div>
-      ) : authConfig?.google ? (
+      ) : (
         // Google works without the extension, so the entry point stops being
         // Kondor-specific once the bridge is live
         <button
@@ -142,23 +135,6 @@ export function Header() {
         >
           {connecting ? "Connecting…" : "Sign in"}
         </button>
-      ) : isKondorAvailable() ? (
-        <button
-          onClick={connect}
-          disabled={connecting}
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 lg:py-1.5"
-        >
-          {connecting ? "Connecting…" : "Connect Kondor"}
-        </button>
-      ) : (
-        <a
-          href="https://chromewebstore.google.com/detail/kondor/ghipkefkpgkladckmlmdnadmcchefhjl"
-          target="_blank"
-          rel="noreferrer"
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 lg:py-1.5"
-        >
-          Install Kondor
-        </a>
       )}
     </header>
     </>
