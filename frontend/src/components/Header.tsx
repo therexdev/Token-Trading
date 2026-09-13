@@ -1,15 +1,17 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStore, useSelectedMarket } from "../store/useStore";
 import { NETWORK } from "../config/tokens";
 import { formatUnits, shortAddress } from "../lib/format";
+import { launchpadEnabled } from "../lib/launchpad";
 import { ConnectModal } from "./ConnectModal";
 
-export function Header() {
+export function Header({ section = "trade" }: { section?: "trade" | "launchpad" | "locks" }) {
   const account = useStore((state) => state.account);
   const connecting = useStore((state) => state.connecting);
   const disconnect = useStore((state) => state.disconnect);
   const balances = useStore((state) => state.balances);
   const tokens = useStore((state) => state.tokens);
+  const authConfig = useStore((state) => state.authConfig);
   const authMethod = useStore((state) => state.authMethod);
   const authLabel = useStore((state) => state.authLabel);
   const market = useSelectedMarket();
@@ -18,6 +20,14 @@ export function Header() {
   const startConnect = useCallback(() => {
     setConnectOpen(true);
   }, []);
+
+  // launchpad pages live outside this component but need the same connect
+  // flow - they ask for it with a window event instead of prop-drilling
+  useEffect(() => {
+    const open = () => startConnect();
+    window.addEventListener("tk-open-connect", open);
+    return () => window.removeEventListener("tk-open-connect", open);
+  }, [startConnect]);
 
   // the balance strip shows the curated tokens, plus whichever discovered
   // tokens the selected market trades
@@ -32,7 +42,7 @@ export function Header() {
   return (
     <>
     {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
-    <header className="flex shrink-0 items-center gap-3 border-b border-ink-700 bg-ink-900 px-3 py-2 lg:gap-4 lg:px-4">
+    <header className="flex shrink-0 items-center gap-2 border-b border-ink-700 bg-ink-900 px-2 py-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0">
           <rect width="32" height="32" rx="7" fill="#151a23" />
@@ -43,7 +53,7 @@ export function Header() {
           <rect x="22" y="10" width="4" height="12" rx="1" fill="#2ebd85" />
           <rect x="23.5" y="7" width="1" height="17" fill="#2ebd85" />
         </svg>
-        <div className="min-w-0 leading-tight">
+        <div className="hidden min-w-0 leading-tight sm:block">
           <div className="whitespace-nowrap text-sm font-semibold tracking-wide text-white">
             Trade <span className="text-accent">Koinos</span>
           </div>
@@ -53,6 +63,41 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {(launchpadEnabled() || authConfig?.launchpad) && (
+        <nav className="flex min-w-0 shrink items-center gap-0.5 overflow-x-auto rounded-md bg-ink-850 p-0.5 text-xs font-semibold [scrollbar-width:none]">
+          <a
+            href="#/"
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
+              section === "trade"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Trade
+          </a>
+          <a
+            href="#/launchpads"
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
+              section === "launchpad"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Launchpad
+          </a>
+          <a
+            href="#/locks"
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
+              section === "locks"
+                ? "bg-ink-700 text-white"
+                : "text-ink-400 hover:text-white"
+            }`}
+          >
+            Locks
+          </a>
+        </nav>
+      )}
 
       <div className="flex-1" />
 
@@ -83,7 +128,7 @@ export function Header() {
                 ? `${authLabel ?? "Google account"} · ${account} — switch account`
                 : "Switch account"
             }
-            className="flex max-w-[13rem] items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 lg:py-1.5"
+            className="flex max-w-[7.5rem] items-center gap-1.5 rounded-md border border-ink-600 bg-ink-800 px-2 py-1.5 font-mono text-xs text-ink-300 transition hover:border-accent hover:text-white disabled:opacity-50 sm:max-w-[13rem] sm:px-3 sm:py-2 lg:py-1.5"
           >
             {connecting ? (
               "Connecting…"
@@ -131,10 +176,11 @@ export function Header() {
         <button
           onClick={startConnect}
           disabled={connecting}
-          className="whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 lg:py-1.5"
+          className="shrink-0 whitespace-nowrap rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-white transition hover:brightness-110 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm lg:py-1.5"
         >
           {connecting ? "Connecting…" : "Sign in"}
         </button>
+
       )}
     </header>
     </>

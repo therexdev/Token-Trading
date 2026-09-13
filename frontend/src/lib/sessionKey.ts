@@ -75,6 +75,11 @@ export function getSessionLabel(): string | null {
 }
 
 /** The address this session controls, or null when there is no live session. */
+/** the raw session token, for authenticated usekoinos API calls (minting) */
+export function getSessionToken(): string | null {
+  return token();
+}
+
 export function sessionAddress(): string | null {
   if (!token()) return null;
   if (memAddr) return memAddr;

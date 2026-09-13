@@ -64,6 +64,9 @@ export function marketFromHash(
 
 /** reflect the market in the URL without growing the browser history */
 export function writeMarketHash(market: MarketInfo): void {
+  // Background market initialization must preserve launchpad and lock deep links.
+  const current = window.location.hash;
+  if (current && current !== "#" && current !== "#/" && !current.startsWith(MARKET_HASH_PREFIX)) return;
   const hash = marketHash(market);
   if (window.location.hash === hash) return;
   const { pathname, search } = window.location;

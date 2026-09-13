@@ -1,10 +1,10 @@
-import { Contract, Provider, Transaction, utils } from "koilib";
+import { Contract, Transaction, utils } from "koilib";
 import type { SignerInterface } from "koilib";
 import * as kondor from "kondor-js";
 import { orderbookAbi } from "./abi";
+import { createProvider } from "./rpcProvider";
 import {
   ORDERBOOK_ADDRESS,
-  RPC_URL,
   REST_URL,
   TOKENS,
   RETIRED_ADDRESSES,
@@ -19,7 +19,8 @@ import { parseUnits } from "./format";
 import { getSessionSigner } from "./sessionKey";
 import { getBioSigner } from "./bioWallet";
 
-export const provider = new Provider([RPC_URL]);
+// Fails over across all configured endpoints (see rpcProvider).
+export const provider = createProvider();
 
 export function getOrderbookContract(signer?: SignerInterface): Contract {
   return new Contract({
@@ -449,12 +450,21 @@ function extractError(error: any): string {
     } catch {
       // not json
     }
+    // a bare exit(1) with no message is what a contract dispatcher does for
+    // an entry point it does not know - i.e. the on-chain contract is an
+    // older version than this app expects
+    if (/did not contain error data/i.test(error.message)) {
+      return (
+        error.message +
+        " — this usually means the deployed contract is an older version missing this feature (redeploy the launchpad contract)"
+      );
+    }
     return error.message;
   }
   return String(error);
 }
 
-async function sendOperations(
+export async function sendOperations(
   owner: string,
   operations: { pushTo: (tx: Transaction) => Promise<void> }[]
 ): Promise<TxHandle> {

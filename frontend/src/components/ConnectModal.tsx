@@ -105,7 +105,7 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
           {bioPair ? (
             <div className="rounded-md border border-ink-600 bg-white p-4 text-center">
               <QRCodeSVG value={bioPair.uri} size={210} className="mx-auto max-w-full" />
-              <p className="mt-3 text-xs font-semibold text-ink-900">Bio Wallet → Connect → scan this code</p>
+              <p className="mt-3 text-xs font-semibold text-ink-900">KOIN Vault → Connect → scan this code</p>
               <button onClick={() => setBioPair(null)} className="mt-2 text-xs text-ink-600 underline">Choose another wallet</button>
             </div>
           ) : (
@@ -113,7 +113,7 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
               onClick={() => { setBioError(null); void createBioPair().then(setBioPair).catch((e) => setBioError(e.message)); }}
               className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
             >
-              Connect Bio Wallet
+              Connect KOIN Vault
             </button>
           )}
           {bioError && <p className="text-xs leading-relaxed text-down">{bioError}</p>}

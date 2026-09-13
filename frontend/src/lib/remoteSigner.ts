@@ -1,11 +1,11 @@
-import { Provider } from "koilib";
 import type {
+  Provider,
   SignerInterface,
   TransactionJson,
   TransactionJsonWait,
   SendTransactionOptions,
 } from "koilib";
-import { RPC_URL } from "../config/tokens";
+import { createProvider } from "./rpcProvider";
 import { SIGNER_API } from "../config/signer";
 
 /**
@@ -41,8 +41,9 @@ export class RemoteSigner implements Partial<SignerInterface> {
     this.address = address;
     this.token = token;
     this.onExpire = onExpire;
-    // its own provider on the same RPC — used only to broadcast, never to sign
-    this.provider = new Provider([RPC_URL]);
+    // its own provider on the same RPC nodes (with failover) — used only to
+    // broadcast, never to sign
+    this.provider = createProvider();
   }
 
   getAddress(): string {

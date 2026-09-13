@@ -15,6 +15,10 @@ import { SIGNER_API } from "../config/signer";
 export interface AuthConfig {
   google: boolean;
   googleClientId: string | null;
+  /** launchpad contract address usekoinos' keeper watches (null = none) */
+  launchpad: string | null;
+  /** whether usekoinos can mint fresh tokens right now */
+  tokenLaunch: boolean;
 }
 
 export interface GoogleSessionResult {
@@ -23,7 +27,12 @@ export interface GoogleSessionResult {
   label: string;
 }
 
-const OFF: AuthConfig = { google: false, googleClientId: null };
+const OFF: AuthConfig = {
+  google: false,
+  googleClientId: null,
+  launchpad: null,
+  tokenLaunch: false,
+};
 
 /**
  * Ask usekoinos whether Google sign-in / signing is configured. Never throws —
@@ -41,8 +50,19 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
     const type = response.headers.get("content-type") || "";
     if (!type.includes("application/json")) return OFF;
     const body = await response.json();
-    if (!body?.signer || !body?.google || !body?.googleClientId) return OFF;
-    return { google: true, googleClientId: String(body.googleClientId) };
+    // launchpad/mint availability rides along even when Google is off
+    const extras = {
+      launchpad: body?.launchpad ? String(body.launchpad) : null,
+      tokenLaunch: !!body?.tokenLaunch,
+    };
+    if (!body?.signer || !body?.google || !body?.googleClientId) {
+      return { ...OFF, ...extras };
+    }
+    return {
+      google: true,
+      googleClientId: String(body.googleClientId),
+      ...extras,
+    };
   } catch {
     return OFF;
   }
@@ -172,4 +192,45 @@ export async function renderGoogleButton(
     shape: "rectangular",
     width: Math.max(200, Math.min(400, Math.round(width) || 320)),
   });
+}
+
+/**
+ * Show Google One Tap — the small "Continue as …" chip — so a visitor who is
+ * already signed into Google (and has used this wallet before) lands on the
+ * page and is one tap from signed in, without opening the connect modal.
+ *
+ * Deliberately NOT `auto_select` (which would sign in with no interaction):
+ * this is a funds-holding app, so a live signing session should follow a
+ * deliberate tap, not merely opening the tab. Fails soft — if GSI is blocked
+ * or One Tap is suppressed, nothing happens and the connect button still works.
+ */
+export async function showGoogleOneTap(
+  clientId: string,
+  onToken: (idToken: string) => void
+): Promise<void> {
+  try {
+    await loadGoogleIdentity();
+  } catch {
+    return; // blocked/unavailable — the manual connect button remains
+  }
+  const gsi = (window as any).google?.accounts?.id;
+  if (!gsi) return;
+  gsi.initialize({
+    client_id: clientId,
+    // FedCM is now required for One Tap: as Chrome restricts third-party
+    // cookies, the legacy One Tap iframe is suppressed and prompt() silently
+    // shows nothing. Opting in lets the browser mediate the chip so it still
+    // appears. (The manual "Continue with Google" button is unaffected.)
+    use_fedcm_for_prompt: true,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    callback: (response: { credential?: string }) => {
+      if (response?.credential) onToken(response.credential);
+    },
+  });
+  try {
+    gsi.prompt();
+  } catch {
+    // One Tap can throw if suppressed (cooldown, no session) — harmless
+  }
 }
