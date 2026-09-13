@@ -6,9 +6,8 @@
  * TOKEN; transactions are signed by usekoinos (see remoteSigner.ts). The key
  * never touches the browser.
  *
- * Every call fails soft: when SIGNER_API is unset (a plain static deploy) or
- * usekoinos is unreachable, Google reports itself unavailable and the app runs
- * Kondor-only, exactly as before.
+ * Configuration discovery fails soft if Google is explicitly disabled or the
+ * gateway is unreachable. Kondor and KOIN Vault remain available.
  */
 import { SIGNER_API } from "../config/signer";
 
@@ -36,8 +35,8 @@ const OFF: AuthConfig = {
 
 /**
  * Ask usekoinos whether Google sign-in / signing is configured. Never throws —
- * an unset SIGNER_API, an unreachable host, or a non-JSON answer all mean
- * "no Google here", and the app stays Kondor-only.
+ * an empty SIGNER_API, an unreachable host, or a non-JSON answer all mean
+ * Google is unavailable. The wallet chooser can retry discovery.
  */
 export async function fetchAuthConfig(): Promise<AuthConfig> {
   if (!SIGNER_API) return OFF;
@@ -132,23 +131,30 @@ export function loadGoogleIdentity(): Promise<void> {
   gsiPromise = new Promise<void>((resolve, reject) => {
     if ((window as any).google?.accounts?.id) return resolve();
 
-    const timer = setTimeout(() => reject(new Error(GSI_BLOCKED)), GSI_TIMEOUT_MS);
-    const settle = (fn: () => void) => {
-      clearTimeout(timer);
-      fn();
-    };
-
     const script = document.createElement("script");
+    const settle = (error?: Error) => {
+      clearTimeout(timer);
+      script.onload = null;
+      script.onerror = null;
+      if (error) {
+        script.remove();
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+    const timer = setTimeout(() => settle(new Error(GSI_BLOCKED)), GSI_TIMEOUT_MS);
+
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
     script.onload = () =>
-      settle(() =>
+      settle(
         (window as any).google?.accounts?.id
-          ? resolve()
-          : reject(new Error("Google sign-in loaded but did not initialise"))
+          ? undefined
+          : new Error("Google sign-in loaded but did not initialise")
       );
-    script.onerror = () => settle(() => reject(new Error(GSI_BLOCKED)));
+    script.onerror = () => settle(new Error(GSI_BLOCKED));
     document.head.appendChild(script);
   }).catch((error) => {
     // let a later attempt retry instead of caching the failure forever
@@ -159,27 +165,26 @@ export function loadGoogleIdentity(): Promise<void> {
 }
 
 /**
- * Render Google's own button into `slot` and resolve with the ID token once
- * the user completes the popup.
- *
- * Only Google's iframe may open that popup and it cannot be restyled, so the
- * caller stretches its own button underneath and renders this one nearly
- * invisible over the top — the same approach Aurvania, OURO and the Discover
- * Koinos gateway use.
+ * Render Google's visible button into `slot`. The promise resolves after
+ * rendering is requested; onToken receives the ID token after sign-in.
  */
 export async function renderGoogleButton(
   slot: HTMLElement,
   clientId: string,
   width: number,
   onToken: (idToken: string) => void,
-  onError: (message: string) => void
+  onError: (message: string) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   await loadGoogleIdentity();
+  // Strict Mode, a retry, or a closed modal may cancel while the script loads.
+  if (signal?.aborted || !slot.isConnected) return;
   const gsi = (window as any).google.accounts.id;
   gsi.initialize({
     client_id: clientId,
     ux_mode: "popup",
     callback: (response: { credential?: string }) => {
+      if (signal?.aborted) return;
       if (response?.credential) onToken(response.credential);
       else onError("Google did not return a sign-in token");
     },

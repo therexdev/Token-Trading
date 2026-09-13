@@ -76,6 +76,7 @@ interface AppState {
   listPairOpen: boolean;
 
   init: () => Promise<void>;
+  refreshAuthConfig: () => Promise<void>;
   connect: () => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
   connectBio: (session: BioSession) => void;
@@ -180,16 +181,16 @@ export const useStore = create<AppState>((set, get) => ({
   prefillPrice: null,
   listPairOpen: false,
 
+  refreshAuthConfig: async () => {
+    set({ authConfig: null });
+    const authConfig = await fetchAuthConfig();
+    setLaunchpadAddress(authConfig.launchpad);
+    set({ authConfig });
+  },
+
   init: async () => {
-    // probe the sign-in bridge alongside the chain reads rather than before
-    // them: served as flat files there is no /api/config to answer, and the
-    // orderbook must not wait on that finding out
-    void fetchAuthConfig().then((authConfig) => {
-      // a static deploy without VITE_LAUNCHPAD_ADDRESS learns the launchpad
-      // contract from usekoinos instead
-      setLaunchpadAddress(authConfig.launchpad);
-      set({ authConfig });
-    });
+    // Sign-in discovery must not wait on market/RPC reads.
+    void get().refreshAuthConfig();
     try {
       // correct static decimals with the on-chain values before anything else;
       // a transient RPC miss here is non-fatal — the static defaults stand in

@@ -20,6 +20,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
   const startConnect = useCallback(() => {
     setConnectOpen(true);
   }, []);
+  const closeConnect = useCallback(() => setConnectOpen(false), []);
 
   // launchpad pages live outside this component but need the same connect
   // flow - they ask for it with a window event instead of prop-drilling
@@ -41,7 +42,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
 
   return (
     <>
-    {connectOpen && <ConnectModal onClose={() => setConnectOpen(false)} />}
+    {connectOpen && <ConnectModal onClose={closeConnect} />}
     <header className="flex shrink-0 items-center gap-2 border-b border-ink-700 bg-ink-900 px-2 py-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0">
