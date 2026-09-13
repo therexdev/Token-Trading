@@ -145,12 +145,11 @@ are handled as `BigInt` in the tokens' smallest units.
 
 ## Sign-in
 
-Two ways in, and the app adapts to whichever is available:
+Three ways in, and the app adapts to whichever is available:
 
-**Kondor** — the default, and the only option in a plain static build. The key
-never leaves the extension; the app receives signatures.
+**Kondor** — the key never leaves the extension; the app receives signatures.
 
-**Koinos Bio Wallet** — choose Bio Wallet, then scan the displayed QR from the wallet's **Connect** button. Trade Koinos receives only the smart-account address and an expiring session secret. Orders and cancellations appear in Bio Wallet for explicit passkey approval; the wallet prepares, sponsors, signs and broadcasts the transaction without exposing key material to this site. Set `VITE_BIO_WALLET_API` to the deployed wallet origin.
+**KOIN Vault** — choose Connect KOIN Vault, then scan the QR with your phone camera or select **Open KOIN Vault on this device**. Sign in at https://koinvault.app and approve the connection with your passkey. Trade Koinos receives only the smart-account address and an expiring session secret. Orders and cancellations appear in KOIN Vault for explicit passkey approval; the wallet prepares, sponsors, signs and broadcasts the transaction. `VITE_BIO_WALLET_API` defaults to `https://koinvault.app`. After updating from the old wallet URL, connect again to create a fresh session.
 
 **Google** — the same Koinos wallet a Google account already has on Aurvania
 and OURO, signed for by **usekoinos.com**. The private key never enters this
@@ -161,10 +160,11 @@ broadcast. An XSS on this page can at most ask usekoinos to sign during the
 token's lifetime, through a rate-limited endpoint — it can never steal a key,
 because there is none here.
 
-Set `VITE_SIGNER_API=https://usekoinos.com` at build time to enable the Google
-button. Unset, the app is Kondor-only with no other change — so a plain static
-deploy is unaffected. The client id is served from
-`usekoinos.com/api/signer-config`, so it is not baked into the build.
+Google sign-in defaults to `https://usekoinos.com`, including plain static
+builds. Set `VITE_SIGNER_API` at build time to override the gateway, or set it
+explicitly empty to disable Google. The client id is fetched from
+`usekoinos.com/api/signer-config`. A failed configuration or Google script
+load shows an error and a retry button; Kondor and KOIN Vault stay available.
 
 ### How the client signs without a key
 
@@ -197,8 +197,8 @@ npm run build        # or build explicitly
 
 `npm run build` produces `dist/` (and mirrors it to the repo root) for a
 static host — no server to run. Set `VITE_ORDERBOOK_ADDRESS` (defaults to the
-live mainnet orderbook if unset) and `VITE_SIGNER_API=https://usekoinos.com`
-to enable Google. See `.env.example`.
+live mainnet orderbook if unset). Google uses `https://usekoinos.com` unless
+`VITE_SIGNER_API` overrides it. See `.env.example`.
 
 ## Deployment guide
 

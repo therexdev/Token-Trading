@@ -15,6 +15,7 @@ import {
 } from "../lib/koinos";
 import type { MarketInfo, OrderInfo, TradeInfo } from "../lib/types";
 import { TOKENS, type TokenConfig } from "../config/tokens";
+import { setLaunchpadAddress } from "../config/launchpad";
 import {
   MARKET_HASH_PREFIX,
   marketFromHash,
@@ -75,6 +76,7 @@ interface AppState {
   listPairOpen: boolean;
 
   init: () => Promise<void>;
+  refreshAuthConfig: () => Promise<void>;
   connect: () => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
   connectBio: (session: BioSession) => void;
@@ -144,7 +146,7 @@ function restoreSession(): {
       localStorage.removeItem(STORAGE_ACCOUNT); localStorage.removeItem(STORAGE_METHOD); saveBioSession(null);
       return { account: null, authMethod: null, authLabel: null };
     }
-    return { account: live.address, authMethod: "bio", authLabel: "Bio Wallet" };
+    return { account: live.address, authMethod: "bio", authLabel: "KOIN Vault" };
   }
 
   return { account: saved, authMethod: saved ? "kondor" : null, authLabel: null };
@@ -179,20 +181,45 @@ export const useStore = create<AppState>((set, get) => ({
   prefillPrice: null,
   listPairOpen: false,
 
+  refreshAuthConfig: async () => {
+    set({ authConfig: null });
+    const authConfig = await fetchAuthConfig();
+    setLaunchpadAddress(authConfig.launchpad);
+    set({ authConfig });
+  },
+
   init: async () => {
-    // probe the sign-in bridge alongside the chain reads rather than before
-    // them: served as flat files there is no /api/config to answer, and the
-    // orderbook must not wait on that finding out
-    void fetchAuthConfig().then((authConfig) => set({ authConfig }));
+    // Sign-in discovery must not wait on market/RPC reads.
+    void get().refreshAuthConfig();
     try {
-      // correct static decimals with the on-chain values before anything else
-      const decimals = await fetchTokenDecimals();
-      for (const token of TOKENS) {
-        if (decimals[token.symbol] !== undefined) {
-          token.decimals = decimals[token.symbol];
+      // correct static decimals with the on-chain values before anything else;
+      // a transient RPC miss here is non-fatal — the static defaults stand in
+      try {
+        const decimals = await fetchTokenDecimals();
+        for (const token of TOKENS) {
+          if (decimals[token.symbol] !== undefined) {
+            token.decimals = decimals[token.symbol];
+          }
+        }
+      } catch {
+        // keep the built-in decimals; markets can still load without this
+      }
+      // The public RPC intermittently answers get_markets with "context
+      // deadline exceeded" under load. A single miss on first load must not
+      // strand the user on the error screen, so retry a few times with backoff
+      // before giving up — a later good answer is the common case.
+      let loaded: Awaited<ReturnType<typeof fetchMarkets>> | null = null;
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 4 && !loaded; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 800 * attempt));
+        try {
+          loaded = await fetchMarkets();
+        } catch (error) {
+          lastErr = error;
         }
       }
-      const { markets, tokens, allPairs } = await fetchMarkets();
+      if (!loaded) throw lastErr || new Error("Failed to reach the Koinos RPC");
+      const { markets, tokens, allPairs } = loaded;
       const hash = window.location.hash;
       const linked = marketFromHash(hash, markets);
       const savedRaw = localStorage.getItem(STORAGE_MARKET);
@@ -318,8 +345,8 @@ export const useStore = create<AppState>((set, get) => ({
     localStorage.setItem(STORAGE_ACCOUNT, session.address);
     localStorage.setItem(STORAGE_METHOD, "bio");
     if (get().account !== session.address) set({ balances: {}, myOrders: [] });
-    set({ account: session.address, authMethod: "bio", authLabel: "Bio Wallet", accountChoices: null, connecting: false });
-    get().pushToast({ kind: "success", title: "Bio Wallet connected", detail: session.address });
+    set({ account: session.address, authMethod: "bio", authLabel: "KOIN Vault", accountChoices: null, connecting: false });
+    get().pushToast({ kind: "success", title: "KOIN Vault connected", detail: session.address });
     void get().refreshUser();
   },
 
@@ -348,7 +375,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   signingToastTitle: () =>
     get().authMethod === "bio"
-      ? "Approve this transaction in Bio Wallet…"
+      ? "Approve this transaction in KOIN Vault…"
       : get().authMethod === "google"
       ? "Signing…"
       : "Confirm the transaction in Kondor…",
@@ -357,7 +384,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (get().authMethod === "bio" && loadBioSession()?.address !== get().account) {
       localStorage.removeItem(STORAGE_METHOD); saveBioSession(null);
       set({ account: null, authMethod: null, authLabel: null, balances: {}, myOrders: [] });
-      get().pushToast({ kind: "error", title: "Bio Wallet disconnected", detail: "Connect it again to keep trading." });
+      get().pushToast({ kind: "error", title: "KOIN Vault disconnected", detail: "Connect it again to keep trading." });
       return false;
     }
     // A Google session that has expired (token gone) must send the user back
@@ -420,7 +447,41 @@ export const useStore = create<AppState>((set, get) => ({
   refreshMarkets: async () => {
     try {
       const { markets, tokens, allPairs } = await fetchMarkets();
-      set({ markets, tokens, allPairs });
+      const state = get();
+      // Self-heal: if init() was stranded on the error screen by a transient
+      // RPC failure, a later successful poll clears it and finishes the
+      // initialization it never reached (pick a market, drop the error) — so
+      // the app recovers on its own without the user reloading.
+      if (markets.length && (state.initError || state.selectedMarketId === null)) {
+        const savedRaw = localStorage.getItem(STORAGE_MARKET);
+        const savedMarket = savedRaw ? Number(savedRaw) : NaN;
+        const defaultMarket =
+          markets.find(
+            (m) => m.base.symbol === "KOIN" && m.quote.symbol === "vUSDT"
+          ) || markets[0];
+        const selected =
+          (savedRaw ? markets.find((m) => m.marketId === savedMarket) : null) ||
+          defaultMarket;
+        const wasUnselected = state.selectedMarketId === null;
+        set({
+          markets,
+          tokens,
+          allPairs,
+          initError: null,
+          initialized: true,
+          selectedMarketId: wasUnselected
+            ? selected
+              ? selected.marketId
+              : null
+            : state.selectedMarketId,
+        });
+        if (selected && wasUnselected) {
+          writeMarketHash(selected);
+          void get().refreshMarketData();
+        }
+      } else {
+        set({ markets, tokens, allPairs });
+      }
     } catch {
       // keep previous data on transient RPC errors
     }

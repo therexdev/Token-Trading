@@ -6,15 +6,18 @@
  * TOKEN; transactions are signed by usekoinos (see remoteSigner.ts). The key
  * never touches the browser.
  *
- * Every call fails soft: when SIGNER_API is unset (a plain static deploy) or
- * usekoinos is unreachable, Google reports itself unavailable and the app runs
- * Kondor-only, exactly as before.
+ * Configuration discovery fails soft if Google is explicitly disabled or the
+ * gateway is unreachable. Kondor and KOIN Vault remain available.
  */
 import { SIGNER_API } from "../config/signer";
 
 export interface AuthConfig {
   google: boolean;
   googleClientId: string | null;
+  /** launchpad contract address usekoinos' keeper watches (null = none) */
+  launchpad: string | null;
+  /** whether usekoinos can mint fresh tokens right now */
+  tokenLaunch: boolean;
 }
 
 export interface GoogleSessionResult {
@@ -23,12 +26,17 @@ export interface GoogleSessionResult {
   label: string;
 }
 
-const OFF: AuthConfig = { google: false, googleClientId: null };
+const OFF: AuthConfig = {
+  google: false,
+  googleClientId: null,
+  launchpad: null,
+  tokenLaunch: false,
+};
 
 /**
  * Ask usekoinos whether Google sign-in / signing is configured. Never throws —
- * an unset SIGNER_API, an unreachable host, or a non-JSON answer all mean
- * "no Google here", and the app stays Kondor-only.
+ * an empty SIGNER_API, an unreachable host, or a non-JSON answer all mean
+ * Google is unavailable. The wallet chooser can retry discovery.
  */
 export async function fetchAuthConfig(): Promise<AuthConfig> {
   if (!SIGNER_API) return OFF;
@@ -41,8 +49,19 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
     const type = response.headers.get("content-type") || "";
     if (!type.includes("application/json")) return OFF;
     const body = await response.json();
-    if (!body?.signer || !body?.google || !body?.googleClientId) return OFF;
-    return { google: true, googleClientId: String(body.googleClientId) };
+    // launchpad/mint availability rides along even when Google is off
+    const extras = {
+      launchpad: body?.launchpad ? String(body.launchpad) : null,
+      tokenLaunch: !!body?.tokenLaunch,
+    };
+    if (!body?.signer || !body?.google || !body?.googleClientId) {
+      return { ...OFF, ...extras };
+    }
+    return {
+      google: true,
+      googleClientId: String(body.googleClientId),
+      ...extras,
+    };
   } catch {
     return OFF;
   }
@@ -112,23 +131,30 @@ export function loadGoogleIdentity(): Promise<void> {
   gsiPromise = new Promise<void>((resolve, reject) => {
     if ((window as any).google?.accounts?.id) return resolve();
 
-    const timer = setTimeout(() => reject(new Error(GSI_BLOCKED)), GSI_TIMEOUT_MS);
-    const settle = (fn: () => void) => {
-      clearTimeout(timer);
-      fn();
-    };
-
     const script = document.createElement("script");
+    const settle = (error?: Error) => {
+      clearTimeout(timer);
+      script.onload = null;
+      script.onerror = null;
+      if (error) {
+        script.remove();
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+    const timer = setTimeout(() => settle(new Error(GSI_BLOCKED)), GSI_TIMEOUT_MS);
+
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
     script.onload = () =>
-      settle(() =>
+      settle(
         (window as any).google?.accounts?.id
-          ? resolve()
-          : reject(new Error("Google sign-in loaded but did not initialise"))
+          ? undefined
+          : new Error("Google sign-in loaded but did not initialise")
       );
-    script.onerror = () => settle(() => reject(new Error(GSI_BLOCKED)));
+    script.onerror = () => settle(new Error(GSI_BLOCKED));
     document.head.appendChild(script);
   }).catch((error) => {
     // let a later attempt retry instead of caching the failure forever
@@ -139,27 +165,26 @@ export function loadGoogleIdentity(): Promise<void> {
 }
 
 /**
- * Render Google's own button into `slot` and resolve with the ID token once
- * the user completes the popup.
- *
- * Only Google's iframe may open that popup and it cannot be restyled, so the
- * caller stretches its own button underneath and renders this one nearly
- * invisible over the top — the same approach Aurvania, OURO and the Discover
- * Koinos gateway use.
+ * Render Google's visible button into `slot`. The promise resolves after
+ * rendering is requested; onToken receives the ID token after sign-in.
  */
 export async function renderGoogleButton(
   slot: HTMLElement,
   clientId: string,
   width: number,
   onToken: (idToken: string) => void,
-  onError: (message: string) => void
+  onError: (message: string) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   await loadGoogleIdentity();
+  // Strict Mode, a retry, or a closed modal may cancel while the script loads.
+  if (signal?.aborted || !slot.isConnected) return;
   const gsi = (window as any).google.accounts.id;
   gsi.initialize({
     client_id: clientId,
     ux_mode: "popup",
     callback: (response: { credential?: string }) => {
+      if (signal?.aborted) return;
       if (response?.credential) onToken(response.credential);
       else onError("Google did not return a sign-in token");
     },
@@ -172,4 +197,45 @@ export async function renderGoogleButton(
     shape: "rectangular",
     width: Math.max(200, Math.min(400, Math.round(width) || 320)),
   });
+}
+
+/**
+ * Show Google One Tap — the small "Continue as …" chip — so a visitor who is
+ * already signed into Google (and has used this wallet before) lands on the
+ * page and is one tap from signed in, without opening the connect modal.
+ *
+ * Deliberately NOT `auto_select` (which would sign in with no interaction):
+ * this is a funds-holding app, so a live signing session should follow a
+ * deliberate tap, not merely opening the tab. Fails soft — if GSI is blocked
+ * or One Tap is suppressed, nothing happens and the connect button still works.
+ */
+export async function showGoogleOneTap(
+  clientId: string,
+  onToken: (idToken: string) => void
+): Promise<void> {
+  try {
+    await loadGoogleIdentity();
+  } catch {
+    return; // blocked/unavailable — the manual connect button remains
+  }
+  const gsi = (window as any).google?.accounts?.id;
+  if (!gsi) return;
+  gsi.initialize({
+    client_id: clientId,
+    // FedCM is now required for One Tap: as Chrome restricts third-party
+    // cookies, the legacy One Tap iframe is suppressed and prompt() silently
+    // shows nothing. Opting in lets the browser mediate the chip so it still
+    // appears. (The manual "Continue with Google" button is unaffected.)
+    use_fedcm_for_prompt: true,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    callback: (response: { credential?: string }) => {
+      if (response?.credential) onToken(response.credential);
+    },
+  });
+  try {
+    gsi.prompt();
+  } catch {
+    // One Tap can throw if suppressed (cooldown, no session) — harmless
+  }
 }

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore, useSelectedMarket } from "./store/useStore";
+import { showGoogleOneTap } from "./lib/authApi";
 import { Header } from "./components/Header";
 import { StatsBar } from "./components/StatsBar";
 import { PriceChart } from "./components/PriceChart";
@@ -13,6 +14,30 @@ import { ListPairModal } from "./components/ListPairModal";
 import { ORDERBOOK_ADDRESS } from "./config/tokens";
 import { SIDE_BUY, SIDE_SELL } from "./lib/types";
 import { marketFromHash } from "./lib/marketLink";
+import { LaunchpadListPage } from "./components/launchpad/LaunchpadListPage";
+import { LaunchpadDetailPage } from "./components/launchpad/LaunchpadDetailPage";
+import { CreateLaunchPage } from "./components/launchpad/CreateLaunchPage";
+import { LocksPage } from "./components/launchpad/LocksPage";
+
+// ---------------------------------------------------------------------------
+// Hash routing. Market deep links (#/market/…) belong to the trade view;
+// the launchpad lives beside it under #/launchpads and #/launchpad/….
+// ---------------------------------------------------------------------------
+type View =
+  | { name: "trade" }
+  | { name: "launchpads" }
+  | { name: "launchpad"; id: number }
+  | { name: "launchpad-create" }
+  | { name: "locks" };
+
+function viewFromHash(hash: string): View {
+  if (hash.startsWith("#/locks")) return { name: "locks" };
+  if (hash.startsWith("#/launchpads")) return { name: "launchpads" };
+  if (hash.startsWith("#/launchpad/create")) return { name: "launchpad-create" };
+  const detail = hash.match(/^#\/launchpad\/(\d+)/);
+  if (detail) return { name: "launchpad", id: Number(detail[1]) };
+  return { name: "trade" };
+}
 
 const MARKET_POLL_MS = 4000;
 const USER_POLL_MS = 10000;
@@ -88,6 +113,8 @@ export default function App() {
   const initialized = useStore((state) => state.initialized);
   const initError = useStore((state) => state.initError);
   const account = useStore((state) => state.account);
+  const authConfig = useStore((state) => state.authConfig);
+  const signInWithGoogle = useStore((state) => state.signInWithGoogle);
   const refreshMarketData = useStore((state) => state.refreshMarketData);
   const refreshUser = useStore((state) => state.refreshUser);
   const refreshMarkets = useStore((state) => state.refreshMarkets);
@@ -99,6 +126,9 @@ export default function App() {
   const [tab, setTab] = useState<MobileTab>("chart");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetSide, setSheetSide] = useState<number>(SIDE_BUY);
+  const [view, setView] = useState<View>(() =>
+    viewFromHash(window.location.hash)
+  );
 
   useEffect(() => {
     if (!ORDERBOOK_ADDRESS) return;
@@ -122,6 +152,18 @@ export default function App() {
     return () => clearInterval(userTimer);
   }, [account, refreshUser]);
 
+  // Google One Tap: once config lands and nobody is signed in, offer the
+  // "Continue as …" chip. One tap → the same Google session flow as the modal.
+  const oneTapTried = useRef(false);
+  useEffect(() => {
+    if (oneTapTried.current || account) return;
+    if (!authConfig?.google || !authConfig.googleClientId) return;
+    oneTapTried.current = true;
+    void showGoogleOneTap(authConfig.googleClientId, (idToken) => {
+      void signInWithGoogle(idToken);
+    });
+  }, [authConfig, account, signInWithGoogle]);
+
   // on phones, tapping a price in the book opens the order sheet prefilled
   // (the sheet's TradePanel consumes prefillPrice once it mounts)
   useEffect(() => {
@@ -130,9 +172,11 @@ export default function App() {
 
   // a market link pasted into (or navigated to in) an already-open tab
   // switches pairs without a reload; the app's own URL updates use
-  // replaceState, which never fires hashchange, so this cannot loop
+  // replaceState, which never fires hashchange, so this cannot loop.
+  // The same listener drives the launchpad <-> trade view switch.
   useEffect(() => {
     const onHashChange = () => {
+      setView(viewFromHash(window.location.hash));
       const state = useStore.getState();
       const linked = marketFromHash(window.location.hash, state.markets);
       if (linked && linked.marketId !== state.selectedMarketId) {
@@ -151,11 +195,27 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell flex flex-col bg-ink-950 text-white">
-      <Header />
-      <StatsBar />
+    <div className="app-shell flex flex-col overflow-x-clip bg-ink-950 text-white">
+      <Header
+        section={
+          view.name === "trade"
+            ? "trade"
+            : view.name === "locks"
+              ? "locks"
+              : "launchpad"
+        }
+      />
+      {view.name === "trade" && <StatsBar />}
 
-      {!initialized ? (
+      {view.name === "launchpads" ? (
+        <LaunchpadListPage />
+      ) : view.name === "launchpad" ? (
+        <LaunchpadDetailPage id={view.id} />
+      ) : view.name === "launchpad-create" ? (
+        <CreateLaunchPage />
+      ) : view.name === "locks" ? (
+        <LocksPage />
+      ) : !initialized ? (
         <div className="flex flex-1 items-center justify-center text-sm text-ink-400">
           <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           loading markets…

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "test": "node --test tests/*.test.cjs",
     "sync-abi": "node -e \"const fs=require('fs');fs.copyFileSync('../contract/abi/orderbook-abi.json','src/lib/orderbook-abi.json');console.log('abi synced')\""
   },
   "dependencies": {

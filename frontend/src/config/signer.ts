@@ -5,12 +5,11 @@
  * sign in and sign transactions through usekoinos.com, which custodies the key
  * and hands back a session token (never the key). Point this at that gateway.
  *
- * Empty (the default when the build var is unset) disables the Google button
- * entirely, and the app runs Kondor-only exactly as it does today — so a plain
- * static deploy with no configuration is unchanged.
+ * Use the existing gateway by default so static builds work without a host
+ * environment variable. An explicitly empty value disables Google sign-in.
  */
 export const SIGNER_API: string = (
-  import.meta.env.VITE_SIGNER_API || ""
-).replace(/\/+$/, "");
+  import.meta.env.VITE_SIGNER_API ?? "https://usekoinos.com"
+).trim().replace(/\/+$/, "");
 
 export const SIGNER_ENABLED: boolean = !!SIGNER_API;
