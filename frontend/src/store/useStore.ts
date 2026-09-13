@@ -32,7 +32,7 @@ import {
   loginWithGoogle,
   type AuthConfig,
 } from "../lib/authApi";
-import { loadBioSession, saveBioSession, type BioSession } from "../lib/bioWallet";
+import { loadBioSession, saveBioSession, disconnectBioSession, watchBioSession, type BioSession } from "../lib/bioWallet";
 
 export interface Toast {
   id: number;
@@ -307,10 +307,10 @@ export const useStore = create<AppState>((set, get) => ({
   signInWithGoogle: async (idToken: string) => {
     set({ connecting: true });
     try {
-      saveBioSession(null);
       // usekoinos returns a session token + address — never a key. Signing
       // happens there; the key never enters this page.
       const result = await loginWithGoogle(idToken);
+      void disconnectBioSession();
       const address = result.address;
       adoptSession(result.token, address, result.label);
       localStorage.setItem(STORAGE_ACCOUNT, address);
@@ -341,6 +341,8 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   connectBio: (session: BioSession) => {
+    const previous = loadBioSession();
+    if (previous && previous.sessionId !== session.sessionId) void disconnectBioSession(previous);
     clearSessionKey(); saveBioSession(session);
     localStorage.setItem(STORAGE_ACCOUNT, session.address);
     localStorage.setItem(STORAGE_METHOD, "bio");
@@ -354,7 +356,7 @@ export const useStore = create<AppState>((set, get) => ({
     // picking a Kondor account replaces any Google session outright — the
     // held key must not outlive the account it belongs to
     clearSessionKey();
-    saveBioSession(null);
+    void disconnectBioSession();
     localStorage.setItem(STORAGE_ACCOUNT, address);
     localStorage.setItem(STORAGE_METHOD, "kondor");
     if (get().account !== address) {
@@ -415,7 +417,7 @@ export const useStore = create<AppState>((set, get) => ({
     localStorage.removeItem(STORAGE_METHOD);
     // the whole point of signing out is that the key stops being usable
     clearSessionKey();
-    saveBioSession(null);
+    void disconnectBioSession();
     set({
       account: null,
       authMethod: null,
@@ -671,6 +673,27 @@ export const useStore = create<AppState>((set, get) => ({
 
   setPrefillPrice: (price) => set({ prefillPrice: price }),
 }));
+
+// Watch restored and newly paired sessions even while the user is idle.
+let watchedBioSession: BioSession | null = null;
+let stopBioWatch: (() => void) | null = null;
+function syncBioWatch() {
+  const state = useStore.getState();
+  const session = state.authMethod === "bio" ? loadBioSession() : null;
+  if (session?.sessionId === watchedBioSession?.sessionId && session?.secret === watchedBioSession?.secret
+    && session?.address === watchedBioSession?.address) return;
+  stopBioWatch?.(); stopBioWatch = null; watchedBioSession = session;
+  if (!session) return;
+  stopBioWatch = watchBioSession(session, () => {
+    const current = useStore.getState(), stored = loadBioSession();
+    if (current.authMethod !== "bio" || current.account !== session.address
+      || (stored && (stored.sessionId !== session.sessionId || stored.secret !== session.secret))) return;
+    current.disconnect();
+    current.pushToast({ kind: "info", title: "KOIN Vault disconnected", detail: "The connection was closed or expired. Connect again to keep trading." });
+  });
+}
+useStore.subscribe(syncBioWatch);
+syncBioWatch();
 
 export function useSelectedMarket(): MarketInfo | null {
   const markets = useStore((state) => state.markets);

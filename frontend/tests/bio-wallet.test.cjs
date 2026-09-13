@@ -10,13 +10,24 @@ const session = { sessionId: 'session', secret: 'secret', address: 'account' };
 const validUri = 'https://koinvault.app/?connect=session&secret=secret';
 function setup({ uri = validUri, outcome = 'approved' } = {}) {
   const storage = new Map(), calls = [];
+  const timers = new Map(), events = new EventTarget(), document = new EventTarget();
+  document.hidden = false;
+  let timerId = 0;
+  const network = { status: 200, connected: true, address: 'account', wait: null };
   const context = {
     exports: {}, TEST_ENV: {}, URL, URLSearchParams, AbortSignal,
+    document, window: events,
+    setInterval: fn => { timers.set(++timerId, fn); return timerId; }, clearInterval: id => timers.delete(id),
     location: { origin: 'https://app.tradekoinos.com' },
     sessionStorage: { getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) },
     setTimeout: fn => fn(),
     fetch: async (url, init = {}) => {
       calls.push({ url, body: init.body && JSON.parse(init.body) });
+      if (url.includes('/dapp/status?')) {
+        const reply = { ...network };
+        if (reply.wait) await reply.wait;
+        return { ok: reply.status === 200, status: reply.status, json: async () => ({ ok: reply.status === 200, connected: reply.connected, address: reply.address, error: 'connection unavailable' }) };
+      }
       const data = url.endsWith('/create') ? { ok: true, ...session, uri, expiresAt: Date.now() + 60000 }
         : url.includes('/request-status?') ? { ok: true, status: outcome, txid: outcome === 'approved' ? 'confirmed-tx' : null, error: outcome === 'failed' ? 'chain refused' : null }
         : url.includes('/status?') ? { ok: true, connected: true, address: session.address }
@@ -25,7 +36,7 @@ function setup({ uri = validUri, outcome = 'approved' } = {}) {
     },
   };
   vm.runInNewContext(code, context);
-  return { api: context.exports, storage, calls };
+  return { api: context.exports, storage, calls, network, timers, events, document };
 }
 test('pair QR and all connection API calls use the new wallet domain', async () => {
   const { api, calls } = setup();
@@ -69,4 +80,44 @@ for (const outcome of ['rejected', 'failed']) test(outcome + ' approval never re
   const { api, calls } = setup({ outcome });
   await assert.rejects(new api.BioWalletSigner(session).sendTransaction({ operations: [] }), outcome === 'rejected' ? /rejected/ : /chain refused/);
   assert.equal(calls.filter(c => c.url.endsWith('/request')).length, 1);
+});
+
+const flush = () => new Promise(resolve => setImmediate(resolve));
+test('an idle session detects wallet revocation and stops watching', async () => {
+  const c = setup(); let ended = 0;
+  c.api.watchBioSession(session, () => ended++); await flush();
+  c.network.status = 404;
+  for (const check of c.timers.values()) await check();
+  assert.equal(ended, 1); assert.equal(c.timers.size, 0);
+  c.events.dispatchEvent(new Event('focus')); await flush();
+  assert.equal(ended, 1);
+});
+test('outages are retried and focus/visibility events check the live session', async () => {
+  const c = setup(); let ended = 0;
+  c.api.watchBioSession(session, () => ended++); await flush();
+  c.network.status = 503;
+  for (const check of c.timers.values()) await check();
+  assert.equal(ended, 0);
+  c.document.hidden = true; c.network.status = 404;
+  const calls = c.calls.length;
+  for (const check of c.timers.values()) await check();
+  assert.equal(c.calls.length, calls);
+  c.document.hidden = false; c.document.dispatchEvent(new Event('visibilitychange')); await flush();
+  assert.equal(ended, 1);
+});
+test('stopping a watcher ignores its outstanding response', async () => {
+  const c = setup(); let ended = 0, release;
+  c.network.wait = new Promise(resolve => { release = resolve; }); c.network.status = 404;
+  const stop = c.api.watchBioSession(session, () => ended++);
+  stop(); release(); await flush();
+  assert.equal(ended, 0); assert.equal(c.timers.size, 0);
+});
+test('disconnecting the website revokes the relay without clearing a newer session', async () => {
+  const c = setup(); c.api.saveBioSession(session);
+  await c.api.disconnectBioSession();
+  assert.equal(c.api.loadBioSession(), null);
+  assert.equal(c.calls.at(-1).url, 'https://koinvault.app/api/dapp/disconnect');
+  c.api.saveBioSession({ ...session, sessionId: 'new-session' });
+  await c.api.disconnectBioSession(session);
+  assert.equal(c.api.loadBioSession().sessionId, 'new-session');
 });

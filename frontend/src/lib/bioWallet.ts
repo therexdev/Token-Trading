@@ -7,9 +7,11 @@ export interface BioSession { sessionId: string; secret: string; address: string
 export interface BioPair { sessionId: string; secret: string; uri: string; expiresAt: number; }
 
 async function json(path: string, init?: RequestInit) {
-  const response = await fetch(BIO_WALLET_API + path, { ...init, signal: AbortSignal.timeout(20000) });
+  const response = await fetch(BIO_WALLET_API + path, { ...init, cache: "no-store", signal: AbortSignal.timeout(20000) });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok || !body?.ok) throw new Error(body?.error || "KOIN Vault did not respond");
+  if (!response.ok || !body?.ok) {
+    throw Object.assign(new Error(body?.error || "KOIN Vault did not respond"), { status: response.status });
+  }
   return body;
 }
 
@@ -28,6 +30,47 @@ export async function createBioPair(): Promise<BioPair> {
 
 export async function readBioPair(pair: Pick<BioPair, "sessionId" | "secret">) {
   return json(`/api/dapp/status?${new URLSearchParams({ sessionId: pair.sessionId, secret: pair.secret })}`);
+}
+
+export function isBioDisconnected(error: unknown): boolean {
+  const status = (error as { status?: number })?.status;
+  return status === 404 || status === 410;
+}
+
+export function watchBioSession(session: BioSession, onDisconnect: () => void): () => void {
+  let stopped = false, checking = false;
+  const stop = () => {
+    stopped = true; clearInterval(timer);
+    document.removeEventListener("visibilitychange", check);
+    window.removeEventListener("focus", check);
+    window.removeEventListener("online", check);
+  };
+  const ended = () => { if (!stopped) { stop(); onDisconnect(); } };
+  async function check() {
+    if (stopped || checking || document.hidden) return;
+    checking = true;
+    try {
+      const live = await readBioPair(session);
+      if (!live.connected || live.address !== session.address) ended();
+    } catch (error) {
+      if (isBioDisconnected(error)) ended();
+    } finally { checking = false; }
+  }
+  const timer = setInterval(check, 2000);
+  document.addEventListener("visibilitychange", check);
+  window.addEventListener("focus", check);
+  window.addEventListener("online", check);
+  void check();
+  return stop;
+}
+
+export async function disconnectBioSession(session = loadBioSession()): Promise<void> {
+  // Clear synchronously so no further action can use this tab's old signer.
+  const current = loadBioSession();
+  if (current?.sessionId === session?.sessionId && current?.secret === session?.secret) saveBioSession(null);
+  if (session) await json("/api/dapp/disconnect", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(session),
+  }).catch(() => {});
 }
 
 export function saveBioSession(session: BioSession | null) {
@@ -61,7 +104,12 @@ export class BioWalletSigner implements Partial<SignerInterface> {
         } }),
       });
     } catch (error: any) {
-      if (/expired|not found/i.test(error?.message || "")) { saveBioSession(null); this.onExpire?.(); }
+      const current = loadBioSession();
+      if (isBioDisconnected(error) && current?.sessionId === this.session.sessionId && current?.secret === this.session.secret) {
+        // The connection watcher clears storage and UI together after checking
+        // the session endpoint. A request error alone must not orphan the UI.
+        this.onExpire?.();
+      }
       throw error;
     }
     const deadline = Date.now() + 10 * 60_000;
