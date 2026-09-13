@@ -1,7 +1,7 @@
 import type { SendTransactionOptions, SignerInterface, TransactionJson, TransactionJsonWait } from "koilib";
 
-export const BIO_WALLET_API = (import.meta.env.VITE_BIO_WALLET_API || "https://wallet.usekoinos.com").replace(/\/+$/, "");
-const KEY = "trade-koinos:bio-wallet:v1";
+export const BIO_WALLET_API = (import.meta.env.VITE_BIO_WALLET_API || "https://koinvault.app").replace(/\/+$/, "");
+const KEY = "trade-koinos:bio-wallet:v2:" + BIO_WALLET_API;
 
 export interface BioSession { sessionId: string; secret: string; address: string; }
 export interface BioPair { sessionId: string; secret: string; uri: string; expiresAt: number; }
@@ -14,10 +14,16 @@ async function json(path: string, init?: RequestInit) {
 }
 
 export async function createBioPair(): Promise<BioPair> {
-  return json("/api/dapp/create", {
+  const pair: BioPair = await json("/api/dapp/create", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Trade Koinos", icon: `${location.origin}/favicon.svg`, walletUrl: BIO_WALLET_API }),
   });
+  const uri = new URL(pair.uri);
+  if (uri.origin !== BIO_WALLET_API || uri.pathname !== "/" || uri.username || uri.password
+      || uri.searchParams.get("connect") !== pair.sessionId || uri.searchParams.get("secret") !== pair.secret) {
+    throw new Error("KOIN Vault returned an unexpected connection link");
+  }
+  return pair;
 }
 
 export async function readBioPair(pair: Pick<BioPair, "sessionId" | "secret">) {

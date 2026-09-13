@@ -105,8 +105,9 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
           {bioPair ? (
             <div className="rounded-md border border-ink-600 bg-white p-4 text-center">
               <QRCodeSVG value={bioPair.uri} size={210} className="mx-auto max-w-full" />
-              <p className="mt-3 text-xs font-semibold text-ink-900">KOIN Vault → Connect → scan this code</p>
-              <button onClick={() => setBioPair(null)} className="mt-2 text-xs text-ink-600 underline">Choose another wallet</button>
+              <p className="mt-3 text-xs font-semibold text-ink-900">Scan with your phone camera, then sign in and approve in KOIN Vault.</p>
+              <a href={bioPair.uri} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white">Open KOIN Vault on this device</a>
+              <button onClick={() => { setBioPair(null); setBioError(null); }} className="mt-2 text-xs text-ink-600 underline">Choose another wallet</button>
             </div>
           ) : (
             <button

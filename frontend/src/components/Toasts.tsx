@@ -1,4 +1,5 @@
 import { useStore } from "../store/useStore";
+import { BIO_WALLET_API } from "../lib/bioWallet";
 import { EXPLORER_TX } from "../config/tokens";
 
 const KIND_STYLES: Record<string, string> = {
@@ -9,6 +10,7 @@ const KIND_STYLES: Record<string, string> = {
 };
 
 export function Toasts() {
+  const authMethod = useStore((state) => state.authMethod);
   const toasts = useStore((state) => state.toasts);
   const dismissToast = useStore((state) => state.dismissToast);
 
@@ -37,6 +39,9 @@ export function Toasts() {
                 <div className="mt-0.5 break-words text-[11px] text-ink-300">
                   {toast.detail}
                 </div>
+              )}
+              {authMethod === "bio" && toast.kind === "pending" && (
+                <a href={BIO_WALLET_API + "/"} target="_blank" rel="noopener noreferrer" className="mt-1 block text-xs text-accent underline">Open KOIN Vault to approve</a>
               )}
               {toast.txId && (
                 <a

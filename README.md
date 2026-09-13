@@ -150,7 +150,7 @@ Two ways in, and the app adapts to whichever is available:
 **Kondor** — the default, and the only option in a plain static build. The key
 never leaves the extension; the app receives signatures.
 
-**Koinos Bio Wallet** — choose Bio Wallet, then scan the displayed QR from the wallet's **Connect** button. Trade Koinos receives only the smart-account address and an expiring session secret. Orders and cancellations appear in Bio Wallet for explicit passkey approval; the wallet prepares, sponsors, signs and broadcasts the transaction without exposing key material to this site. Set `VITE_BIO_WALLET_API` to the deployed wallet origin.
+**KOIN Vault** — choose Connect KOIN Vault, then scan the QR with your phone camera or select **Open KOIN Vault on this device**. Sign in at https://koinvault.app and approve the connection with your passkey. Trade Koinos receives only the smart-account address and an expiring session secret. Orders and cancellations appear in KOIN Vault for explicit passkey approval; the wallet prepares, sponsors, signs and broadcasts the transaction. `VITE_BIO_WALLET_API` defaults to `https://koinvault.app`. After updating from the old wallet URL, connect again to create a fresh session.
 
 **Google** — the same Koinos wallet a Google account already has on Aurvania
 and OURO, signed for by **usekoinos.com**. The private key never enters this
