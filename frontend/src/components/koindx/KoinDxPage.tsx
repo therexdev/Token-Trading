@@ -6,7 +6,6 @@ import {
   formatUnits,
   formatPriceNumber,
   formatCompact,
-  shortAddress,
 } from "../../lib/format";
 import {
   fallbackTokens,
@@ -71,7 +70,6 @@ export function KoinDxPage() {
   const [busy, setBusy] = useState(false),
     [swapError, setSwapError] = useState(""),
     [submitted, setSubmitted] = useState(""),
-    [copied, setCopied] = useState(false),
     [custom, setCustom] = useState("");
   const account = useStore((s) => s.account),
     authMethod = useStore((s) => s.authMethod),
@@ -406,19 +404,6 @@ export function KoinDxPage() {
       if (mounted.current) setBusy(false);
     }
   }
-  async function copy() {
-    if (!pair) return;
-    try {
-      await navigator.clipboard.writeText(`${location.origin}${pairUrl(pair)}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      pushToast({
-        kind: "info",
-        title: "Copy the pair link from your browser’s address bar",
-      });
-    }
-  }
   return (
     <main className="min-h-0 flex-1 overflow-y-auto bg-ink-900">
       <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-7 lg:px-10 lg:py-8">
@@ -449,23 +434,11 @@ export function KoinDxPage() {
                 {!id && <option value="">Select a market</option>}
                 {markets.map((p) => (
                   <option key={pairId(p)} value={pairId(p)}>
-                    {displaySymbol(p.base)} / {displaySymbol(p.quote)} ·{" "}
-                    {shortAddress(
-                      p.base.address === KOIN
-                        ? p.quote.address
-                        : p.base.address,
-                    )}
+                    {displaySymbol(p.base)} / {displaySymbol(p.quote)}
                   </option>
                 ))}
               </select>
             </label>
-            <button
-              onClick={() => void copy()}
-              disabled={!pair}
-              className="shrink-0 rounded-lg border border-ink-600 px-3 text-xs text-ink-300 hover:text-white"
-            >
-              {copied ? "Copied!" : "Copy pair link"}
-            </button>
           </div>
         </div>
         {routeError && (
@@ -485,14 +458,10 @@ export function KoinDxPage() {
         {pair && (
           <>
             <section
-              className="mb-6 grid gap-5 border-y border-ink-700 py-6 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-12"
+              className="mb-6 grid items-center gap-5 border-y border-ink-700 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(480px,1fr)] lg:gap-8"
               aria-label="Market statistics"
             >
               <div>
-                <p className="mb-2 text-xs text-ink-300">
-                  {pair.base.symbol} against {displaySymbol(pair.quote)}, priced
-                  by the KoinDX pool
-                </p>
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-3xl font-light tracking-tight sm:text-4xl">
                     {pool && pool.reserveBase > 0n
@@ -503,15 +472,8 @@ export function KoinDxPage() {
                     {displaySymbol(pair.quote)}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-ink-300">
-                  {pool && pool.reserveBase > 0n && pool.reserveQuote > 0n
-                    ? `1 ${displaySymbol(pair.quote)} buys ${formatPriceNumber(1 / poolPrice(pool))} ${pair.base.symbol} at pool price`
-                    : poolLoading
-                      ? "Reading pool reserves…"
-                      : "Pool price unavailable"}
-                </p>
               </div>
-              <div className="grid grid-cols-3 gap-4 lg:contents">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <Stat
                   label="24h change"
                   value={
@@ -969,12 +931,14 @@ function Stat({
   color?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0 rounded-xl border border-ink-700 bg-ink-850 p-3 shadow-sm sm:p-4">
       <p className="mb-2 text-[11px] text-ink-300">{label}</p>
       <p className={`break-words text-sm font-semibold sm:text-base ${color}`}>
         {value}
       </p>
-      <p className="mt-1 text-[11px] text-ink-300">{detail}</p>
+      <p className="mt-1 break-words text-[11px] leading-relaxed text-ink-300">
+        {detail}
+      </p>
     </div>
   );
 }
