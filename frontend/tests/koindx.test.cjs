@@ -93,6 +93,36 @@ test("default and shared links support symbols, ETH alias, addresses and inverse
     /More than one/,
   );
 });
+test("RLE remains available with live and fallback token lists without duplicate markets", async () => {
+  const address = "1Ee4FLRyLWEhmhGZzwiRe82yXtJmq5J7yJ";
+  const listed = require("../src/lib/koindx/tokens.json").tokens;
+  const rle = require("../src/lib/koindx/additional-tokens.json").tokens[0];
+  const oldFetch = global.fetch;
+  try {
+    global.fetch = async () => ({ ok: true, json: async () => ({ tokens: listed }) });
+    const live = await c.fetchTokens();
+    assert.equal(live.fallback, false);
+    assert.equal(m.resolveToken("RLE", live.tokens).address, address);
+    assert.equal(m.resolveToken("RLE", live.tokens).decimals, 8);
+    assert.equal(m.resolveToken("RLE", live.tokens).allowances, true);
+
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ tokens: [...listed, { ...rle, name: "Official RLE listing" }] }),
+    });
+    const nowListed = await c.fetchTokens();
+    assert.equal(nowListed.tokens.filter((token) => token.address === address).length, 1);
+    assert.equal(m.resolveToken("RLE", nowListed.tokens).name, "Official RLE listing");
+
+    global.fetch = async () => { throw new Error("Token lists unavailable"); };
+    const fallback = await c.fetchTokens();
+    assert.equal(fallback.fallback, true);
+    assert.equal(m.resolveToken("RLE", fallback.tokens).address, address);
+    assert.equal(m.pairUrl({ base: m.resolveToken("RLE", fallback.tokens), quote: token(m.KOIN) }), `/koindx/#/market/${address}_${m.KOIN}`);
+  } finally {
+    global.fetch = oldFetch;
+  }
+});
 test("amounts never use floating point or silently truncate precision", () => {
   assert.equal(m.parseAmount("184467440737.09551615", 8), m.UINT64_MAX);
   for (const text of [
