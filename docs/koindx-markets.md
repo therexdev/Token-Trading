@@ -22,6 +22,8 @@ Pool discovery and reserves are read from KoinDX's mainnet router (`17e1q6Fh5Rgn
 
 Candlesticks and volume are decoded from pool `core.sync_event` and `core.swap_event` receipts. Only irreversible, non-reverted swaps from the selected pool count. Transaction-store and block-store reads supply timestamps; undated events are excluded and flagged. Liquidity additions do not count as swaps. Chart prices are post-swap reserve ratios, not external prices. Volume is in the displayed quote token; weekly candles start Monday UTC.
 
+Recent-swap quantities retain integer token units and display the base token's full decimal precision. Small trades such as `0.00000001 EGG` remain visible instead of rounding to zero, and large amounts do not lose precision through floating-point conversion.
+
 Initial history reads at most four 100-record pages, stopping after covering 24 hours. Load older swaps retrieves more. Missing history coverage or block dates leaves 24h metrics unavailable rather than displaying misleading zeroes. Reserves and balances refresh every 15 seconds and recent history every 60 seconds while the tab is visible. Network requests have deadlines, failover and cancellation. Rapid pair/account changes discard stale results.
 
 ## Trading
