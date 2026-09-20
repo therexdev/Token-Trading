@@ -144,17 +144,6 @@ export function DexChart({
           </div>
         )}
       </div>
-      <div className="border-t border-ink-700 px-4 py-3 text-[11px] text-ink-300">
-        Pool price after each confirmed swap · Times in UTC ·{" "}
-        <a
-          href="https://www.tradingview.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          Charts by TradingView
-        </a>
-      </div>
     </section>
   );
 }
