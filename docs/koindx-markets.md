@@ -12,11 +12,13 @@ The KoinDX tab is independent of orderbook loading and configuration. Both the r
 - Canonical: `/koindx/#/market/<base-contract>_<quote-contract>`
 - Query alias: `/koindx/?pair=KOIN_vETH`
 
-The dropdown shows token tickers only. Selecting a pair updates the browser URL using canonical contract addresses, matching the orderbook's hash-link pattern. Unknown pairs never silently trade a different market. Ambiguous symbols require addresses. A token outside the KoinDX list can be opened by contract address; it must have a direct KOIN pool. Address links can identify other direct token pairs too.
+The dropdown shows token tickers only. Selecting a pair updates the browser URL using canonical contract addresses, matching the orderbook's hash-link pattern. RLE/KOIN is also available at `/koindx/#/market/RLE_KOIN`. Unknown pairs never silently trade a different market. Ambiguous symbols require addresses. A token outside the KoinDX list can be opened by contract address; it must have a direct KOIN pool. Address links can identify other direct token pairs too.
 
 ## Data
 
 The dropdown uses the official `https://tokens.koindx.com/mainnet.json` list, with the same list from `koindx/token-list` on GitHub as a second source. An explicitly labeled bundled snapshot keeps navigation available if both list services fail. Listing does not imply that a token has a funded direct pool. An absent pool, empty reserves or unverifiable metadata prevents trading.
+
+Trade Koinos also merges `additional-tokens.json` into both live and fallback lists, deduplicating by contract address. RLE (`1Ee4FLRyLWEhmhGZzwiRe82yXtJmq5J7yJ`, 8 decimals, allowances enabled) comes from the supplied `dex+chart.html`, which identifies its KOIN pool as `156dxwshpLoFfcfQLchk8LRYw7WXSjLb1X`. The app continues to discover the pool through the router and verify its token ordering and decimals before allowing swaps.
 
 Pool discovery and reserves are read from KoinDX's mainnet router (`17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s`) through the configured Koinos RPCs. The client verifies on-chain decimals and pool token ordering. Older pools can supply ordering through their initialization event. It never guesses reserve ordering from balances or alphabetical order. Native token router keys are `koin` and `vhp`, not contract addresses.
 

@@ -11,6 +11,7 @@ import { RPC_URLS, NETWORK } from "../../config/tokens";
 import { getSignerFor } from "../koinos";
 import { getBioSigner } from "../bioWallet";
 import tokenSnapshot from "./tokens.json";
+import additionalTokenList from "./additional-tokens.json";
 import coreJson from "./core-abi.json";
 import routerJson from "./periphery-abi.json";
 import accountJson from "./account-abi.json";
@@ -121,7 +122,17 @@ export function normalizeTokens(raw: unknown): DexToken[] {
     ];
   });
 }
-export const fallbackTokens = normalizeTokens(tokenSnapshot.tokens);
+const additionalTokens = normalizeTokens(additionalTokenList.tokens);
+function withAdditionalTokens(tokens: DexToken[]): DexToken[] {
+  const listed = new Set(tokens.map((token) => token.address));
+  return [
+    ...tokens,
+    ...additionalTokens.filter((token) => !listed.has(token.address)),
+  ];
+}
+export const fallbackTokens = withAdditionalTokens(
+  normalizeTokens(tokenSnapshot.tokens),
+);
 export async function fetchTokens(
   signal?: AbortSignal,
 ): Promise<{ tokens: DexToken[]; fallback: boolean }> {
@@ -141,7 +152,7 @@ export async function fetchTokens(
       const tokens = normalizeTokens((await response.json()).tokens);
       if (!tokens.some((t) => t.address === KOIN) || tokens.length < 2)
         throw new Error();
-      return { tokens, fallback: false };
+      return { tokens: withAdditionalTokens(tokens), fallback: false };
     } catch {
       if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
     } finally {
