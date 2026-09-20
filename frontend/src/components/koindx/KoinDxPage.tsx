@@ -35,6 +35,7 @@ import {
   type SwapPoint,
 } from "../../lib/koindx/model";
 import { DexChart } from "./DexChart";
+import { SwapToken } from "./SwapToken";
 const errorText = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 const openConnect = () => window.dispatchEvent(new Event("tk-open-connect"));
@@ -66,7 +67,8 @@ export function KoinDxPage() {
     [balanceError, setBalanceError] = useState("");
   const [buy, setBuy] = useState(true),
     [amount, setAmount] = useState(""),
-    [slippage, setSlippage] = useState("0.5");
+    [slippage, setSlippage] = useState("0.5"),
+    [settingsOpen, setSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false),
     [swapError, setSwapError] = useState(""),
     [submitted, setSubmitted] = useState(""),
@@ -322,6 +324,12 @@ export function KoinDxPage() {
         ? balances.quote
         : balances.base
       : null;
+  const outputBalance =
+    balances?.owner === account && balances?.pair === id
+      ? buy
+        ? balances.base
+        : balances.quote
+      : null;
   const quote = useMemo(() => {
     if (!pool || !inputToken || !amount) return null;
     try {
@@ -362,6 +370,17 @@ export function KoinDxPage() {
     !insufficient &&
     !poolError &&
     !busy;
+  function reverseSwap() {
+    if (busy) return;
+    setBuy((value) => !value);
+    setAmount(
+      quote && !quote.error && outputToken
+        ? formatUnits(quote.output, outputToken.decimals).replace(/,/g, "")
+        : "",
+    );
+    setSwapError("");
+    setSubmitted("");
+  }
   async function trade() {
     if (!canSwap || !quote || !pool || !account || sending.current) return;
     const snapshot = { account, authMethod, id };
@@ -530,7 +549,7 @@ export function KoinDxPage() {
                 </button>
               </div>
             )}
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
               <div className="min-w-0">
                 <DexChart
                   points={points}
@@ -555,6 +574,8 @@ export function KoinDxPage() {
                   </p>
                 )}
                 <section
+                  id="koindx-recent-swaps"
+                  tabIndex={-1}
                   aria-label="Recent swaps"
                   className="mt-6 overflow-hidden rounded-xl border border-ink-700 bg-ink-850"
                 >
@@ -648,162 +669,169 @@ export function KoinDxPage() {
                 </section>
               </div>
               <section
-                className="rounded-2xl border border-ink-700 bg-ink-850 p-5"
+                className="min-w-0 rounded-2xl border border-ink-700 bg-ink-850 p-5"
                 aria-label="Swap tokens"
               >
-                <div className="mb-5 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Swap</h2>
-                  <span className="rounded bg-ink-700 px-2 py-1 text-[10px] text-ink-300">
-                    KoinDX pool
-                  </span>
-                </div>
-                <div className="mb-5 space-y-3 text-xs">
-                  {(["base", "quote"] as const).map((side) => (
-                    <div
-                      key={side}
-                      className="flex justify-between gap-3 border-b border-ink-700 pb-3"
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold tracking-tight">Swap</h2>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      aria-label="View recent swaps"
+                      title="Recent swaps"
+                      onClick={() => {
+                        const section = document.getElementById("koindx-recent-swaps");
+                        section?.focus({ preventScroll: true });
+                        section?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className="rounded-lg p-2 text-ink-300 transition hover:bg-ink-700 hover:text-white"
                     >
-                      <span className="text-ink-300">
-                        Your {pair[side].symbol}
-                      </span>
-                      <span className="break-all text-right font-mono">
-                        {balances?.owner === account && balances?.pair === id
-                          ? formatUnits(balances[side], pair[side].decimals, 6)
-                          : "—"}
-                      </span>
-                    </div>
-                  ))}
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 11a9 9 0 1 1 2.6 7M3 5v6h6M12 7v5l3 2" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Swap settings"
+                      title="Swap settings"
+                      aria-expanded={settingsOpen}
+                      aria-controls="koindx-swap-settings"
+                      onClick={() => setSettingsOpen((value) => !value)}
+                      className={`rounded-lg p-2 transition hover:bg-ink-700 hover:text-white ${settingsOpen ? "bg-ink-700 text-white" : "text-ink-300"}`}
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m9 3-.6 2.3-2 .9-2.2-.6-2 3.4L4 10.7v2.6L2.2 15l2 3.4 2.2-.6 2 .9L9 21h4l.6-2.3 2-.9 2.2.6 2-3.4-1.8-1.7v-2.6L19.8 9l-2-3.4-2.2.6-2-.9L13 3Z" />
+                        <circle cx="11" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                {!account && (
-                  <button
-                    onClick={openConnect}
-                    className="mb-5 w-full rounded-lg bg-accent py-3 text-sm font-bold text-white"
-                  >
-                    Connect Kondor or KOIN Vault
-                  </button>
-                )}
-                <div className="mb-5 grid grid-cols-2 gap-2">
-                  <button
-                    disabled={busy}
-                    aria-pressed={buy}
-                    onClick={() => {
-                      setBuy(true);
-                      setAmount("");
-                      setSwapError("");
-                    }}
-                    className={`rounded-lg border py-2.5 text-sm font-semibold ${buy ? "border-up/40 bg-up/15 text-up" : "border-ink-600 text-ink-300"}`}
-                  >
-                    Buy {pair.base.symbol}
-                  </button>
-                  <button
-                    disabled={busy}
-                    aria-pressed={!buy}
-                    onClick={() => {
-                      setBuy(false);
-                      setAmount("");
-                      setSwapError("");
-                    }}
-                    className={`rounded-lg border py-2.5 text-sm font-semibold ${!buy ? "border-down/40 bg-down/15 text-down" : "border-ink-600 text-ink-300"}`}
-                  >
-                    Sell {pair.base.symbol}
-                  </button>
-                </div>
-                <div className="block">
-                  <span className="mb-2 flex justify-between text-xs text-ink-300">
-                    <label htmlFor="koindx-amount">
-                      Amount to spend ({inputToken?.symbol})
+                {settingsOpen && (
+                  <div id="koindx-swap-settings" className="mb-4 rounded-xl border border-ink-600 bg-ink-900 p-4">
+                    <label className="flex items-center justify-between gap-3 text-xs text-ink-300">
+                      Slippage tolerance
+                      <select
+                        aria-label="Slippage tolerance"
+                        value={slippage}
+                        disabled={busy}
+                        onChange={(e) => setSlippage(e.target.value)}
+                        className="rounded-lg border border-ink-600 bg-ink-800 px-2 py-2 text-white"
+                      >
+                        <option value="0.1">0.1%</option>
+                        <option value="0.5">0.5%</option>
+                        <option value="1">1%</option>
+                        <option value="3">3%</option>
+                      </select>
                     </label>
-                    {balance != null && (
+                    {(pair.base.address === VETH || pair.quote.address === VETH) && (
+                      <p className="mt-3 text-xs leading-relaxed text-ink-300">
+                        vETH is bridged ETH held on Koinos.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="rounded-xl border border-ink-700 bg-ink-800 p-4 focus-within:border-accent">
+                  <label htmlFor="koindx-amount" className="mb-3 block text-xs text-ink-300">
+                    You pay
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="koindx-amount"
+                      aria-label="Amount to spend"
+                      className="min-w-0 flex-1 bg-transparent py-1 text-2xl font-medium tabular-nums text-white outline-none placeholder:text-ink-400 disabled:opacity-50"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="0"
+                      value={amount}
+                      disabled={busy}
+                      onChange={(e) => {
+                        setAmount(e.target.value);
+                        setSwapError("");
+                        setSubmitted("");
+                      }}
+                    />
+                    {inputToken && <SwapToken token={inputToken} />}
+                  </div>
+                  <div className="mt-3 flex min-h-4 items-center justify-between gap-2 text-[11px] text-ink-300">
+                    <span className="min-w-0 break-words">
+                      Balance: {balance != null && inputToken ? formatUnits(balance, inputToken.decimals, 6) : "—"}
+                    </span>
+                    {balance != null && inputToken && (
                       <button
                         type="button"
                         disabled={busy}
-                        className="font-semibold text-accent"
-                        onClick={() =>
-                          setAmount(
-                            formatUnits(balance, inputToken!.decimals).replace(
-                              /,/g,
-                              "",
-                            ),
-                          )
-                        }
+                        className="shrink-0 rounded px-1 font-bold text-accent disabled:opacity-50"
+                        onClick={() => {
+                          setAmount(formatUnits(balance, inputToken.decimals).replace(/,/g, ""));
+                          setSwapError("");
+                          setSubmitted("");
+                        }}
                       >
                         Max
                       </button>
                     )}
-                  </span>
-                  <input
-                    id="koindx-amount"
-                    aria-label="Amount to spend"
-                    className={`${inputClass} font-mono text-lg`}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="0.00"
-                    value={amount}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setAmount(e.target.value);
-                      setSwapError("");
-                      setSubmitted("");
-                    }}
-                  />
-                </div>
-                <div className="my-5 rounded-lg bg-ink-900 p-3">
-                  <div className="mb-1 text-xs text-ink-300">
-                    Estimated receive
-                  </div>
-                  <div className="break-all text-xl font-semibold">
-                    {quote && !quote.error && outputToken
-                      ? formatUnits(quote.output, outputToken.decimals, 8)
-                      : "—"}{" "}
-                    <span className="text-sm font-normal text-ink-300">
-                      {outputToken?.symbol}
-                    </span>
                   </div>
                 </div>
-                <label className="mb-4 flex items-center justify-between text-xs text-ink-300">
-                  Slippage tolerance
-                  <select
-                    aria-label="Slippage tolerance"
-                    value={slippage}
+                <div className="flex justify-center py-2">
+                  <button
+                    type="button"
+                    aria-label="Reverse swap direction"
+                    title="Reverse swap direction"
                     disabled={busy}
-                    onChange={(e) => setSlippage(e.target.value)}
-                    className="rounded border border-ink-600 bg-ink-800 px-2 py-1.5 text-white"
+                    onClick={reverseSwap}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-600 bg-ink-700 text-ink-200 transition hover:border-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    <option value="0.1">0.1%</option>
-                    <option value="0.5">0.5%</option>
-                    <option value="1">1%</option>
-                    <option value="3">3%</option>
-                  </select>
-                </label>
-                <div className="mb-5 space-y-2 text-xs text-ink-300">
-                  <div className="flex justify-between gap-2">
-                    <span>Minimum received</span>
-                    <span className="text-right text-white">
-                      {quote && !quote.error && outputToken
-                        ? `${formatUnits(quote.minimum, outputToken.decimals)} ${outputToken.symbol}`
-                        : "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>KoinDX fee</span>
-                    <span>0.25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Fee + price impact</span>
-                    <span
-                      className={quote && quote.impact >= 5 ? "text-down" : ""}
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 19V5m-4 4 4-4 4 4M16 5v14m-4-4 4 4 4-4" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mb-5 rounded-xl border border-ink-700 bg-ink-800 p-4">
+                  <label htmlFor="koindx-receive" className="mb-3 block text-xs text-ink-300">
+                    You receive
+                  </label>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <output
+                      id="koindx-receive"
+                      aria-label="Estimated amount to receive"
+                      className={`w-max min-w-0 max-w-full flex-auto overflow-x-auto whitespace-nowrap py-1 text-xl font-medium tabular-nums ${quote && !quote.error ? "text-white" : "text-ink-400"}`}
                     >
-                      {quote && !quote.error
-                        ? `${quote.impact.toFixed(2)}%`
-                        : "—"}
+                      {quote && !quote.error && outputToken ? formatUnits(quote.output, outputToken.decimals) : "0"}
+                    </output>
+                    {outputToken && <SwapToken token={outputToken} />}
+                  </div>
+                  <div className="mt-3 flex min-h-4 flex-wrap justify-between gap-2 text-[11px] text-ink-300">
+                    <span className="min-w-0 break-words">
+                      Balance: {outputBalance != null && outputToken ? formatUnits(outputBalance, outputToken.decimals, 6) : "—"}
                     </span>
+                    <span>Estimated</span>
                   </div>
                 </div>
-                {(pair.base.address === VETH ||
-                  pair.quote.address === VETH) && (
-                  <p className="mb-4 text-xs leading-relaxed text-ink-300">
-                    vETH is bridged ETH held on Koinos.
-                  </p>
+                {quote && !quote.error && outputToken && (
+                  <details className="mb-5 text-xs text-ink-300">
+                    <summary className="cursor-pointer py-1">
+                      Swap details · {slippage}% slippage
+                      {quote.impact >= 5 && <span className="ml-2 text-down">High price impact: {quote.impact.toFixed(2)}%</span>}
+                    </summary>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex justify-between gap-2">
+                        <span>Minimum received</span>
+                        <span className="min-w-0 break-words text-right text-white">
+                          {formatUnits(quote.minimum, outputToken.decimals)} {outputToken.symbol}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>KoinDX fee</span>
+                        <span>0.25%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Fee + price impact</span>
+                        <span className={quote.impact >= 5 ? "text-down" : ""}>
+                          {quote.impact.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+                  </details>
                 )}
                 {quote?.error && (
                   <p role="alert" className="mb-3 text-xs text-down">
@@ -847,15 +875,15 @@ export function KoinDxPage() {
                 <button
                   onClick={() => (account ? void trade() : openConnect())}
                   disabled={!!account && !canSwap}
-                  className={`w-full rounded-lg py-3.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-35 ${buy ? "bg-up" : "bg-down"}`}
+                  className="w-full rounded-xl bg-up py-4 text-base font-bold text-ink-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   {busy
                     ? authMethod === "bio"
                       ? "Approve in KOIN Vault…"
                       : "Confirm in your wallet…"
                     : !account
-                      ? "Connect wallet to swap"
-                      : `${buy ? "Buy" : "Sell"} ${pair.base.symbol}`}
+                      ? "Connect wallet"
+                      : "Swap"}
                 </button>
                 {busy && authMethod === "bio" && (
                   <a
@@ -867,9 +895,11 @@ export function KoinDxPage() {
                     Open KOIN Vault to approve
                   </a>
                 )}
-                <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-300">
-                  Review and approve each swap in your wallet.
-                </p>
+                {account && (
+                  <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-300">
+                    Review and approve in your wallet.
+                  </p>
+                )}
               </section>
             </div>
             {pool && (
