@@ -5,7 +5,7 @@ import { formatUnits, shortAddress } from "../lib/format";
 import { launchpadEnabled } from "../lib/launchpad";
 import { ConnectModal } from "./ConnectModal";
 
-export function Header({ section = "trade" }: { section?: "trade" | "launchpad" | "locks" }) {
+export function Header({ section = "trade" }: { section?: "trade" | "launchpad" | "locks" | "koindx" }) {
   const account = useStore((state) => state.account);
   const connecting = useStore((state) => state.connecting);
   const disconnect = useStore((state) => state.disconnect);
@@ -59,16 +59,15 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
             Trade <span className="text-accent">Koinos</span>
           </div>
           <div className="truncate text-[10px] uppercase tracking-widest text-ink-400">
-            <span className="hidden sm:inline">on-chain orderbook · </span>
+            <span className="hidden sm:inline">{section === "koindx" ? "KoinDX pools" : "on-chain orderbook"} · </span>
             {NETWORK}
           </div>
         </div>
       </div>
 
-      {(launchpadEnabled() || authConfig?.launchpad) && (
         <nav className="flex min-w-0 shrink items-center gap-0.5 overflow-x-auto rounded-md bg-ink-850 p-0.5 text-xs font-semibold [scrollbar-width:none]">
           <a
-            href="#/"
+            href="/#/"
             className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "trade"
                 ? "bg-ink-700 text-white"
@@ -78,7 +77,16 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
             Trade
           </a>
           <a
-            href="#/launchpads"
+            href="/koindx/"
+            className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
+              section === "koindx" ? "bg-ink-700 text-white" : "text-ink-400 hover:text-white"
+            }`}
+          >
+            KoinDX
+          </a>
+          {(launchpadEnabled() || authConfig?.launchpad) && <>
+          <a
+            href="/#/launchpads"
             className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "launchpad"
                 ? "bg-ink-700 text-white"
@@ -88,7 +96,7 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
             Launchpad
           </a>
           <a
-            href="#/locks"
+            href="/#/locks"
             className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 transition ${
               section === "locks"
                 ? "bg-ink-700 text-white"
@@ -97,12 +105,12 @@ export function Header({ section = "trade" }: { section?: "trade" | "launchpad" 
           >
             Locks
           </a>
+          </>}
         </nav>
-      )}
 
       <div className="flex-1" />
 
-      {account && (
+      {account && section !== "koindx" && (
         <div className="hidden items-center gap-3 rounded-md border border-ink-700 bg-ink-850 px-3 py-1.5 text-xs md:flex">
           {stripTokens.map((token) => (
             <div key={token.symbol} className="flex items-center gap-1.5">

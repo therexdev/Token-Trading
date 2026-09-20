@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useStore, useSelectedMarket } from "./store/useStore";
 import { showGoogleOneTap } from "./lib/authApi";
 import { Header } from "./components/Header";
@@ -18,6 +18,27 @@ import { LaunchpadListPage } from "./components/launchpad/LaunchpadListPage";
 import { LaunchpadDetailPage } from "./components/launchpad/LaunchpadDetailPage";
 import { CreateLaunchPage } from "./components/launchpad/CreateLaunchPage";
 import { LocksPage } from "./components/launchpad/LocksPage";
+
+const KoinDxPage = lazy(() =>
+  import("./components/koindx/KoinDxPage").then((module) => ({
+    default: module.KoinDxPage,
+  }))
+);
+
+function KoinDxApp() {
+  const refreshAuthConfig = useStore((state) => state.refreshAuthConfig);
+  useEffect(() => { void refreshAuthConfig(); }, [refreshAuthConfig]);
+  return (
+    <div className="app-shell flex flex-col overflow-x-clip bg-ink-950 text-white">
+      <Header section="koindx" />
+      <Suspense fallback={<div className="p-8 text-sm text-ink-300">Loading KoinDX markets…</div>}>
+        <KoinDxPage />
+      </Suspense>
+      <AccountPicker />
+      <Toasts />
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Hash routing. Market deep links (#/market/…) belong to the trade view;
@@ -109,6 +130,12 @@ function ErrorNotice({ message }: { message: string }) {
 }
 
 export default function App() {
+  return /^\/koindx(?:\/|$)/.test(window.location.pathname)
+    ? <KoinDxApp />
+    : <OrderbookApp />;
+}
+
+function OrderbookApp() {
   const init = useStore((state) => state.init);
   const initialized = useStore((state) => state.initialized);
   const initError = useStore((state) => state.initError);
