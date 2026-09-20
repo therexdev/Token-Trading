@@ -539,11 +539,7 @@ export function KoinDxPage() {
                   error={historyError || poolError}
                   quote={displaySymbol(pair.quote)}
                 />
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-ink-300">
-                  <span>
-                    {points.length.toLocaleString()} confirmed swap price points
-                    {missingDates ? " · Some block dates unavailable" : ""}
-                  </span>
+                <div className="mt-3 flex justify-end text-xs">
                   <button
                     className="text-accent disabled:opacity-40"
                     disabled={historyLoading || busy}
@@ -558,7 +554,10 @@ export function KoinDxPage() {
                     {historyError}
                   </p>
                 )}
-                <section className="mt-6 overflow-hidden rounded-xl border border-ink-700 bg-ink-850">
+                <section
+                  aria-label="Recent swaps"
+                  className="mt-6 overflow-hidden rounded-xl border border-ink-700 bg-ink-850"
+                >
                   <div className="flex justify-between border-b border-ink-700 px-4 py-3">
                     <h2 className="text-sm font-semibold">Recent swaps</h2>
                     <span className="text-xs text-ink-300">
@@ -567,14 +566,24 @@ export function KoinDxPage() {
                   </div>
                   <div className="max-h-[310px] overflow-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="text-ink-300">
+                      <thead className="sticky top-0 z-10 bg-ink-850 text-ink-300">
                         <tr>
-                          <th className="px-4 py-3 font-normal">Time (UTC)</th>
-                          <th className="px-3 py-3 font-normal">Side</th>
-                          <th className="px-3 py-3 text-right font-normal">
+                          <th scope="col" className="px-4 py-3 font-normal">
+                            Time (UTC)
+                          </th>
+                          <th scope="col" className="px-3 py-3 font-normal">
+                            Side
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-3 text-right font-normal"
+                          >
                             Price ({displaySymbol(pair.quote)})
                           </th>
-                          <th className="px-4 py-3 text-right font-normal">
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-right font-normal"
+                          >
                             {pair.base.symbol}
                           </th>
                         </tr>
