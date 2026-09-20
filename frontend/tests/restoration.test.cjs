@@ -18,6 +18,8 @@ test('market initialization preserves launchpad, detail, create, and locks URLs'
  assert.deepEqual(writes,[]);
  global.window.location.hash='#/';writeMarketHash(market);
  assert.deepEqual(writes,['/#/market/base_quote']);
+ global.window.location={pathname:'/koindx/',hash:'#/market/KOIN_ETH',search:''};
+ writeMarketHash(market); assert.equal(writes.length,1);
 });
 test('Vault sends operations through the approval relay and returns approved transaction ID', async () => {
  const { BioWalletSigner }=await load('lib/bioWallet.ts');

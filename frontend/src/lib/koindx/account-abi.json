@@ -1,0 +1,48 @@
+{
+  "methods": {
+    "execute_user": {
+      "argument": "account.execute_user_args",
+      "return": "",
+      "description": "Executes a user operation directly. This method ensures that the caller is allowed, and then directly calls the contract's entry point with the provided arguments.",
+      "entry_point": 265474048,
+      "read_only": false,
+      "entry-point": "0x0fd2d000",
+      "read-only": false
+    }
+  },
+  "koilib_types": {
+    "nested": {
+      "account": {
+        "nested": {
+          "call_operation": {
+            "fields": {
+              "contract_id": {
+                "type": "bytes",
+                "id": 1,
+                "options": {
+                  "(koinos.btype)": "ADDRESS"
+                }
+              },
+              "entry_point": {
+                "type": "uint32",
+                "id": 2
+              },
+              "args": {
+                "type": "bytes",
+                "id": 3
+              }
+            }
+          },
+          "execute_user_args": {
+            "fields": {
+              "operation": {
+                "type": "call_operation",
+                "id": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
