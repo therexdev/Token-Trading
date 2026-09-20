@@ -26,6 +26,8 @@ Initial history reads at most four 100-record pages, stopping after covering 24 
 
 ## Trading
 
+The swap panel shows a You pay amount and an estimated You receive amount with token icons and balances. The direction button switches the tokens and uses the previous estimate as the new input. A single Connect wallet / Swap button opens the existing wallet flow. Slippage is under the settings gear; minimum received, fee and price impact are in Swap details. The history icon jumps to recent swaps.
+
 Amounts, approvals, output calculations and slippage use bigint smallest units. The 0.25% constant-product fee matches the router. Each swap re-reads reserves and balance before signing, preserves the displayed minimum output, checks that the account and pair are still current, and prevents duplicate submissions. The receiving account is always the connected wallet. There is no unlimited approval.
 
 Kondor receives the exact approval and `swap_tokens_in` operations in one transaction. KOIN Vault receives those same operations wrapped individually in its account's `execute_user`, which is required for legacy token contracts such as vETH that cannot parse passkey signatures directly. The existing Vault relay handles review, passkey signing and broadcasting; it can require the wallet's own mana for these general contract actions. No wallet backend changes or smart-contract deployments are part of this change.
