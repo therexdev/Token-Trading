@@ -52,10 +52,11 @@ function loadModules() {
   return {
     model: load("lib/koindx/model.ts"),
     client: load("lib/koindx/client.ts"),
+    format: load("lib/format.ts"),
     signed,
   };
 }
-const { model: m, client: c } = loadModules();
+const { model: m, client: c, format: f } = loadModules();
 const token = (address) => c.fallbackTokens.find((t) => t.address === address);
 const pair = { base: token(m.KOIN), quote: token(m.VETH) };
 const pool = {
@@ -230,9 +231,50 @@ test("history uses ordered pool sync + swap events, ignores reverted receipts an
   assert.equal(points.length, 1);
   assert.equal(points[0].price, 0.02);
   assert.equal(points[0].volume, 1);
-  assert.equal(points[0].quantity, 10);
+  assert.equal(points[0].quantity, 1000000000n);
   assert.equal(points[0].buy, true);
   assert.equal(points[0].sequence, 9007199254740999n);
+});
+test("swap history preserves fractional EGG amounts and large token quantities exactly", async () => {
+  const egg = token("1AFMFjbSzpnK58xbwt6cyAnhLF77qm5FeC");
+  const serializer = new Serializer(coreAbi.koilib_types);
+  const event = async (name, data) => ({
+    name,
+    source: pool.address,
+    data: utils.encodeBase64url(await serializer.serialize(data, name)),
+  });
+  for (const baseIsA of [true, false]) {
+    for (const buy of [true, false]) {
+      for (const [units, expected] of [
+        [1n, "0.00000001"],
+        [123456n, "0.00123456"],
+        [123456789n, "1.23456789"],
+        [9007199254740993n, "90,071,992.54740993"],
+      ]) {
+        const baseSide = baseIsA ? "A" : "B";
+        const quoteSide = baseIsA ? "B" : "A";
+        const points = await c.decodeHistory([{
+          seq_num: "1",
+          trx: {
+            transaction: { id: "egg-swap" },
+            receipt: { events: [
+              await event("core.sync_event", { reserveA: "100000000000", reserveB: "100000000000" }),
+              await event("core.swap_event", {
+                to: m.KOIN,
+                sender: m.ROUTER,
+                [`amount${buy ? "Out" : "In"}${baseSide}`]: units.toString(),
+                [`amount${buy ? "In" : "Out"}${quoteSide}`]: "100000000",
+              }),
+            ] },
+          },
+        }], { ...pool, base: egg, quote: pair.base, baseIsA }, new Map([["egg-swap", 100000]]));
+        assert.equal(points.length, 1);
+        assert.equal(points[0].quantity, units);
+        assert.equal(points[0].buy, buy);
+        assert.equal(f.formatUnits(points[0].quantity, egg.decimals), expected);
+      }
+    }
+  }
 });
 test("candles preserve previous close, merge duplicate events and start weekly candles Monday UTC", () => {
   const p = (id, timestamp, price, volume = 1) => ({
@@ -240,7 +282,7 @@ test("candles preserve previous close, merge duplicate events and start weekly c
     timestamp: Date.parse(timestamp),
     price,
     volume,
-    quantity: 1,
+    quantity: 100000000n,
     sequence: BigInt(id),
     event: 0,
     buy: true,

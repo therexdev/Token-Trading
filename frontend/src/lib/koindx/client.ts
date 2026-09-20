@@ -349,7 +349,7 @@ export async function decodeHistory(
           timestamp: dates.get(id)!,
           price: quote / base,
           volume: Number(quoteIn + quoteOut) / 10 ** pool.quote.decimals,
-          quantity: Number(baseIn + baseOut) / 10 ** pool.base.decimals,
+          quantity: baseIn + baseOut,
           buy: baseOut > 0n,
         });
       reserves = null;

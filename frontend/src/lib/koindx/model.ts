@@ -26,7 +26,8 @@ export interface SwapPoint {
   timestamp: number;
   price: number;
   volume: number;
-  quantity: number;
+  /** Base-token amount in its smallest units, preserved exactly from the event. */
+  quantity: bigint;
   buy: boolean;
 }
 export interface HistoryPage {
