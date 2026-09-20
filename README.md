@@ -430,4 +430,4 @@ compiled output).
 
 ## KoinDX markets
 
-The app also serves `/koindx/`: KoinDX token selection, pool-price candlesticks, confirmed swap history, and swaps through Kondor or KOIN Vault. KOIN/vETH is the default, and bridged tokens retain their actual tickers. Copy pair link creates a direct address-based market URL. See [KoinDX integration details](docs/koindx-markets.md) for routes, data sources, wallet behavior and verification.
+The app also serves `/koindx/`: KoinDX token selection, pool-price candlesticks, confirmed swap history, and swaps through Kondor or KOIN Vault. KOIN/vETH is the default, and bridged tokens retain their actual tickers. Selecting a pair updates the browser URL for direct linking. See [KoinDX integration details](docs/koindx-markets.md) for routes, data sources, wallet behavior and verification.

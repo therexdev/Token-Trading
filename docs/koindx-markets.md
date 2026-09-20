@@ -12,7 +12,7 @@ The KoinDX tab is independent of orderbook loading and configuration. Both the r
 - Canonical: `/koindx/#/market/<base-contract>_<quote-contract>`
 - Query alias: `/koindx/?pair=KOIN_vETH`
 
-The dropdown and Copy pair link use canonical contract addresses, matching the orderbook's hash-link pattern. Unknown pairs never silently trade a different market. Ambiguous symbols require addresses. A token outside the KoinDX list can be opened by contract address; it must have a direct KOIN pool. Address links can identify other direct token pairs too.
+The dropdown shows token tickers only. Selecting a pair updates the browser URL using canonical contract addresses, matching the orderbook's hash-link pattern. Unknown pairs never silently trade a different market. Ambiguous symbols require addresses. A token outside the KoinDX list can be opened by contract address; it must have a direct KOIN pool. Address links can identify other direct token pairs too.
 
 ## Data
 
