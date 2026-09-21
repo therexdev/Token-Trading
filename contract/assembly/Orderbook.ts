@@ -51,6 +51,9 @@ const SPACE_BOOK: u32 = 3;
 const SPACE_USER_ORDERS: u32 = 4;
 const SPACE_TRADES: u32 = 5;
 
+// Separate space preserves the deployed state layout.
+const SPACE_EXECUTION_LOCK: u32 = 6;
+
 const GLOBAL_KEY: Uint8Array = new Uint8Array(0);
 
 function u32ToBytesBE(value: u32): Uint8Array {
@@ -151,6 +154,21 @@ export class Orderbook {
 
   private space(id: u32): chain.object_space {
     return new chain.object_space(false, this.contractId, id);
+  }
+
+  // The lock must live in storage: a callback gets a fresh WASM instance.
+  // Koinos rolls back the lock together with state if a call reverts.
+  private enterMutation(): void {
+    const space = this.space(SPACE_EXECUTION_LOCK);
+    System.require(
+      System.getBytes<Uint8Array>(space, GLOBAL_KEY) == null,
+      "orderbook: reentrant mutation"
+    );
+    System.putBytes(space, GLOBAL_KEY, new Uint8Array(1));
+  }
+
+  private leaveMutation(): void {
+    System.removeObject(this.space(SPACE_EXECUTION_LOCK), GLOBAL_KEY);
   }
 
   // -------------------------------------------------------------------------
@@ -409,7 +427,14 @@ export class Orderbook {
   // Entry points
   // -------------------------------------------------------------------------
 
-  create_market(
+  create_market(args: orderbook.create_market_arguments): orderbook.create_market_result {
+    this.enterMutation();
+    const result = this.execute_create_market(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_create_market(
     args: orderbook.create_market_arguments
   ): orderbook.create_market_result {
     // permissionless: anyone may list a new pair, paying the mana from
@@ -500,7 +525,14 @@ export class Orderbook {
     return result;
   }
 
-  set_min_base_amount(
+  set_min_base_amount(args: orderbook.set_min_base_amount_arguments): orderbook.set_min_base_amount_result {
+    this.enterMutation();
+    const result = this.execute_set_min_base_amount(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_set_min_base_amount(
     args: orderbook.set_min_base_amount_arguments
   ): orderbook.set_min_base_amount_result {
     // repair hatch for permissionless listings created with an unusable
@@ -521,7 +553,14 @@ export class Orderbook {
     return new orderbook.set_min_base_amount_result();
   }
 
-  place_order(
+  place_order(args: orderbook.place_order_arguments): orderbook.place_order_result {
+    this.enterMutation();
+    const result = this.execute_place_order(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_place_order(
     args: orderbook.place_order_arguments
   ): orderbook.place_order_result {
     System.require(
@@ -787,7 +826,14 @@ export class Orderbook {
     return result;
   }
 
-  cancel_order(
+  cancel_order(args: orderbook.cancel_order_arguments): orderbook.cancel_order_result {
+    this.enterMutation();
+    const result = this.execute_cancel_order(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_cancel_order(
     args: orderbook.cancel_order_arguments
   ): orderbook.cancel_order_result {
     const order = this.getOrderById(args.order_id);

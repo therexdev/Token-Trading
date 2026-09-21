@@ -1,3 +1,4 @@
+import { transactionErrorToast } from "../../lib/transactionStatus";
 import { useMemo, useState } from "react";
 import { useStore } from "../../store/useStore";
 import {
@@ -361,8 +362,7 @@ export function CreateLaunchPage() {
         detail: "Escrowing your tokens on-chain",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(miningToast);
+      try { await handle.wait(); } finally { dismissToast(miningToast); }
       if (logoDataUrl) {
         // best-effort: a failed logo upload never fails the launch
         try {
@@ -413,15 +413,7 @@ export function CreateLaunchPage() {
     } catch (error: any) {
       dismissToast(signToast);
       if (miningToast) dismissToast(miningToast);
-      pushToast({
-        kind: "error",
-        title: "Launch creation failed",
-        detail:
-          (error?.message || String(error)) +
-          (source === "existing" && launchToken && tokenAddress === launchToken
-            ? ""
-            : " — your minted token is safe in your wallet; just press the button again to retry the launch."),
-      });
+      pushToast(transactionErrorToast(error, "Launch creation failed"));
     } finally {
       setSubmitting(false);
     }

@@ -1,3 +1,4 @@
+import { transactionErrorToast } from "../lib/transactionStatus";
 import { create } from "zustand";
 import {
   connectKondor,
@@ -40,6 +41,7 @@ export interface Toast {
   title: string;
   detail?: string;
   txId?: string;
+  checkStatus?: () => Promise<{ blockNumber: number }>;
 }
 
 interface AppState {
@@ -539,8 +541,7 @@ export const useStore = create<AppState>((set, get) => ({
         title: "Order submitted, waiting for the block…",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(miningId);
+      try { await handle.wait(); } finally { dismissToast(miningId); }
       pushToast({
         kind: "success",
         title: "Order transaction included",
@@ -552,11 +553,7 @@ export const useStore = create<AppState>((set, get) => ({
       return true;
     } catch (error: any) {
       dismissToast(pendingId);
-      pushToast({
-        kind: "error",
-        title: "Order failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Order failed"));
       return false;
     }
   },
@@ -578,8 +575,7 @@ export const useStore = create<AppState>((set, get) => ({
         title: "Cancellation submitted…",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(miningId);
+      try { await handle.wait(); } finally { dismissToast(miningId); }
       pushToast({
         kind: "success",
         title: `Order #${orderId} cancelled`,
@@ -590,11 +586,7 @@ export const useStore = create<AppState>((set, get) => ({
       return true;
     } catch (error: any) {
       dismissToast(pendingId);
-      pushToast({
-        kind: "error",
-        title: "Cancellation failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Cancellation failed"));
       return false;
     }
   },
@@ -621,8 +613,7 @@ export const useStore = create<AppState>((set, get) => ({
         title: "Listing submitted, waiting for the block…",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(miningId);
+      try { await handle.wait(); } finally { dismissToast(miningId); }
       await get().refreshMarkets();
       // land the user on the freshly listed pair
       const created = get().markets.find(
@@ -645,11 +636,7 @@ export const useStore = create<AppState>((set, get) => ({
       return true;
     } catch (error: any) {
       dismissToast(pendingId);
-      pushToast({
-        kind: "error",
-        title: "Listing failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Listing failed"));
       return false;
     }
   },
@@ -659,7 +646,7 @@ export const useStore = create<AppState>((set, get) => ({
   pushToast: (toast) => {
     const id = toastCounter++;
     set((state) => ({ toasts: [...state.toasts, { ...toast, id }] }));
-    if (toast.kind !== "pending") {
+    if (toast.kind !== "pending" && !toast.checkStatus) {
       setTimeout(() => get().dismissToast(id), 8000);
     }
     return id;

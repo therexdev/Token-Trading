@@ -4,7 +4,7 @@ export const BIO_WALLET_API = (import.meta.env.VITE_BIO_WALLET_API || "https://k
 const KEY = "trade-koinos:bio-wallet:v2:" + BIO_WALLET_API;
 
 export interface BioSession { sessionId: string; secret: string; address: string; }
-export interface BioPair { sessionId: string; secret: string; uri: string; expiresAt: number; }
+export interface BioPair { sessionId: string; secret: string; uri: string; expiresAt: number; protocolVersion: 2; }
 
 async function json(path: string, init?: RequestInit) {
   const response = await fetch(BIO_WALLET_API + path, { ...init, cache: "no-store", signal: AbortSignal.timeout(20000) });
@@ -18,18 +18,23 @@ async function json(path: string, init?: RequestInit) {
 export async function createBioPair(): Promise<BioPair> {
   const pair: BioPair = await json("/api/dapp/create", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Trade Koinos", icon: `${location.origin}/favicon.svg`, walletUrl: BIO_WALLET_API }),
+    body: JSON.stringify({ name: "Trade Koinos", icon: `${location.origin}/favicon.svg`, walletUrl: BIO_WALLET_API, protocolVersion: 2 }),
   });
+  if (pair.protocolVersion !== 2) throw new Error("KOIN Vault needs an update before secure pairing is available.");
   const uri = new URL(pair.uri);
+  const credentials = new URLSearchParams(uri.hash.slice(1));
   if (uri.origin !== BIO_WALLET_API || uri.pathname !== "/" || uri.username || uri.password
-      || uri.searchParams.get("connect") !== pair.sessionId || uri.searchParams.get("secret") !== pair.secret) {
+      || uri.search || credentials.get("connect") !== pair.sessionId || credentials.get("secret") !== pair.secret) {
     throw new Error("KOIN Vault returned an unexpected connection link");
   }
   return pair;
 }
 
 export async function readBioPair(pair: Pick<BioPair, "sessionId" | "secret">) {
-  return json(`/api/dapp/status?${new URLSearchParams({ sessionId: pair.sessionId, secret: pair.secret })}`);
+  return json("/api/dapp/status", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId: pair.sessionId, secret: pair.secret }),
+  });
 }
 
 export function isBioDisconnected(error: unknown): boolean {
@@ -115,7 +120,10 @@ export class BioWalletSigner implements Partial<SignerInterface> {
     const deadline = Date.now() + 10 * 60_000;
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      const status = await json(`/api/dapp/request-status?${new URLSearchParams({ ...this.session, requestId: request.requestId })}`);
+      const status = await json("/api/dapp/request-status", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: this.session.sessionId, secret: this.session.secret, requestId: request.requestId }),
+      });
       if (status.status === "rejected") throw new Error("Transaction rejected in KOIN Vault");
       if (status.status === "failed") throw new Error(status.error || "KOIN Vault could not submit the transaction");
       if (status.status === "approved" && status.txid) {

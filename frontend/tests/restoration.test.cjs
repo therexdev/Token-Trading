@@ -24,7 +24,7 @@ test('market initialization preserves launchpad, detail, create, and locks URLs'
 test('Vault sends operations through the approval relay and returns approved transaction ID', async () => {
  const { BioWalletSigner }=await load('lib/bioWallet.ts');
  const calls=[];const originalFetch=global.fetch,originalTimer=global.setTimeout;
- global.fetch=async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>options?.method==='POST'?{ok:true,requestId:'request'}:{ok:true,status:'approved',txid:'approved-id'}}};
+ global.fetch=async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>url.endsWith('/request')?{ok:true,requestId:'request'}:{ok:true,status:'approved',txid:'approved-id'}}};
  global.setTimeout=(callback)=>{queueMicrotask(callback);return 0};
  try {
   const signer=new BioWalletSigner({sessionId:'session',secret:'secret',address:'owner'});
@@ -33,7 +33,7 @@ test('Vault sends operations through the approval relay and returns approved tra
   assert.equal(result.transaction.id,'approved-id');
   assert.deepEqual(JSON.parse(calls[0].options.body).operations,operations);
   assert.match(calls[0].url,/\/api\/dapp\/request$/);
-  assert.match(calls[1].url,/\/api\/dapp\/request-status\?/);
+  assert.match(calls[1].url,/\/api\/dapp\/request-status$/);
   await assert.rejects(()=>signer.signMessage('message'),/requires Google or Kondor/);
  } finally {global.fetch=originalFetch;global.setTimeout=originalTimer}
 });

@@ -1,3 +1,4 @@
+import { waitForInclusion } from "./transactionStatus";
 import { Contract, Transaction, utils } from "koilib";
 import type { SignerInterface } from "koilib";
 import * as kondor from "kondor-js";
@@ -490,26 +491,14 @@ export async function sendOperations(
     await operation.pushTo(transaction);
   }
   try {
-    await transaction.send();
+    const receipt = await transaction.send();
+    if (receipt?.reverted) throw new Error(extractError(receipt));
   } catch (error) {
     throw new Error(extractError(error));
   }
   const id = transaction.transaction?.id || "";
-  return {
-    id,
-    wait: async () => {
-      try {
-        // poll our own RPC for confirmation. transaction.wait() would go
-        // through the wait function Kondor attaches, which keeps a request
-        // pending on the extension's message channel and wedges the next
-        // popup at "Loading transaction..." until a browser restart
-        const receipt = await provider.wait(id, "byBlock", 60000);
-        return { blockNumber: (receipt as any)?.blockNumber };
-      } catch {
-        return {};
-      }
-    },
-  };
+  if (!id) throw new Error("The wallet returned no transaction ID. Check your wallet before trying again.");
+  return { id, wait: () => waitForInclusion(provider, id) };
 }
 
 export interface PlaceOrderParams {

@@ -1,3 +1,5 @@
+import { safeExternalUrl } from "../../lib/safeUrl";
+import { transactionErrorToast } from "../../lib/transactionStatus";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStore } from "../../store/useStore";
 import {
@@ -83,16 +85,16 @@ const LINK_META: { key: keyof LaunchLinks; label: string; icon: string }[] = [
 ];
 
 function LinkIcons({ links }: { links: LaunchLinks }) {
-  const present = LINK_META.filter((meta) => links[meta.key]);
+  const present = LINK_META.map((meta) => ({ ...meta, href: safeExternalUrl(links[meta.key]) })).filter((meta) => meta.href);
   if (!present.length) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {present.map((meta) => (
         <a
           key={meta.key}
-          href={links[meta.key]}
+          href={meta.href}
           target="_blank"
-          rel="noopener nofollow"
+          rel="noopener noreferrer nofollow"
           title={meta.label}
           className="flex h-8 w-8 items-center justify-center rounded-md border border-ink-600 bg-ink-850 text-ink-300 transition hover:border-accent hover:text-white"
         >
@@ -351,8 +353,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
         title: "Canceling the launch…",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(mining);
+      try { await handle.wait(); } finally { dismissToast(mining); }
       pushToast({
         kind: "success",
         title: "Launch canceled",
@@ -364,11 +365,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
       void load();
     } catch (error: any) {
       dismissToast(signToast);
-      pushToast({
-        kind: "error",
-        title: "Cancel failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Cancel failed"));
     } finally {
       setCanceling(false);
     }
@@ -457,8 +454,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
         detail: "Waiting for the transaction to confirm",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(miningToast);
+      try { await handle.wait(); } finally { dismissToast(miningToast); }
       pushToast({
         kind: "success",
         title: "You're in 🎉",
@@ -473,11 +469,7 @@ export function LaunchpadDetailPage({ id }: { id: number }) {
     } catch (error: any) {
       dismissToast(signToast);
       if (miningToast) dismissToast(miningToast);
-      pushToast({
-        kind: "error",
-        title: "Buy-in failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Buy-in failed"));
     } finally {
       setBusy(false);
     }
