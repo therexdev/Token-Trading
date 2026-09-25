@@ -1,0 +1,25 @@
+{
+  "id": "contract-reentrancy-2026-09",
+  "sourceCommit": "d0298016557a4a3f9de01b3058ff3e4d5b6673bc",
+  "network": "mainnet",
+  "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+  "koin": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
+  "contracts": {
+    "orderbook": {
+      "address": "1Bke72aGbpq4brDY3m1UQxRCGBB9GPTJQz",
+      "wasm": "contract/build/release/contract.wasm",
+      "sha256": "5a947b3e6dd3dbbeea80c2cb2400ab2eabecea5d33f5424b48f31d03c9333ac4",
+      "previousSha256": "c6035b2c5e4a9b341180737c2c199c0e6f7378f78c5a5cbd8691318fb20d3367",
+      "preservedSpaces": [0, 1, 2, 3, 4, 5],
+      "lockSpace": 6
+    },
+    "launchpad": {
+      "address": "13akLV3xQZdRjdQ2ANYo7cvSsD8qfBZReV",
+      "wasm": "launchpad/build/release/contract.wasm",
+      "sha256": "822c9203b85b5b37405092ec9b7ea3263e59deb9b1213cfb56029e91a65f92c2",
+      "previousSha256": "2aa1b55a81eede98a55bffe5a7b9ff0c4908fef01a5b523ced3ab893d6ccf117",
+      "preservedSpaces": [0, 1, 2, 3],
+      "lockSpace": 4
+    }
+  }
+}

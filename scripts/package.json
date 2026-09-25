@@ -14,7 +14,10 @@
     "launchpad-state": "node launchpad-state.js",
     "create-markets": "node create-markets.js",
     "set-min": "node set-min.js",
-    "show-state": "node show-state.js"
+    "show-state": "node show-state.js",
+    "audit-upgrade": "node upgrade-audit.js inspect",
+    "prepare-upgrade": "node upgrade-audit.js prepare",
+    "test": "node --test upgrade-audit.test.js"
   },
   "overrides": {
     "protobufjs": "^7.6.5"

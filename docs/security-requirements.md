@@ -1,5 +1,7 @@
 # User security requirements and implementation plan
 
+Latest contract preparation: [September 25 mainnet inventory and upgrade requirements](contract-upgrade-readiness.md). The live contracts were inspected and remain unpatched; storage-preservation checks and unsigned upload preparation are complete. Independent review, a real-node rehearsal, verified upgrade-key custody, and deployment remain open. The dated implementation and rollout notes below describe earlier checkpoints.
+
 Prepared 2026-09-21. This is a release plan, not a certification that the application is safe. Code changes do not protect an older deployed contract. Production contract bytecode, hosting settings, operator keys, and logs have not been inspected or changed.
 
 The implementation starts from Token-Trading `9b3fdbfed4ac348c8ea8e2e34b82623f719b3975`. The companion wallet change starts from koin-vault `d968a2dcd8e64eee627d1b1d2329ce51498bbab9`. The signing-service review covers discover-koinos `c8dc7959c53e9bbce72d4654ddd934fb3b602fea`; that service is not modified by these changes.

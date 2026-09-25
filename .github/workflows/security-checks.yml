@@ -36,12 +36,17 @@ jobs:
           cache-dependency-path: |
             contract/package-lock.json
             launchpad/package-lock.json
+            scripts/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: contract
       - run: npm ci --ignore-scripts
         working-directory: launchpad
+      - run: npm ci --ignore-scripts
+        working-directory: scripts
       - run: npm run test:contracts
       - run: npm run build
         working-directory: contract
       - run: npm run build
         working-directory: launchpad
+      - run: npm test
+        working-directory: scripts
