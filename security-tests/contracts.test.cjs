@@ -8,6 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { createRequire } = require('node:module');
+const { createHash } = require('node:crypto');
 const fromContract = createRequire(path.join(__dirname, '../contract/package.json'));
 const { MockVM } = fromContract('@koinos/mock-vm');
 const { koinos } = fromContract('@koinos/proto-js');
@@ -39,7 +40,7 @@ const same = (a, b) => Buffer.from(a).equals(Buffer.from(b));
 
 class Host {
   constructor(name) {
-    this.contract = contracts[name]; this.id = addr(9);
+    this.contract = { ...contracts[name] }; this.id = addr(9);
     this.db = new MockVM(true).db; this.balances = new Map();
     this.now = 1000; this.onCall = null; this.onAuthority = null; this.authorized = true;
   }
@@ -199,4 +200,89 @@ test('launchpad: failed token return restores ACTIVE state and creator payout, t
   assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
   h.onCall = null; h.invoke('finalize', { launch_id: 1 });
   assert.equal(h.balance(koin, owner), 100n);
+});
+
+// Actual mainnet storage and historical WASM, captured read-only. The host
+// still models rollback/token transfers; this is not a real-node rehearsal.
+const live = require('../docs/release-evidence/mainnet-2026-09-25-node.json');
+const release = require('../scripts/security-release.json');
+const decodeAddress = value => Buffer.from(fromContract('@koinos/mock-vm/src/util').decodeBase58(value));
+function liveHost(name, legacy = false) {
+  const record = live.contracts.find(c => c.name === name), h = new Host(name);
+  h.id = decodeAddress(record.address);
+  for (const space of record.spaces) for (const row of space.records) {
+    h.db.putObject({ system: false, zone: h.id, id: space.id }, Buffer.from(row.key, 'base64url'), Buffer.from(row.value, 'base64url'));
+  }
+  for (const balance of record.balances) h.mint(decodeAddress(balance.token), h.id, balance.held);
+  if (legacy) {
+    const binary = fs.readFileSync(path.join(__dirname, 'fixtures', name + '-mainnet-before-security.wasm'));
+    assert.equal(createHash('sha256').update(binary).digest('hex'), release.contracts[name].previousSha256);
+    h.contract.module = new WebAssembly.Module(binary);
+  }
+  return { h, record };
+}
+
+for (const name of ['orderbook', 'launchpad']) test(name + ': exact mainnet storage has identical public reads before and after replacing the WASM', () => {
+  const { h, record } = liveHost(name, true), calls = [];
+  if (name === 'orderbook') {
+    calls.push(['get_markets', {}]);
+    for (const m of record.state.markets) calls.push(['get_orderbook', { market_id: m.marketId, limit: 200 }]);
+    for (const o of record.state.orders) calls.push(['get_order', { order_id: o.id }]);
+    for (const a of new Set(record.state.orders.map(o => o.owner))) calls.push(['get_user_orders', { owner: decodeAddress(a), limit: 200 }]);
+  } else {
+    calls.push(['get_launches', { start: 0, limit: 100 }]);
+    for (const l of record.state.launches) {
+      calls.push(['get_launch', { launch_id: l.id }], ['get_buyers', { launch_id: l.id, start: 0, limit: 100 }]);
+    }
+    for (const c of record.state.contributions) calls.push(['get_contribution', { launch_id: c.launchId, buyer: decodeAddress(c.buyer) }]);
+  }
+  const storageBefore = [...h.db.db];
+  const before = calls.map(([method, args]) => h.invoke(method, args));
+  h.contract.module = contracts[name].module;
+  const after = calls.map(([method, args]) => h.invoke(method, args));
+  assert.deepEqual(after, before);
+  assert.deepEqual([...h.db.db], storageBefore);
+});
+
+test('orderbook: every captured resting order can refund exactly once after the upgrade; counters survive', () => {
+  const { h, record } = liveHost('orderbook');
+  const expected = new Map();
+  h.authorized = false;
+  assert.throws(() => h.invoke('cancel_order', { order_id: record.state.orders[0].id }), /authority|authoriz/);
+  h.authorized = true;
+  for (const o of record.state.orders) {
+    const m = record.state.markets.find(m => m.marketId === o.marketId);
+    const token = o.side === 0 ? m.quoteToken : m.baseToken, key = token + ':' + o.owner;
+    expected.set(key, (expected.get(key) || 0n) + BigInt(o.escrow));
+    h.invoke('cancel_order', { order_id: o.id });
+    assert.throws(() => h.invoke('cancel_order', { order_id: o.id }), /unknown|not found/);
+  }
+  for (const [key, units] of expected) {
+    const [token, account] = key.split(':');
+    assert.equal(h.balance(decodeAddress(token), decodeAddress(account)), units);
+  }
+  const o = record.state.orders[0];
+  const placed = h.invoke('place_order', { owner: decodeAddress(o.owner), market_id: o.marketId,
+    side: o.side, price: o.price, quantity: o.remaining, flags: 2 });
+  assert.equal(placed.order_id, record.state.global[0].nextOrderId);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+});
+
+test('launchpad: captured LP claim retains its unlock time, beneficiary, rollback, and single payout after upgrade', () => {
+  const { h, record } = liveHost('launchpad');
+  const launch = record.state.launches.find(l => l.liquidityState === 2 && !l.lpClaimed);
+  assert.ok(launch, 'fixture must include an outstanding LP claim');
+  h.now = Number(launch.lpUnlockTime) - 1;
+  assert.throws(() => h.invoke('claim_liquidity', { launch_id: launch.id }), /still locked/);
+  h.now++;
+  h.onCall = call => { if (call.kind === 'transfer') throw new Error('test LP transfer failure'); };
+  assert.throws(() => h.invoke('claim_liquidity', { launch_id: launch.id }), /test LP transfer failure/);
+  assert.equal(h.invoke('get_launch', { launch_id: launch.id }).value.lp_claimed, false);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+  h.onCall = call => {
+    if (call.kind === 'transfer') assert.throws(() => h.invoke('claim_liquidity', { launch_id: launch.id }), /reentrant mutation/);
+  };
+  h.invoke('claim_liquidity', { launch_id: launch.id });
+  assert.equal(h.balance(decodeAddress(launch.pair), decodeAddress(launch.creator)), BigInt(launch.lpAmount));
+  assert.throws(() => h.invoke('claim_liquidity', { launch_id: launch.id }), /no locked liquidity/);
 });
