@@ -22,8 +22,9 @@ import {
 import { toKoilibAbi } from "./abi";
 import launchpadAbiJson from "./launchpad-abi.json";
 import { launchpadAddress } from "../config/launchpad";
-import { TOKENS } from "../config/tokens";
+import { TOKENS, NETWORK } from "../config/tokens";
 import { SIGNER_API } from "../config/signer";
+import { signGatewayRequest } from "./requestProof";
 
 export const MODE_FIXED = 0;
 export const MODE_POOL = 1;
@@ -379,7 +380,7 @@ export async function mintTokenViaUsekoinos(
 ): Promise<MintedToken> {
   if (!SIGNER_API) throw new Error("Token minting is not configured");
 
-  const body: Record<string, unknown> = {
+  let body: Record<string, unknown> = {
     name: params.name,
     symbol: params.symbol,
     decimals: params.decimals,
@@ -390,14 +391,12 @@ export async function mintTokenViaUsekoinos(
   if (params.sessionToken) {
     body.sessionToken = params.sessionToken;
   } else if (params.kondorAddress) {
-    // the usekoinos proof: sha256(message) signed by the account key
-    const ts = Date.now();
-    const message = `discover-koinos:launch-token:${ts}`;
     const signer = getSignerFor(params.kondorAddress);
-    const signature = await (signer as any).signMessage(message);
-    body.address = params.kondorAddress;
-    body.ts = ts;
-    body.sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    body = await signGatewayRequest({
+      action: "launch-token", payload: body, address: params.kondorAddress,
+      audience: SIGNER_API, network: NETWORK, origin: window.location.origin,
+      signMessage: message => (signer as any).signMessage(message),
+    });
   } else {
     throw new Error("Sign in before minting a token");
   }
@@ -478,20 +477,19 @@ export interface UploadLogoParams {
 /** attach a logo to a token (first writer wins; only the setter may replace) */
 export async function uploadTokenLogo(params: UploadLogoParams): Promise<void> {
   if (!SIGNER_API) throw new Error("Logo storage is not configured");
-  const body: Record<string, unknown> = {
+  let body: Record<string, unknown> = {
     token: params.token,
     logo: params.logo,
   };
   if (params.sessionToken) {
     body.sessionToken = params.sessionToken;
   } else if (params.kondorAddress) {
-    const ts = Date.now();
-    const message = `discover-koinos:launchpad-logo:${ts}`;
     const signer = getSignerFor(params.kondorAddress);
-    const signature = await (signer as any).signMessage(message);
-    body.address = params.kondorAddress;
-    body.ts = ts;
-    body.sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    body = await signGatewayRequest({
+      action: "launchpad-logo", payload: body, address: params.kondorAddress,
+      audience: SIGNER_API, network: NETWORK, origin: window.location.origin,
+      signMessage: message => (signer as any).signMessage(message),
+    });
   } else {
     throw new Error("Sign in before uploading a logo");
   }
@@ -587,20 +585,19 @@ export async function saveLaunchLinks(params: {
   kondorAddress?: string | null;
 }): Promise<void> {
   if (!SIGNER_API) throw new Error("Link storage is not configured");
-  const body: Record<string, unknown> = {
+  let body: Record<string, unknown> = {
     launchId: params.launchId,
     links: params.links,
   };
   if (params.sessionToken) {
     body.sessionToken = params.sessionToken;
   } else if (params.kondorAddress) {
-    const ts = Date.now();
-    const message = `discover-koinos:launchpad-profile:${ts}`;
     const signer = getSignerFor(params.kondorAddress);
-    const signature = await (signer as any).signMessage(message);
-    body.address = params.kondorAddress;
-    body.ts = ts;
-    body.sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    body = await signGatewayRequest({
+      action: "launchpad-profile", payload: body, address: params.kondorAddress,
+      audience: SIGNER_API, network: NETWORK, origin: window.location.origin,
+      signMessage: message => (signer as any).signMessage(message),
+    });
   } else {
     throw new Error("Sign in before saving links");
   }
