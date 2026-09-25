@@ -1,3 +1,4 @@
+import { transactionErrorToast } from "../../lib/transactionStatus";
 import { useEffect, useState } from "react";
 import { useStore } from "../../store/useStore";
 import {
@@ -161,8 +162,7 @@ export function LocksPage() {
         title: "Claiming…",
         txId: handle.id,
       });
-      await handle.wait();
-      dismissToast(mining);
+      try { await handle.wait(); } finally { dismissToast(mining); }
       pushToast({
         kind: "success",
         title: "Unlocked 🎉",
@@ -173,11 +173,7 @@ export function LocksPage() {
       void fetchLaunches().then(setLaunches).catch(() => {});
     } catch (error: any) {
       dismissToast(signToast);
-      pushToast({
-        kind: "error",
-        title: "Claim failed",
-        detail: error?.message || String(error),
-      });
+      pushToast(transactionErrorToast(error, "Claim failed"));
     } finally {
       setBusyKey(null);
     }

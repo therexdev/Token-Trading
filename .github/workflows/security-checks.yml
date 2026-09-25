@@ -1,0 +1,47 @@
+name: Security checks
+
+on:
+  pull_request:
+  push:
+    branches: [claude/koinos-orderbook-dex-mdkvf6, main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: node --test security-tests/wallet-transport.test.cjs
+      - run: npm run build
+        working-directory: frontend
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            contract/package-lock.json
+            launchpad/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: contract
+      - run: npm ci --ignore-scripts
+        working-directory: launchpad
+      - run: npm run test:contracts
+      - run: npm run build
+        working-directory: contract
+      - run: npm run build
+        working-directory: launchpad

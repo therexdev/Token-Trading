@@ -4,7 +4,8 @@
   "private": true,
   "description": "Trade Koinos — orderbook DEX frontend (app.tradekoinos.com). Static build; Google sign-in and signing run on usekoinos.com.",
   "scripts": {
-    "build": "node build-site.js"
+    "build": "node build-site.js",
+    "test:contracts": "node --test security-tests/contracts.test.cjs"
   },
   "engines": {
     "node": ">=18"

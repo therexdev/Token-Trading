@@ -1,4 +1,4 @@
-# Auto-deploy the frontend to Hostinger over FTP.
+# Auto-deploy the frontend to Hostinger over FTPS.
 #
 # Every push that touches frontend/ (or a manual run from the Actions tab)
 # builds the site and uploads frontend/dist to Hostinger's web root, so you
@@ -24,6 +24,9 @@ on:
       - ".github/workflows/deploy-hostinger.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: hostinger-deploy
   cancel-in-progress: true
@@ -42,7 +45,16 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Test frontend before deployment
+        working-directory: frontend
+        run: npm test
+
+      - name: Verify live wallet compatibility before deployment
+        env:
+          BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
+        run: node scripts/check-wallet-transport.cjs
 
       - name: Build
         working-directory: frontend
@@ -50,24 +62,28 @@ jobs:
           VITE_ORDERBOOK_ADDRESS: ${{ vars.ORDERBOOK_ADDRESS || '1Bke72aGbpq4brDY3m1UQxRCGBB9GPTJQz' }}
           VITE_KOINOS_RPC: ${{ vars.KOINOS_RPC || 'https://api.koinos.io' }}
           VITE_KOINOS_NETWORK: ${{ vars.KOINOS_NETWORK || 'mainnet' }}
+          VITE_BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
         run: npm run build
 
       # hPanel displays the hostname as "ftp://185.x.x.x" and its copy button
       # includes the prefix — strip any scheme/path so a pasted value works
       - name: Normalize FTP server value
         id: ftp
+        env:
+          FTP_SERVER_INPUT: ${{ secrets.FTP_SERVER }}
         run: |
-          server='${{ secrets.FTP_SERVER }}'
+          server="$FTP_SERVER_INPUT"
           server="${server#ftp://}"
           server="${server#ftps://}"
           server="${server%%/*}"
+          [[ "$server" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || { echo "Invalid FTP hostname" >&2; exit 1; }
           echo "server=$server" >> "$GITHUB_OUTPUT"
 
       # Hostinger's FTP intermittently answers "530 Login incorrect" even
       # with valid credentials (login rate limiting after failed attempts,
       # and password changes take a few minutes to propagate). Retry with
       # a backoff long enough to ride that out before calling it a failure.
-      - name: Deploy to Hostinger via FTP
+      - name: Deploy to Hostinger via FTPS
         id: deploy1
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -76,10 +92,9 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ vars.FTP_PORT || 21 }}
-          # Hostinger supports plain ftp and explicit ftps on port 21.
-          # If a run fails with a TLS/connection error, set an FTP_PROTOCOL
-          # repository variable to ftps.
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
+          # Fail closed if TLS or certificate verification is unavailable.
+          protocol: ftps
+          security: strict
           # trailing slash matters: uploads the CONTENTS of dist, not the folder
           local-dir: ./frontend/dist/
           # Hostinger FTP accounts land INSIDE the web root (public_html), so
@@ -94,7 +109,7 @@ jobs:
         if: steps.deploy1.outcome == 'failure'
         run: sleep 90
 
-      - name: Deploy to Hostinger via FTP (retry 1)
+      - name: Deploy to Hostinger via FTPS (retry 1)
         id: deploy2
         if: steps.deploy1.outcome == 'failure'
         continue-on-error: true
@@ -104,7 +119,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ vars.FTP_PORT || 21 }}
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
+          protocol: ftps
+          security: strict
           local-dir: ./frontend/dist/
           server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
           dangerous-clean-slate: false
@@ -113,7 +129,7 @@ jobs:
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         run: sleep 180
 
-      - name: Deploy to Hostinger via FTP (final retry)
+      - name: Deploy to Hostinger via FTPS (final retry)
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -121,7 +137,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ vars.FTP_PORT || 21 }}
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftp' }}
+          protocol: ftps
+          security: strict
           local-dir: ./frontend/dist/
           server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
           dangerous-clean-slate: false

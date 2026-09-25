@@ -1,6 +1,8 @@
 import { useStore } from "../store/useStore";
 import { BIO_WALLET_API } from "../lib/bioWallet";
 import { EXPLORER_TX } from "../config/tokens";
+import { transactionErrorToast } from "../lib/transactionStatus";
+import type { Toast } from "../store/useStore";
 
 const KIND_STYLES: Record<string, string> = {
   pending: "border-accent/50",
@@ -13,6 +15,21 @@ export function Toasts() {
   const authMethod = useStore((state) => state.authMethod);
   const toasts = useStore((state) => state.toasts);
   const dismissToast = useStore((state) => state.dismissToast);
+  const checkTransaction = async (toast: Toast) => {
+    if (!toast.checkStatus) return;
+    const store = useStore.getState();
+    store.dismissToast(toast.id);
+    const checking = store.pushToast({ kind: "pending", title: "Checking transaction…", txId: toast.txId });
+    try {
+      await toast.checkStatus();
+      store.pushToast({ kind: "success", title: "Transaction included", txId: toast.txId });
+      void store.refreshMarkets();
+      void store.refreshMarketData();
+      void store.refreshUser();
+    } catch (error) {
+      store.pushToast(transactionErrorToast(error, "Could not check transaction"));
+    } finally { store.dismissToast(checking); }
+  };
 
   return (
     <div className="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] z-50 flex flex-col gap-2 lg:inset-x-auto lg:bottom-4 lg:right-4 lg:w-80">
@@ -40,7 +57,7 @@ export function Toasts() {
                   {toast.detail}
                 </div>
               )}
-              {authMethod === "bio" && toast.kind === "pending" && (
+              {authMethod === "bio" && toast.kind === "pending" && !toast.txId && (
                 <a href={BIO_WALLET_API + "/"} target="_blank" rel="noopener noreferrer" className="mt-1 block text-xs text-accent underline">Open KOIN Vault to approve</a>
               )}
               {toast.txId && (
@@ -52,6 +69,11 @@ export function Toasts() {
                 >
                   view transaction ↗
                 </a>
+              )}
+              {toast.checkStatus && (
+                <button type="button" onClick={() => void checkTransaction(toast)} className="mt-2 text-xs text-accent underline">
+                  Check status
+                </button>
               )}
             </div>
             <button

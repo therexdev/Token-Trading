@@ -7,8 +7,8 @@ const ts = require('typescript');
 const source = fs.readFileSync(path.join(__dirname, '../src/lib/bioWallet.ts'), 'utf8').replaceAll('import.meta.env', 'TEST_ENV');
 const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 const session = { sessionId: 'session', secret: 'secret', address: 'account' };
-const validUri = 'https://koinvault.app/?connect=session&secret=secret';
-function setup({ uri = validUri, outcome = 'approved' } = {}) {
+const validUri = 'https://koinvault.app/#connect=session&secret=secret';
+function setup({ uri = validUri, outcome = 'approved', protocolVersion = 2 } = {}) {
   const storage = new Map(), calls = [];
   const timers = new Map(), events = new EventTarget(), document = new EventTarget();
   document.hidden = false;
@@ -22,15 +22,15 @@ function setup({ uri = validUri, outcome = 'approved' } = {}) {
     sessionStorage: { getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) },
     setTimeout: fn => fn(),
     fetch: async (url, init = {}) => {
-      calls.push({ url, body: init.body && JSON.parse(init.body) });
-      if (url.includes('/dapp/status?')) {
+      calls.push({ url, method: init.method, body: init.body && JSON.parse(init.body) });
+      if (url.includes('/dapp/status')) {
         const reply = { ...network };
         if (reply.wait) await reply.wait;
         return { ok: reply.status === 200, status: reply.status, json: async () => ({ ok: reply.status === 200, connected: reply.connected, address: reply.address, error: 'connection unavailable' }) };
       }
-      const data = url.endsWith('/create') ? { ok: true, ...session, uri, expiresAt: Date.now() + 60000 }
-        : url.includes('/request-status?') ? { ok: true, status: outcome, txid: outcome === 'approved' ? 'confirmed-tx' : null, error: outcome === 'failed' ? 'chain refused' : null }
-        : url.includes('/status?') ? { ok: true, connected: true, address: session.address }
+      const data = url.endsWith('/create') ? { ok: true, ...session, uri, protocolVersion, expiresAt: Date.now() + 60000 }
+        : url.includes('/request-status') ? { ok: true, status: outcome, txid: outcome === 'approved' ? 'confirmed-tx' : null, error: outcome === 'failed' ? 'chain refused' : null }
+        : url.includes('/status') ? { ok: true, connected: true, address: session.address }
         : { ok: true, requestId: 'request' };
       return { ok: true, json: async () => data };
     },
@@ -44,9 +44,12 @@ test('pair QR and all connection API calls use the new wallet domain', async () 
   assert.equal(pair.uri, validUri);
   assert.equal(calls[0].url, 'https://koinvault.app/api/dapp/create');
   assert.equal(calls[0].body.walletUrl, 'https://koinvault.app');
+  assert.equal(calls[0].body.protocolVersion, 2);
+  assert.equal(new URL(pair.uri).search, '');
   const live = await api.readBioPair(pair);
   assert.equal(live.address, session.address);
-  assert.ok(calls[1].url.startsWith('https://koinvault.app/api/dapp/status?'));
+  assert.equal(calls[1].url, 'https://koinvault.app/api/dapp/status');
+  assert.equal(calls[1].method, 'POST'); assert.equal(calls[1].body.secret, session.secret);
 });
 test('foreign origins and mismatched QR credentials are rejected', async () => {
   for (const uri of [
@@ -54,7 +57,7 @@ test('foreign origins and mismatched QR credentials are rejected', async () => {
     validUri.replace('koinvault.app', 'koinvault.app.evil.example'),
     validUri.replace('connect=session', 'connect=wrong'),
     validUri.replace('secret=secret', 'secret=wrong'),
-    validUri.replace('/?', '/other?'),
+    validUri.replace('/#', '/other#'),
   ]) await assert.rejects(setup({ uri }).api.createBioPair(), /unexpected connection link/);
 });
 test('old sessions do not silently reconnect and new sessions stay address-bound', () => {
@@ -74,6 +77,8 @@ test('approved transactions retain their operations and use only the new wallet 
   assert.equal(result.transaction.id, 'confirmed-tx');
   assert.deepEqual(calls[0].body.operations, transaction.operations);
   assert.ok(calls.every(c => c.url.startsWith('https://koinvault.app/api/dapp/')));
+  assert.ok(calls.every(c => !new URL(c.url).search && c.method === 'POST'));
+  assert.equal(calls.at(-1).body.secret, session.secret);
   assert.equal(calls.filter(c => c.url.endsWith('/request')).length, 1);
 });
 for (const outcome of ['rejected', 'failed']) test(outcome + ' approval never resubmits a transaction', async () => {
@@ -120,4 +125,9 @@ test('disconnecting the website revokes the relay without clearing a newer sessi
   c.api.saveBioSession({ ...session, sessionId: 'new-session' });
   await c.api.disconnectBioSession(session);
   assert.equal(c.api.loadBioSession().sessionId, 'new-session');
+});
+
+test('an older wallet service cannot silently downgrade pairing to URL query credentials', async () => {
+  await assert.rejects(setup({ protocolVersion: 1 }).api.createBioPair(), /needs an update/);
+  await assert.rejects(setup({ uri: validUri.replace('/#', '/?') }).api.createBioPair(), /unexpected connection link/);
 });

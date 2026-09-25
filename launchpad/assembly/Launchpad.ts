@@ -81,6 +81,9 @@ const SPACE_LAUNCHES: u32 = 1;
 const SPACE_CONTRIBUTIONS: u32 = 2;
 const SPACE_BUYERS: u32 = 3;
 
+// Separate space preserves the deployed state layout.
+const SPACE_EXECUTION_LOCK: u32 = 4;
+
 const GLOBAL_KEY: Uint8Array = new Uint8Array(0);
 
 function u32ToBytesBE(value: u32): Uint8Array {
@@ -128,6 +131,21 @@ export class Launchpad {
 
   private koin(): Token {
     return new Token(Base58.decode(KOIN_B58));
+  }
+
+  // The lock must live in storage: a callback gets a fresh WASM instance.
+  // Koinos rolls back the lock together with state if a call reverts.
+  private enterMutation(): void {
+    const space = this.space(SPACE_EXECUTION_LOCK);
+    System.require(
+      System.getBytes<Uint8Array>(space, GLOBAL_KEY) == null,
+      "launchpad: reentrant mutation"
+    );
+    System.putBytes(space, GLOBAL_KEY, new Uint8Array(1));
+  }
+
+  private leaveMutation(): void {
+    System.removeObject(this.space(SPACE_EXECUTION_LOCK), GLOBAL_KEY);
   }
 
   // -------------------------------------------------------------------------
@@ -252,7 +270,14 @@ export class Launchpad {
   // Entry points
   // -------------------------------------------------------------------------
 
-  create_launch(
+  create_launch(args: launchpad.create_launch_arguments): launchpad.create_launch_result {
+    this.enterMutation();
+    const result = this.execute_create_launch(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_create_launch(
     args: launchpad.create_launch_arguments
   ): launchpad.create_launch_result {
     System.require(
@@ -433,7 +458,14 @@ export class Launchpad {
     return result;
   }
 
-  contribute(
+  contribute(args: launchpad.contribute_arguments): launchpad.contribute_result {
+    this.enterMutation();
+    const result = this.execute_contribute(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_contribute(
     args: launchpad.contribute_arguments
   ): launchpad.contribute_result {
     System.require(
@@ -533,6 +565,13 @@ export class Launchpad {
   }
 
   finalize(args: launchpad.finalize_arguments): launchpad.finalize_result {
+    this.enterMutation();
+    const result = this.execute_finalize(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_finalize(args: launchpad.finalize_arguments): launchpad.finalize_result {
     const found = this.getLaunch(args.launch_id);
     System.require(found != null, "launchpad: unknown launch");
     const launch = found!;
@@ -617,6 +656,13 @@ export class Launchpad {
   }
 
   process(args: launchpad.process_arguments): launchpad.process_result {
+    this.enterMutation();
+    const result = this.execute_process(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_process(args: launchpad.process_arguments): launchpad.process_result {
     const found = this.getLaunch(args.launch_id);
     System.require(found != null, "launchpad: unknown launch");
     const launch = found!;
@@ -726,7 +772,14 @@ export class Launchpad {
     return result;
   }
 
-  claim_locked(
+  claim_locked(args: launchpad.claim_locked_arguments): launchpad.claim_locked_result {
+    this.enterMutation();
+    const result = this.execute_claim_locked(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_claim_locked(
     args: launchpad.claim_locked_arguments
   ): launchpad.claim_locked_result {
     const found = this.getLaunch(args.launch_id);
@@ -773,7 +826,14 @@ export class Launchpad {
     return new launchpad.claim_locked_result();
   }
 
-  cancel_launch(
+  cancel_launch(args: launchpad.cancel_launch_arguments): launchpad.cancel_launch_result {
+    this.enterMutation();
+    const result = this.execute_cancel_launch(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_cancel_launch(
     args: launchpad.cancel_launch_arguments
   ): launchpad.cancel_launch_result {
     const found = this.getLaunch(args.launch_id);
@@ -831,7 +891,14 @@ export class Launchpad {
     return result;
   }
 
-  provide_liquidity(
+  provide_liquidity(args: launchpad.provide_liquidity_arguments): launchpad.provide_liquidity_result {
+    this.enterMutation();
+    const result = this.execute_provide_liquidity(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_provide_liquidity(
     args: launchpad.provide_liquidity_arguments
   ): launchpad.provide_liquidity_result {
     const found = this.getLaunch(args.launch_id);
@@ -953,7 +1020,14 @@ export class Launchpad {
     return result;
   }
 
-  claim_liquidity(
+  claim_liquidity(args: launchpad.claim_liquidity_arguments): launchpad.claim_liquidity_result {
+    this.enterMutation();
+    const result = this.execute_claim_liquidity(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_claim_liquidity(
     args: launchpad.claim_liquidity_arguments
   ): launchpad.claim_liquidity_result {
     const found = this.getLaunch(args.launch_id);
@@ -996,7 +1070,14 @@ export class Launchpad {
     return new launchpad.claim_liquidity_result();
   }
 
-  reclaim_liquidity(
+  reclaim_liquidity(args: launchpad.reclaim_liquidity_arguments): launchpad.reclaim_liquidity_result {
+    this.enterMutation();
+    const result = this.execute_reclaim_liquidity(args);
+    this.leaveMutation();
+    return result;
+  }
+
+  private execute_reclaim_liquidity(
     args: launchpad.reclaim_liquidity_arguments
   ): launchpad.reclaim_liquidity_result {
     const found = this.getLaunch(args.launch_id);
