@@ -38,7 +38,14 @@ jobs:
           VITE_ORDERBOOK_ADDRESS: ${{ vars.ORDERBOOK_ADDRESS }}
           VITE_KOINOS_RPC: ${{ vars.KOINOS_RPC || 'https://api.koinos.io' }}
           VITE_KOINOS_NETWORK: ${{ vars.KOINOS_NETWORK || 'mainnet' }}
+          VITE_BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
         run: npm run build
+
+      - name: Verify live wallet compatibility before deployment
+        env:
+          BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
+          TRADE_ORIGIN: https://trade.koinoskit.site
+        run: node scripts/check-wallet-transport.cjs
 
       - name: Add custom domain
         run: echo "trade.koinoskit.site" > frontend/dist/CNAME

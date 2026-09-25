@@ -51,12 +51,18 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      - name: Verify live wallet compatibility before deployment
+        env:
+          BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
+        run: node scripts/check-wallet-transport.cjs
+
       - name: Build
         working-directory: frontend
         env:
           VITE_ORDERBOOK_ADDRESS: ${{ vars.ORDERBOOK_ADDRESS || '1Bke72aGbpq4brDY3m1UQxRCGBB9GPTJQz' }}
           VITE_KOINOS_RPC: ${{ vars.KOINOS_RPC || 'https://api.koinos.io' }}
           VITE_KOINOS_NETWORK: ${{ vars.KOINOS_NETWORK || 'mainnet' }}
+          VITE_BIO_WALLET_API: ${{ vars.BIO_WALLET_API || 'https://koinvault.app' }}
         run: npm run build
 
       # hPanel displays the hostname as "ftp://185.x.x.x" and its copy button

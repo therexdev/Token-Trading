@@ -22,6 +22,7 @@ jobs:
         working-directory: frontend
       - run: npm test
         working-directory: frontend
+      - run: node --test security-tests/wallet-transport.test.cjs
       - run: npm run build
         working-directory: frontend
   contracts:
