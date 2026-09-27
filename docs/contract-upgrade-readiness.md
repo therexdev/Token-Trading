@@ -1,5 +1,7 @@
 # Contract upgrade readiness — September 25, 2026
 
+September 27: the [Harbinger rehearsal runner and setup guide](testnet-rehearsal.md) are prepared. The Foundation RPC and current testnet chain ID are verified, and all fifteen stages pass in the offline WASM harness. The dedicated payer still needs tKOIN before a real testnet run; this does not close the real-node gate below.
+
 The mainnet contracts still run the pre-hardening code. This preparation does not deploy a contract, move funds, or establish that the application is safe. SEC-01 and SEC-13 remain open until independent review, real-node rehearsal, authorized deployment, and post-deployment verification are complete.
 
 ## Release identity

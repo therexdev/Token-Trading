@@ -1,0 +1,46 @@
+{
+  "preparedAt": "2026-09-27",
+  "status": "awaiting-testnet-funding",
+  "rpc": "https://testnet.koinosfoundation.org/jsonrpc",
+  "chainId": "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
+  "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+  "availableManaUnits": "0",
+  "planningBudgetTkoin": 112,
+  "suggestedFundingTkoin": 150,
+  "testnetTransactionsSubmitted": 0,
+  "validation": {
+    "existingContractTestsPassed": 11,
+    "harnessTestsPassed": 13,
+    "simulatedRehearsalStagesPassed": 15,
+    "realNodeRehearsalCompleted": false
+  },
+  "artifacts": {
+    "orderbook-before": {
+      "sha256": "c6035b2c5e4a9b341180737c2c199c0e6f7378f78c5a5cbd8691318fb20d3367",
+      "bytes": 29941
+    },
+    "orderbook-after": {
+      "sha256": "5a947b3e6dd3dbbeea80c2cb2400ab2eabecea5d33f5424b48f31d03c9333ac4",
+      "bytes": 30182
+    },
+    "launchpad-before": {
+      "sha256": "27e050d0669fca454d6feeaa50403d3ed548a1e2e1843bae71791810ac75c264",
+      "bytes": 37890
+    },
+    "launchpad-after": {
+      "sha256": "d671ceda9488e79dce3e332fb92caf1c43e3c70870c87b6e18e27f0866371580",
+      "bytes": 38389
+    },
+    "fixture": {
+      "sha256": "58034a9e0cc45ff294b4ffc1e0aec41d010891d107b366962a8a568433a8b3a2",
+      "bytes": 18426
+    }
+  },
+  "limitations": [
+    "Launchpad has two test-only address substitutions: payment fixture and router fixture.",
+    "Historical launchpad source baseline is pinned but exact historical live binary provenance remains unverified.",
+    "Router fixture is not KoinDX; native KOIN, keeper, wallet integrations and seven-day liquidity reclamation need separate coverage.",
+    "Synthetic funded scenarios do not replace a complete production-state export rehearsal."
+  ],
+  "mainnetReady": false
+}

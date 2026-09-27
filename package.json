@@ -5,7 +5,12 @@
   "description": "Trade Koinos — orderbook DEX frontend (app.tradekoinos.com). Static build; Google sign-in and signing run on usekoinos.com.",
   "scripts": {
     "build": "node build-site.js",
-    "test:contracts": "node --test security-tests/contracts.test.cjs"
+    "test:contracts": "node --test security-tests/contracts.test.cjs",
+    "testnet:setup": "node scripts/setup-rehearsal.cjs",
+    "testnet:check": "node scripts/testnet-rehearsal.js check",
+    "testnet:run": "node scripts/testnet-rehearsal.js run",
+    "testnet:resume": "node scripts/testnet-rehearsal.js resume",
+    "testnet:report": "node scripts/testnet-rehearsal.js report"
   },
   "engines": {
     "node": ">=18"
