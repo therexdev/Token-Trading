@@ -21,7 +21,8 @@ export class SimulatedNode {
   async getAccountRc() { return '10000000000000'; }
   async getNextNonce() { return Buffer.from(chain.value_type.encode({ uint64_value: ++this.nonce }).finish()).toString('base64url'); }
   async getHeadInfo() {
-    if (this.state.checks['preserved token and LP locks reject early claims']?.status === 'passed') this.now = Math.max(this.now, this.state.schedule.end + 1);
+    if (this.state.checks['preserved token and LP locks reject early claims']?.status === 'passed'
+      && this.state.checks['launch finalization rollback and callback rejection allow a retry']?.status === 'passed') this.now = Math.max(this.now, this.state.schedule.end + 1);
     return { head_block_time: String(this.now), head_topology: { height: String(this.height), id: 'block' + this.height }, last_irreversible_block: String(this.height) };
   }
   async getBlocks(start, count = 1) { return [...this.blocks.values()].filter(b => Number(b.block_height) >= start && Number(b.block_height) < start + count); }

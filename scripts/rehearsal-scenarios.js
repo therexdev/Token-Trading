@@ -32,14 +32,16 @@ export async function scenarios(provider, state, keys, persist, manifest, buildD
   const snapshot = async () => {
     const balances = {};
     for (const token of ['base', 'quote', 'router']) {
-      balances[token] = {};
-      for (const account of ['owner', 'buyer', 'orderbook', 'launchpad', 'router']) balances[token][account] = (await balance(token, a[account])).toString();
+      balances[token] = Object.fromEntries(await Promise.all(['owner', 'buyer', 'orderbook', 'launchpad', 'router']
+        .map(async account => [account, (await balance(token, a[account])).toString()])));
     }
     const launches = await read('launchpad', 'get_launches', { start: 0, limit: 100 });
-    const buyers = [];
-    for (const launch of launches.launches || []) buyers.push(await read('launchpad', 'get_buyers', { launchId: launch.id, start: 0, limit: 100 }));
-    return { markets: await read('orderbook', 'get_markets'), book: await read('orderbook', 'get_orderbook', { marketId: 1, limit: 200 }),
-      ownerOrders: await read('orderbook', 'get_user_orders', { owner: a.owner }), buyerOrders: await read('orderbook', 'get_user_orders', { owner: a.buyer }),
+    const buyers = await Promise.all((launches.launches || []).map(launch => read('launchpad', 'get_buyers', { launchId: launch.id, start: 0, limit: 100 })));
+    const [markets, book, ownerOrders, buyerOrders] = await Promise.all([
+      read('orderbook', 'get_markets'), read('orderbook', 'get_orderbook', { marketId: 1, limit: 200 }),
+      read('orderbook', 'get_user_orders', { owner: a.owner }), read('orderbook', 'get_user_orders', { owner: a.buyer }),
+    ]);
+    return { markets, book, ownerOrders, buyerOrders,
       launches, buyers, balances };
   };
   const remember = async (name, make) => {
@@ -92,7 +94,7 @@ export async function scenarios(provider, state, keys, persist, manifest, buildD
     ], ['owner', 'buyer']);
   });
   await check('create old-version launches, refunds, and locked liquidity', async () => {
-    if (!state.schedule) { const head = await provider.getHeadInfo(); state.schedule = { start: Number(head.head_block_time) - 1000, end: Number(head.head_block_time) + 8 * 60 * 1000 }; persist(); }
+    if (!state.schedule) { const head = await provider.getHeadInfo(); state.schedule = { start: Number(head.head_block_time) - 1000, end: Number(head.head_block_time) + 30 * 60 * 1000 }; persist(); }
     const common = { creator: a.owner, token: a.base, mode: 0, price: String(UNIT), forSaleAmount: String(2n * UNIT), startTime: String(state.schedule.start), endTime: String(state.schedule.end) };
     await tx('old-launches', [
       await op('launchpad', 'create_launch', { ...common, lockedAmount: String(UNIT), unlockTime: String(state.schedule.end), liquidityBps: 5000, liquidityTokens: String(UNIT), lpUnlockTime: String(state.schedule.end) }),
@@ -114,6 +116,14 @@ export async function scenarios(provider, state, keys, persist, manifest, buildD
     const before = await remember('beforeUpgrade', snapshot);
     await upload('orderbook', 'orderbook-after'); await upload('launchpad', 'launchpad-after');
     const after = await snapshot(); assert.deepEqual(after, before); state.snapshots.afterUpgrade = after;
+  });
+  await check('preserved token and LP locks reject early claims', async () => {
+    const now = Number((await provider.getHeadInfo()).head_block_time);
+    if (now >= state.schedule.end) throw new Error('Early-claim window elapsed before this check; a fresh rehearsal is needed to cover it');
+    const before = await remember('beforeEarlyClaims', snapshot);
+    await call('early-token-claim', 'launchpad', 'claim_locked', { launchId: 1 }, [], 'still locked');
+    await call('early-lp-claim', 'launchpad', 'claim_liquidity', { launchId: 1 }, [], 'still locked');
+    await unchanged('early-claims-state', before);
   });
   await check('reject unauthorized order cancellation and administration', async () => {
     const before = await remember('beforeUnauthorized', snapshot);
@@ -170,16 +180,8 @@ export async function scenarios(provider, state, keys, persist, manifest, buildD
     assert.equal(await balance('base', a.buyer), BigInt(before.balances.base.buyer) + 2n * UNIT);
     await call('duplicate-finalize', 'launchpad', 'finalize', { launchId: 3 }, [], 'already finalized');
   });
-  await check('preserved token and LP locks reject early claims', async () => {
-    const now = Number((await provider.getHeadInfo()).head_block_time);
-    if (now >= state.schedule.end) throw new Error('Early-claim window elapsed before this check; a fresh rehearsal is needed to cover it');
-    const before = await remember('beforeEarlyClaims', snapshot);
-    await call('early-token-claim', 'launchpad', 'claim_locked', { launchId: 1 }, [], 'still locked');
-    await call('early-lp-claim', 'launchpad', 'claim_liquidity', { launchId: 1 }, [], 'still locked');
-    await unchanged('early-claims-state', before);
-  });
   await check('wait for real testnet block time to reach the unlock date', async () => {
-    const deadline = Date.now() + 12 * 60 * 1000; let logAt = 0;
+    const deadline = Math.max(Date.now(), state.schedule.end) + 12 * 60 * 1000; let logAt = 0;
     for (;;) {
       const now = Number((await provider.getHeadInfo()).head_block_time);
       if (now >= state.schedule.end) break;

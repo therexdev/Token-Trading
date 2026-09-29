@@ -53,7 +53,7 @@ The runner deploys fixtures and historical code, creates three resting orders an
 - Preserved token and LP locks, early-claim rejection, failed/callback LP transfers, correct beneficiary, and duplicate-claim rejection.
 - Proportional pool payouts and final reconciliation of launch obligations and remaining order escrow.
 
-The test sale/lock window is eight minutes from scenario creation. The runner waits for actual testnet block time to reach it. An interrupted or unusually slow run can miss the early-claim window; that check then remains incomplete and requires a new properly timed rehearsal. It is never silently marked passed.
+The test sale/lock window is thirty minutes from scenario creation. Early claims are checked immediately after the upgrade. The runner waits for actual testnet block time to reach the unlock date; independent balance reads run in batches of five. RPC requests allow sixty seconds and use unique response IDs, while transaction submissions are never automatically retried. An interrupted or unusually slow run can miss the early-claim window; that check then remains incomplete and requires a new properly timed rehearsal. It is never silently marked passed.
 
 Every transaction is signed and journaled before submission. Success requires a matching receipt in a canonical block. Expected rejection is recorded distinctly as a node rejection or a reverted receipt; a network error is not an expected contract rejection. Finality is reported separately from inclusion. Actual resource usage is retained in receipt evidence.
 

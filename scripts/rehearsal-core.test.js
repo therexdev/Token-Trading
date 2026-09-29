@@ -73,6 +73,19 @@ test('generated keys are private, separate, never overwritten, and absent from p
     for (const key of Object.values(keys)) assert.ok(!report.includes(key));
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+test('RPC requests use distinct IDs and reject unrelated responses', async () => {
+  const ids = [];
+  const p = providerFor('https://example.com', async (_url, request) => {
+    const body = JSON.parse(request.body); ids.push(body.id);
+    assert.equal(request.headers['Cache-Control'], 'no-store');
+    return { ok: true, json: async () => ({ id: body.id, result: { chain_id: HARBINGER } }) };
+  });
+  assert.equal(await p.getChainId(), HARBINGER); assert.equal(await p.getChainId(), HARBINGER);
+  assert.notEqual(ids[0], ids[1]);
+  const mismatch = providerFor('https://example.com', async () => ({ ok: true,
+    json: async () => ({ id: 'unrelated', result: { chain_id: HARBINGER } }) }));
+  await assert.rejects(mismatch.getChainId(), /response ID mismatch/);
+});
 test('success requires a matching included receipt; rerunning does not resubmit', async () => {
   const e = execution(), result = await executeTransaction(e);
   assert.equal(result.status, 'passed'); assert.equal(result.outcome, 'included'); assert.ok(e.writes() >= 2);

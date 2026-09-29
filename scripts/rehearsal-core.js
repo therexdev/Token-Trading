@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { Provider, Signer, Transaction, utils } from 'koilib';
 import { digest, work } from './rehearsal-build.js';
 export const MAINNET = 'EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==';
@@ -56,10 +56,12 @@ export function providerFor(endpoint, fetcher = fetch) {
     'block_store.get_blocks_by_height', 'block_store.get_blocks_by_id', 'transaction_store.get_transactions_by_id']);
   p.call = async (method, params) => {
     if (!allowed.has(method) && !(method === 'chain.invoke_system_call' && ['get_contract_address', 'get_object', 'get_contract_metadata'].includes(params.name))) throw new Error('Unsupported rehearsal RPC method');
-    const r = await fetcher(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(20000) });
+    const id = randomUUID();
+    const r = await fetcher(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }), signal: AbortSignal.timeout(60000) });
     if (!r.ok) throw new Error(`RPC ${method}: HTTP ${r.status}`);
     const data = await r.json();
+    if (data.id !== id) throw new Error(`RPC ${method}: response ID mismatch`);
     if (data.error) throw new RpcRejection(JSON.stringify(data.error).slice(0, 3000));
     if (!data.result) throw new Error(`RPC ${method}: missing result`);
     return data.result;
@@ -118,9 +120,10 @@ export async function executeTransaction({ provider, state, persist, keys, label
       // Recheck immediately before the only mutation path.
       assertChain(await provider.getChainId(), state.chainId);
       await provider.sendTransaction(transaction, true);
+      console.log(`Submitted: ${label} (${entry.id})`);
     } catch (error) {
       if (error instanceof RpcRejection && expectedError && new RegExp(expectedError).test(error.message)) {
-        entry.status = 'passed'; entry.outcome = 'node-rejected'; entry.reason = error.message; persist(); return entry;
+        entry.status = 'passed'; entry.outcome = 'node-rejected'; entry.reason = error.message; persist(); console.log(`Expected rejection: ${label}`); return entry;
       }
       entry.submissionError = error.message; persist();
       throw new Error(`${label}: submission outcome unresolved (${entry.id}). ${error.message}. Run resume to CHECK this ID; it will not rebroadcast.`);
@@ -135,6 +138,7 @@ export async function executeTransaction({ provider, state, persist, keys, label
       const correct = expectedError ? result.receipt.reverted === true && new RegExp(expectedError).test(reason) : result.receipt.reverted !== true;
       entry.status = correct ? 'passed' : 'failed'; entry.outcome = result.receipt.reverted ? 'reverted' : 'included'; persist();
       if (!correct) throw new Error(`${label}: unexpected receipt outcome. ${reason}`);
+      console.log(`Confirmed: ${label} at block ${result.height}`);
       return entry;
     }
     if (Date.now() >= deadline) break;
