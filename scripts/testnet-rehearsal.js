@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Signer } from 'koilib';
 import { buildRehearsal, work } from './rehearsal-build.js';
-import { HARBINGER, HARBINGER_RPC, providerFor, createState, checkNetwork, save, publicReport } from './rehearsal-core.js';
+import { HARBINGER, HARBINGER_RPC, providerFor, createState, checkNetwork, save, publicReport, reconcileResourceRejection } from './rehearsal-core.js';
 import { scenarios } from './rehearsal-scenarios.js';
 
 export async function main(command = process.argv[2]) {
@@ -20,7 +20,7 @@ export async function main(command = process.argv[2]) {
     const manifest = buildRehearsal({ addresses }, path.join(work, 'offline-build'));
     console.log(JSON.stringify(manifest.artifacts, null, 2)); return;
   }
-  if (!['build', 'check', 'run', 'resume', 'report'].includes(command)) throw new Error('Usage: node scripts/testnet-rehearsal.js init|build|check|run|resume|report|offline-build');
+  if (!['build', 'check', 'run', 'resume', 'report', 'reconcile-resource'].includes(command)) throw new Error('Usage: node scripts/testnet-rehearsal.js init|build|check|run|resume|report|offline-build|reconcile-resource LABEL');
   if (!fs.existsSync(stateFile)) throw new Error('Run init first');
   const state = JSON.parse(fs.readFileSync(stateFile));
   const persist = () => save(stateFile, state);
@@ -36,6 +36,10 @@ export async function main(command = process.argv[2]) {
   const expected = state.chainId || process.env.REHEARSAL_CHAIN_ID || HARBINGER;
   const network = await checkNetwork(p, expected);
   if (!state.chainId) { state.chainId = network.chainId; persist(); }
+  if (command === 'reconcile-resource') {
+    const entry = await reconcileResourceRejection({ provider: p, state, persist, label: process.argv[3] });
+    report(); console.log(`Reconciled explicit resource rejection: ${entry.id}. Resume may create a capped replacement using the SAME nonce.`); return;
+  }
   const rc = BigInt(await p.getAccountRc(state.addresses.payer));
   console.log(`Verified testnet chain: ${state.chainId}`);
   console.log(`Payer: ${state.addresses.payer}; available Mana: ${Number(rc) / 1e8} tKOIN`);

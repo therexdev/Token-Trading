@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Signer } from 'koilib';
+import { Signer, Transaction } from 'koilib';
 import { MAINNET, HARBINGER, roles, assertChain, assertOperation, createState, providerFor, checkNetwork,
-  executeTransaction, publicReport, RpcRejection } from './rehearsal-core.js';
+  executeTransaction, publicReport, RpcRejection, reconcileResourceRejection, TRANSACTION_RC_LIMIT } from './rehearsal-core.js';
 import { buildRehearsal, work } from './rehearsal-build.js';
 import { scenarios } from './rehearsal-scenarios.js';
 import { SimulatedNode } from './rehearsal-simulation.js';
@@ -88,12 +88,49 @@ test('RPC requests use distinct IDs and reject unrelated responses', async () =>
 });
 test('success requires a matching included receipt; rerunning does not resubmit', async () => {
   const e = execution(), result = await executeTransaction(e);
+  assert.equal(result.transaction.header.rc_limit, TRANSACTION_RC_LIMIT.toString());
   assert.equal(result.status, 'passed'); assert.equal(result.outcome, 'included'); assert.ok(e.writes() >= 2);
   const addresses = await Signer.recoverAddresses(result.transaction);
   assert.deepEqual(new Set(addresses), new Set([e.state.addresses.payer, e.state.addresses.owner]));
   await executeTransaction(e); assert.equal(e.provider.submits, 1);
   e.operations[0].call_contract.entry_point = 2;
   await assert.rejects(executeTransaction(e), /differs/); assert.equal(e.provider.submits, 1);
+});
+test('resource recovery preserves the rejected transaction and reuses its nonce only after reconciliation', async () => {
+  const e = execution(), send = e.provider.sendTransaction.bind(e.provider);
+  e.provider.sendTransaction = async () => { throw new RpcRejection(JSON.stringify({ code: -32603,
+    message: 'insufficient pending account resources', data: JSON.stringify({ code: 104 }) })); };
+  await assert.rejects(executeTransaction(e), /unresolved/);
+  // Reconstruct the old runner's all-available-Mana transaction in the fixture.
+  const original = e.state.journal.test;
+  original.transaction.header.rc_limit = '100000000000';
+  original.transaction.id = original.id = Transaction.computeTransactionId(original.transaction.header);
+  original.transaction.signatures = [];
+  for (const role of ['payer', 'owner']) await Signer.fromWif(e.keys[role]).signTransaction(original.transaction);
+  e.provider.getTransactionsById = async () => ({});
+  await reconcileResourceRejection(e);
+  assert.equal(original.status, 'retry-ready');
+  e.provider.sendTransaction = send;
+  const replacement = await executeTransaction(e);
+  assert.equal(replacement.replaces, original.id);
+  assert.equal(replacement.transaction.header.nonce, original.transaction.header.nonce);
+  assert.equal(replacement.transaction.header.rc_limit, TRANSACTION_RC_LIMIT.toString());
+  assert.equal(e.state.journal[`test:rejected:${original.id}`].status, 'rejected');
+  assert.ok(publicReport(e.state).transactions.every(t => !t.transaction));
+  assert.equal(e.provider.submits, 1);
+});
+test('resource reconciliation refuses transport ambiguity, inclusion, stored transactions, and changed nonces', async () => {
+  for (const condition of ['timeout', 'included', 'stored', 'nonce']) {
+    const e = execution();
+    e.provider.sendTransaction = async () => { throw condition === 'timeout' ? new Error('HTTP 503') : new RpcRejection(JSON.stringify({
+      message: 'insufficient pending account resources', data: { code: 104 } })); };
+    await assert.rejects(executeTransaction(e), /unresolved/);
+    e.provider.getTransactionsById = async () => condition === 'stored' ? { transactions: [{ id: e.state.journal.test.id }] } : {};
+    if (condition === 'included') e.provider.include(e.state.journal.test.transaction);
+    if (condition === 'nonce') e.provider.getNextNonce = async () => 'KAI=';
+    await assert.rejects(reconcileResourceRejection(e), /No explicit|included|store knows|nonce changed/);
+    assert.equal(e.state.journal.test.status, 'pending'); assert.equal(e.provider.submits, 0);
+  }
 });
 test('broadcast timeout preserves the original transaction; resume only checks its inclusion', async () => {
   const e = execution(); e.provider.sendTransaction = async function() { this.submits++; throw new Error('network timeout'); };

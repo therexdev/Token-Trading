@@ -57,6 +57,8 @@ The test sale/lock window is thirty minutes from scenario creation. Early claims
 
 Every transaction is signed and journaled before submission. Success requires a matching receipt in a canonical block. Expected rejection is recorded distinctly as a node rejection or a reverted receipt; a network error is not an expected contract rejection. Finality is reported separately from inclusion. Actual resource usage is retained in receipt evidence.
 
+Each transaction now requests at most 20 tKOIN of Mana. Requesting the payer's full remaining balance can collide with pending resource reservations even when the payer has enough Mana for the operation.
+
 After each upload, a read-only fixture method reads the account's on-chain metadata and verifies its code hash and authorization flags. This uses the ordinary `chain.read_contract` API because the Foundation RPC does not expose `chain.invoke_system_call`.
 
 If a request times out:
@@ -66,6 +68,15 @@ npm run testnet:resume
 ```
 
 Resume checks the saved transaction ID and does **not** rebroadcast it. If the node never accepted it, or its outcome cannot be established, stop and reconcile that ID before attempting another operation. Completed steps are checkpointed. Do not delete the journal or start a second run as a workaround for an unresolved transaction.
+
+For the specific node rejection `insufficient pending account resources` (code 104), the runner supports an explicit reconciliation command:
+
+```sh
+node scripts/testnet-rehearsal.js reconcile-resource TRANSACTION_LABEL
+npm run testnet:resume
+```
+
+Reconciliation requires the starting block to be irreversible, no matching included receipt, no transaction-store record, and the payer's next nonce to equal the rejected transaction's nonce. Resume archives the original signed transaction and creates a replacement with the **same nonce** and a different resource limit. Changed nonces, transport timeouts, known transactions, and other errors do not qualify. This path does not turn a rejected attempt into a passed security check.
 
 To regenerate the shareable report without submitting anything:
 

@@ -15,14 +15,16 @@ export function compile(input, output) {
   const cwd = path.join(root, 'contract');
   const fromContract = createRequire(path.join(cwd, 'package.json'));
   fs.mkdirSync(path.dirname(output), { recursive: true });
+  const unoptimized = output + '.unoptimized';
   execFileSync(process.execPath, [path.join(cwd, 'node_modules/assemblyscript/bin/asc'), input,
-    '--config', path.join(cwd, 'asconfig.json'), '--target', 'release', '--outFile', output,
+    '--config', path.join(cwd, 'asconfig.json'), '--target', 'release', '--outFile', unoptimized,
     '--textFile', output + '.wat', '--sourceMap', output + '.map', '--exportStart', '_start',
     '--use', 'abort=', '--use', 'BUILD_FOR_TESTING=0', '--path', path.join(cwd, 'node_modules'),
     '--disable', 'sign-extension,bulk-memory,nontrapping-f2i,multi-value'], { cwd, stdio: 'pipe' });
-  execFileSync(process.execPath, [fromContract.resolve('binaryen/bin/wasm-opt'), output, '-all',
+  execFileSync(process.execPath, [fromContract.resolve('binaryen/bin/wasm-opt'), unoptimized, '-all',
     '--llvm-memory-copy-fill-lowering', '--signext-lowering', '--llvm-nontrapping-fptoint-lowering',
     '-O1', '--mvp-features', '--strip-debug', '--strip-producers', '-o', output], { cwd, stdio: 'pipe' });
+  fs.unlinkSync(unoptimized);
   new WebAssembly.Module(fs.readFileSync(output));
   return { sha256: digest(fs.readFileSync(output)), bytes: fs.statSync(output).size };
 }

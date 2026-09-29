@@ -7,6 +7,7 @@ export const MAINNET = 'EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==';
 // Verified against the Foundation RPC on 2026-09-27. The older docs show a retired chain ID.
 export const HARBINGER = 'EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==';
 export const HARBINGER_RPC = 'https://testnet.koinosfoundation.org/jsonrpc';
+export const TRANSACTION_RC_LIMIT = 20n * 100000000n;
 export const roles = ['payer', 'owner', 'buyer', 'orderbook', 'launchpad', 'base', 'quote', 'router'];
 const blocked = new Set(['1Bke72aGbpq4brDY3m1UQxRCGBB9GPTJQz', '13akLV3xQZdRjdQ2ANYo7cvSsD8qfBZReV',
   '19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK', '17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s']);
@@ -94,6 +95,25 @@ export async function findReceipt(provider, entry) {
   }
   return null;
 }
+export async function reconcileResourceRejection({ provider, state, persist, label }) {
+  const entry = state.journal[label];
+  if (!entry || entry.status !== 'pending' || entry.expectedError) throw new Error('Only an unresolved ordinary transaction can be reconciled');
+  let rejection, detail;
+  try { rejection = JSON.parse(entry.submissionError); detail = typeof rejection.data === 'string' ? JSON.parse(rejection.data) : rejection.data; } catch {}
+  if (detail?.code !== 104 || rejection?.message !== 'insufficient pending account resources') throw new Error('No explicit pending-resource rejection; keep checking the original transaction');
+  const network = await checkNetwork(provider, state.chainId);
+  if (BigInt(network.head.last_irreversible_block) < BigInt(entry.startHeight)) throw new Error('Wait for the rejection starting block to become irreversible');
+  if (await findReceipt(provider, entry)) throw new Error('Original transaction was included; resume it instead');
+  const stored = await provider.getTransactionsById([entry.id]);
+  if ((stored.transactions || []).length) throw new Error('Transaction store knows the original transaction; reconcile it before retrying');
+  const nextNonce = await provider.getNextNonce(state.addresses.payer);
+  if (nextNonce !== entry.transaction.header.nonce) throw new Error('Payer nonce changed; replacement is forbidden');
+  entry.status = 'retry-ready';
+  entry.reconciliation = { at: new Date().toISOString(), headHeight: network.head.head_topology.height,
+    lastIrreversibleBlock: network.head.last_irreversible_block, nextNonce, included: false, transactionStoreFound: false };
+  persist();
+  return entry;
+}
 export async function executeTransaction({ provider, state, persist, keys, label, operations, actors = [], expectedError, timeout = 90000 }) {
   for (const op of operations) assertOperation(op, state);
   const fingerprint = digest(JSON.stringify({ operations, actors, expectedError: expectedError || null }));
@@ -102,12 +122,16 @@ export async function executeTransaction({ provider, state, persist, keys, label
   if (entry?.status === 'passed') return entry;
   if (entry?.status === 'failed') throw new Error(`Previously failed check: ${label}. Review the saved report before starting a fresh rehearsal.`);
   const wasPending = !!entry;
-  if (!entry) {
+  const replacement = entry?.status === 'retry-ready' ? entry : null;
+  if (!entry || replacement) {
     const network = await checkNetwork(provider, state.chainId);
     const available = BigInt(await provider.getAccountRc(state.addresses.payer));
     if (available < 100000000n) throw new Error('Less than 1 tKOIN of Mana remains; fund the rehearsal payer');
+    if (replacement && await provider.getNextNonce(state.addresses.payer) !== replacement.transaction.header.nonce) throw new Error('Payer nonce changed after reconciliation; replacement is forbidden');
+    const rcLimit = available < TRANSACTION_RC_LIMIT ? available : TRANSACTION_RC_LIMIT;
     const transaction = await Transaction.prepareTransaction({ operations, header: { payer: state.addresses.payer,
-      chain_id: state.chainId, rc_limit: available.toString() } }, provider, state.addresses.payer);
+      chain_id: state.chainId, rc_limit: rcLimit.toString(), ...(replacement && { nonce: replacement.transaction.header.nonce }) } }, provider, state.addresses.payer);
+    if (replacement && transaction.id === replacement.id) throw new Error('Replacement must change the rejected resource limit');
     for (const actor of new Set(['payer', ...actors])) {
       const signer = Signer.fromWif(keys[actor]);
       if (signer.getAddress() !== state.addresses[actor]) throw new Error('Test key does not match its recorded address');
@@ -115,6 +139,10 @@ export async function executeTransaction({ provider, state, persist, keys, label
     }
     // Save the exact signed transaction BEFORE submission. Never log keys.
     entry = { id: transaction.id, transaction, fingerprint, status: 'pending', startHeight: Number(network.head.head_topology.height), expectedError: expectedError || null };
+    if (replacement) {
+      state.journal[`${label}:rejected:${replacement.id}`] = { ...replacement, status: 'rejected', outcome: 'node-rejected-resource-budget' };
+      entry.replaces = replacement.id;
+    }
     state.journal[label] = entry; persist();
     try {
       // Recheck immediately before the only mutation path.
