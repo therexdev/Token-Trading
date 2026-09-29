@@ -1,8 +1,8 @@
 # Contract upgrade readiness — September 25, 2026
 
-September 27: the [Harbinger rehearsal runner and setup guide](testnet-rehearsal.md) are prepared. The Foundation RPC and current testnet chain ID are verified, and all fifteen stages pass in the offline WASM harness. The dedicated payer still needs tKOIN before a real testnet run; this does not close the real-node gate below.
+September 29 (UTC): all fifteen stages of the [live Harbinger rehearsal](release-evidence/harbinger-rehearsal-2026-09-29.md) passed using synthetic positions and controlled token/router fixtures. Orders, launch records, buyer records, and balances matched exactly across the in-place upgrade. The [setup guide](testnet-rehearsal.md) and public receipt/state evidence document the result. Production-state export, native-token/KoinDX/keeper integration, and independent review remain open requirements.
 
-The mainnet contracts still run the pre-hardening code. This preparation does not deploy a contract, move funds, or establish that the application is safe. SEC-01 and SEC-13 remain open until independent review, real-node rehearsal, authorized deployment, and post-deployment verification are complete.
+The September 27 inventory showed mainnet contracts running the pre-hardening code. This preparation and Harbinger rehearsal do not establish that the application is safe or deploy a mainnet contract. SEC-01 and SEC-13 remain open until independent review, production integration rehearsal, authorized deployment, and post-deployment verification are complete.
 
 ## Release identity
 
@@ -61,7 +61,7 @@ Validation completed locally:
 - Ten preparation tests pass, including read-only RPC restrictions, serialized requests and HTTP failure handling, wrong-chain rejection, complete storage enumeration, protobuf zero-value preservation, integer accounting above JavaScript's safe integer range, and rejection of stale or inconsistent preparation inputs.
 - CI runs the contract tests, both production builds, and preparation tests. Existing frontend checks remain enabled.
 
-The WASM test host models external contracts and rollback. It is **not** a real Koinos node. No real-node rehearsal or independent contract review has been completed by this preparation.
+The WASM test host models external contracts and rollback. A separate live Harbinger run now validates the fifteen synthetic rehearsal stages. Exact production-state replay, native-token/KoinDX/keeper integration, and independent contract review remain incomplete.
 
 ## Requirements before broadcasting
 

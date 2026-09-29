@@ -2,11 +2,13 @@
 
 This runner is for **Harbinger testnet only**. It creates disposable accounts, deploys the old contract versions, funds synthetic orders and launches with fixture tokens, upgrades those same test accounts, and exercises fifteen stages. Mainnet keys are neither needed nor accepted as input. No production source or deployment setting is changed.
 
-## Current status — September 27, 2026
+## Current status — September 29, 2026 (UTC)
 
-The original eleven contract security tests and thirteen new harness tests pass. The new runner's offline checks compile both old and patched contracts and execute all fifteen stages in a simulated WASM host, including recovery from a connection loss after transaction inclusion. **A successful simulation is not a Harbinger receipt or a real-node rehearsal.**
+**All fifteen stages passed on live Harbinger.** The run preserved the before/after upgrade state exactly, rejected unauthorized and reentrant operations, verified rollback and successful retries, checked single payouts and proportional settlement, and reconciled the remaining escrow. See the [run summary](release-evidence/harbinger-rehearsal-2026-09-29.md) and [public transaction/state evidence](release-evidence/harbinger-rehearsal-2026-09-29.json).
 
-The Foundation RPC **`https://testnet.koinosfoundation.org/jsonrpc`** was verified and is the default. Its current chain ID is `EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==`. The older endpoints in the general documentation returned HTTP 502 from the preparation workspace and the documentation's example chain ID is outdated. The live preflight passed with a planning budget of 112 tKOIN of Mana; the generated payer is unfunded. No testnet transaction has been submitted yet.
+The run recorded 30 included transactions, 16 expected node rejections, and one separately reconciled resource-budget rejection. The payer started with 200 tKOIN of available Mana; included receipts used 11.97446696 tKOIN-equivalent Mana in total. The 112 tKOIN setup budget was a conservative planning estimate. The original eleven contract tests and sixteen harness tests also pass, along with GitHub CI.
+
+The Foundation RPC **`https://testnet.koinosfoundation.org/jsonrpc`** was verified and is the default. Its current chain ID is `EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==`. The older endpoints in the general documentation returned HTTP 502 from the preparation workspace and the documentation's example chain ID is outdated. Coverage uses synthetic positions and controlled token/router fixtures; the production integration and review requirements below remain open.
 
 ## Setup on Windows PowerShell or Linux
 
