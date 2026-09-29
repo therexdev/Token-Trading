@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -49,4 +51,6 @@ jobs:
       - run: npm run build
         working-directory: launchpad
       - run: npm test
+        working-directory: scripts
+      - run: npm run test:rehearsal
         working-directory: scripts
