@@ -19,3 +19,4 @@ build/
 
 # Disposable testnet keys, transaction journal, and generated test binaries
 /.testnet-rehearsal/
+/.testnet-native/

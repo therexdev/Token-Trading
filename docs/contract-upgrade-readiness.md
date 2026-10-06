@@ -1,4 +1,57 @@
-# Contract upgrade readiness — September 25, 2026
+# Contract upgrade readiness
+
+## October 6 testing update
+
+The [fresh read-only inventory](release-evidence/mainnet-2026-10-06-node.json)
+captured heads 39,979,740–39,979,744. Both existing accounts still have the
+pinned pre-security bytecode. Nine resting orders remain. All recorded token
+obligations and the outstanding 99,990,000-unit LP claim are covered; both new
+lock spaces remain empty. The orderbook holds 1,101 KOIN against 1,001 KOIN
+of recorded order escrow. These current-head reads are not an atomic node export.
+
+The exact historical launchpad has now been reproduced byte for byte from
+commit `165d311f7065d45177be5289110e3a3e3d2e5d1a`; its build inputs match the
+rehearsal source baseline. See [provenance evidence](release-evidence/launchpad-provenance-2026-10-06.json)
+and run `npm run verify:launchpad-provenance` to repeat it. This compiles the
+committed generated TypeScript with the historical configuration and matching
+locked dependency versions; it does not rerun protoc generation.
+
+The production-WASM suite now has 22 tests, including 11 new tests for the
+unmodified seven-day reclaim boundary, creator authority, transfer failures,
+rollback, callbacks, retries, single payout, and remaining buyer/locked-token
+obligations. It passes against both the September 25 and October 6 inventories.
+The simulated host does not establish elapsed-time or real-node coverage.
+
+The separate [native-token extension](testnet-native.md) preserves the completed
+September rehearsal and uses a separate journal. All nine immediate stages
+passed with actual Harbinger KOIN. Its 18 included transactions have canonical,
+non-reverted, irreversible receipts; six expected security rejections are
+recorded separately. The real seven-day reclaim remains locked until
+**October 13, 2026 at 15:45:51.590 UTC**. See
+[native evidence](release-evidence/harbinger-native-2026-10-06.json).
+
+Both known KoinDX router
+addresses lack contract metadata on current Harbinger, while positive controls
+work; see [router preflight](release-evidence/koindx-harbinger-preflight-2026-10-06.json).
+An isolated official-source router and pool were then built and deployed.
+All five [KoinDX stages](release-evidence/harbinger-koindx-2026-10-06.md) passed:
+native liquidity deposit, exact LP minting, early rejection, delivery to the
+recorded creator after the actual unlock, and duplicate rejection. This
+closes the isolated contract integration test, not production-router
+attestation or deployed keeper coverage.
+
+The [keeper source review](release-evidence/keeper-review-2026-10-06.md)
+reproduced a missing pre-submit Mana check and inadequate receipt confirmation.
+A separate, unpublished gateway commit fixes both and adds durable pending-ID
+handling. Its full local suite passes, including 41 new keeper/receipt cases;
+the new receipt helper also matches an existing real Harbinger receipt. A
+deployed keeper rehearsal and payer coordination remain open.
+
+Historical source provenance is closed. Atomic production-state replay,
+production-router attestation, deployed keeper and wallet integration, the live seven-day result, independent
+review, and the separately authorized mainnet release remain open.
+
+## September rehearsal checkpoint
 
 September 29 (UTC): all fifteen stages of the [live Harbinger rehearsal](release-evidence/harbinger-rehearsal-2026-09-29.md) passed using synthetic positions and controlled token/router fixtures. Orders, launch records, buyer records, and balances matched exactly across the in-place upgrade. The [setup guide](testnet-rehearsal.md) and public receipt/state evidence document the result. Production-state export, native-token/KoinDX/keeper integration, and independent review remain open requirements.
 
@@ -66,7 +119,7 @@ The WASM test host models external contracts and rollback. A separate live Harbi
 ## Requirements before broadcasting
 
 1. Verify control of the original contract-account authorities for both addresses. Confirm their public addresses locally and document backup/recovery and authorized operators. Never send a private key or seed phrase in chat, a PR, or the release evidence.
-2. Obtain independent review of the lock coverage, authority behavior, storage compatibility, and token/router interactions. Validate the launchpad's historical behavior where exact source provenance is unknown.
+2. Obtain independent review of the lock coverage, authority behavior, storage compatibility, and token/router interactions. Exact historical launchpad source provenance was reproduced on October 6; behavioral and security review remain separate requirements.
 3. Rehearse an in-place upgrade on a real node with exported state and representative tokens/router/keeper behavior. Exercise ordinary and failed settlements, callbacks, all claim paths, multiple sequential operations, and resource usage. Retain receipts, before/after state, and artifact hashes. The current workspace has no Docker/Podman runtime, so this gate requires a suitable node environment.
 4. Record keeper deployment/version and coordinate the maintenance window. Refresh inventory from a trusted node, compare storage and balances, verify current chain head and authorization, and estimate resource limits and transaction payer requirements. The captured mana balances do not prove upgrade affordability.
 5. Obtain operator authorization for the exact existing addresses and reviewed hashes, then construct/sign using the verified account authorities. This repository's preparation deliberately stops before that irreversible operation.

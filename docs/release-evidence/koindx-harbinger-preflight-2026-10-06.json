@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-06T15:13:30.590Z",
+  "testOnly": true,
+  "mainnetReady": false,
+  "mode": "read-only-preflight",
+  "transactionsSubmitted": 0,
+  "rpc": "https://testnet.koinosfoundation.org/jsonrpc",
+  "chainId": "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
+  "headBefore": {
+    "head_topology": {
+      "id": "0x1220022a83c6e8b6324a2c6abe5c835f2f89e5db549eb1b69e8a82fb00d89f9dcbcd",
+      "height": "8986421",
+      "previous": "0x122012484ac892089fe44424130c725e24e57103d181d1263d342d6ca24f5a442a8d"
+    },
+    "last_irreversible_block": "8986361",
+    "head_state_merkle_root": "EiBP2l6GRdd0PdPQ7_d-rGkG211F_6Tcu140JiSFgJFZnw==",
+    "head_block_time": "1791299602140"
+  },
+  "headAfter": {
+    "head_topology": {
+      "id": "0x12201f24544e45f97e5f5d956e1f544293ae18e14644cdf54a3db605a5f8b17b4b0e",
+      "height": "8986424",
+      "previous": "0x122019ecc1de1572acd8a2f570ea53f5f7715570c3b5244bc7cb6d1a4b0d5ad05be8"
+    },
+    "last_irreversible_block": "8986364",
+    "head_state_merkle_root": "EiDKumxTVP3fqaAsh5p0_85hvGhPXV5Z5TXy3Gux4dQybg==",
+    "head_block_time": "1791299612980"
+  },
+  "metadataReader": {
+    "address": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+    "entryPoint": "0x10000003",
+    "source": "security-tests/testnet/Fixture.ts",
+    "behavior": "Uses System.getContractMetadata; null explicitly reverts with fixture: contract metadata missing"
+  },
+  "sources": [
+    {
+      "url": "https://github.com/therexdev/discover-koinos/blob/fefcea144dc39beaa0e60a7e56361da63fd880a8/tools/koindx.js",
+      "fact": "Configured mainnet router is hardcoded; module version v4-candidates"
+    },
+    {
+      "url": "https://github.com/koindx/v2-sdk/blob/b0df3514713e001f23f3f2a26d55daa5c137aea8/src/addresses.ts",
+      "fact": "Published Harbinger router candidate and mainnet router"
+    },
+    {
+      "url": "https://github.com/koindx/v2-sdk/blob/b0df3514713e001f23f3f2a26d55daa5c137aea8/src/chains.ts",
+      "fact": "SDK Harbinger address mapping targets historical chain ID EiBncD4pKRIQWco_WRqo5Q-xnXR7JuO3PtZv983mKdKHSQ=="
+    }
+  ],
+  "observations": [
+    {
+      "role": "positive-control-fixture",
+      "address": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+      "request": {
+        "contract_id": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "entry_point": 268435459,
+        "args": "ChkAVdQNUbzWU1VlZRUnqlcMlp0AGrRvfG8V"
+      },
+      "response": {
+        "result": "CiISIJ8CBCi4lYg_ael2wHmvhjtegTziw2oI-iiGAc06zovs"
+      },
+      "metadata": {
+        "hash": "EiCfAgQouJWIP2npdsB5r4Y7XoE84sNqCPoohgHNOs6L7A=="
+      },
+      "hashHex": "12209f020428b895883f69e976c079af863b5e813ce2c36a08fa288601cd3ace8bec",
+      "observedAt": "2026-10-06T15:13:26.066Z",
+      "outcome": "contract-metadata-present"
+    },
+    {
+      "role": "native-system-koin-positive-control",
+      "address": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+      "request": {
+        "contract_id": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "entry_point": 268435459,
+        "args": "ChkAn-Uf1ZyMkxCYEIMJfQJeHU11OA8un5n8"
+      },
+      "response": {
+        "result": "CiISIEJRpunZyaN_O79n4XH2On3K1iMJ5L59nahadPaFIO33EAEYASABKAE="
+      },
+      "metadata": {
+        "hash": "EiBCUabp2cmjfzu_Z-Fx9jp9ytYjCeS-fZ2oWnT2hSDt9w==",
+        "system": true,
+        "authorizesCall": true,
+        "authorizesTransaction": true,
+        "authorizesUpload": true
+      },
+      "hashHex": "12204251a6e9d9c9a37f3bbf67e171f63a7dcad62309e4be7d9da85a74f68520edf7",
+      "observedAt": "2026-10-06T15:13:29.080Z",
+      "outcome": "contract-metadata-present"
+    },
+    {
+      "role": "configured-mainnet-router",
+      "address": "17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s",
+      "request": {
+        "contract_id": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "entry_point": 268435459,
+        "args": "ChkASNDWYZdHeig_Rn8I4UqOfj5cUzyaJtMC"
+      },
+      "errorClass": "RpcRejection",
+      "error": "{\"code\":-32603,\"message\":\"fixture: contract metadata missing\",\"data\":\"{\\\"code\\\":1,\\\"logs\\\":[]}\"}",
+      "observedAt": "2026-10-06T15:13:29.427Z",
+      "outcome": "fixture-reports-no-contract-metadata"
+    },
+    {
+      "role": "sdk-historical-harbinger-router",
+      "address": "18MV8beHrgV78JpHxTXrvPfSmP2kWy7DVk",
+      "request": {
+        "contract_id": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "entry_point": 268435459,
+        "args": "ChkAUKiuqnGdgJgNgFTPlNy_sAtKbVFY4wkD"
+      },
+      "errorClass": "RpcRejection",
+      "error": "{\"code\":-32603,\"message\":\"fixture: contract metadata missing\",\"data\":\"{\\\"code\\\":1,\\\"logs\\\":[]}\"}",
+      "observedAt": "2026-10-06T15:13:29.757Z",
+      "outcome": "fixture-reports-no-contract-metadata"
+    }
+  ],
+  "limitations": [
+    "Metadata existence does not prove correct KoinDX behavior or bytecode provenance.",
+    "An explicit fixture metadata-missing rejection establishes absence of metadata only for this address and observed chain state; transport errors are unresolved.",
+    "No pool creation, liquidity, keeper or browser transaction was executed by this preflight."
+  ]
+}

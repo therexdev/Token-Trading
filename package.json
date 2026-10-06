@@ -10,7 +10,18 @@
     "testnet:check": "node scripts/testnet-rehearsal.js check",
     "testnet:run": "node scripts/testnet-rehearsal.js run",
     "testnet:resume": "node scripts/testnet-rehearsal.js resume",
-    "testnet:report": "node scripts/testnet-rehearsal.js report"
+    "testnet:report": "node scripts/testnet-rehearsal.js report",
+    "testnet:native:init": "node scripts/testnet-native.js init",
+    "testnet:native:run": "node scripts/testnet-native.js run",
+    "testnet:native:resume": "node scripts/testnet-native.js resume",
+    "testnet:native:report": "node scripts/testnet-native.js report",
+    "testnet:koindx:build": "node scripts/build-testnet-koindx.js",
+    "testnet:koindx:init": "node scripts/testnet-koindx.js init",
+    "testnet:koindx:run": "node scripts/testnet-koindx.js run",
+    "testnet:koindx:resume": "node scripts/testnet-koindx.js resume",
+    "testnet:koindx:report": "node scripts/testnet-koindx.js report",
+    "test:native-runner": "node --test scripts/testnet-native.test.js scripts/koindx-bootstrap.test.js scripts/testnet-koindx.test.js",
+    "verify:launchpad-provenance": "node scripts/verify-launchpad-provenance.js"
   },
   "engines": {
     "node": ">=18"

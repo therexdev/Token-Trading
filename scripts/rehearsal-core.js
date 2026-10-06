@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { Provider, Signer, Transaction, utils } from 'koilib';
+import { Provider, Signer, Transaction, Serializer, utils } from 'koilib';
 import { digest, work } from './rehearsal-build.js';
 export const MAINNET = 'EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==';
 // Verified against the Foundation RPC on 2026-09-27. The older docs show a retired chain ID.
@@ -44,6 +44,26 @@ export function assertOperation(operation, state) {
   if (!['call_contract', 'upload_contract'].includes(kind)) throw new Error('System operations are forbidden');
   if (blocked.has(value.contract_id) || !Object.values(state.addresses).includes(value.contract_id)) throw new Error('Operation targets an account outside this rehearsal');
   if (kind === 'upload_contract' && (value.authorizes_call_contract || value.authorizes_transaction_application || value.authorizes_upload_contract)) throw new Error('Authorization overrides are forbidden');
+}
+export async function assertTransactionOperations(operations, state) {
+  const special = !!state.addresses.pool && operations.some(op => op.upload_contract?.contract_id === state.addresses.pool);
+  if (!special) { for (const op of operations) assertOperation(op, state); return; }
+  // Official KoinDX pools require all three authorization hooks and an atomic
+  // upload + create_pair. This exception is limited to our fresh pool account,
+  // a pinned build hash, and the exact native-KOIN/fixture pair.
+  const upload = operations[0]?.upload_contract, call = operations[1]?.call_contract;
+  const pool = state.addresses.pool;
+  if (state.kind !== 'native-koin-extension' || !pool || blocked.has(pool) || pool === state.nativeToken ||
+    Object.entries(state.addresses).some(([role, address]) => role !== 'pool' && address === pool) ||
+    operations.length !== 2 || Object.keys(operations[0]).length !== 1 || Object.keys(operations[1]).length !== 1 ||
+    !upload || upload.contract_id !== pool || !/^[0-9a-f]{64}$/.test(state.koindx?.poolSha256 || '') ||
+    digest(Buffer.from(upload.bytecode || '', 'base64url')) !== state.koindx.poolSha256 ||
+    upload.authorizes_call_contract !== true || upload.authorizes_transaction_application !== true || upload.authorizes_upload_contract !== true ||
+    !call || call.contract_id !== state.addresses.router || call.entry_point !== 0x286b1165) throw new Error('Invalid pinned KoinDX pool bootstrap');
+  assertOperation(operations[1], state);
+  const serializer = new Serializer({ nested: { Pair: { fields: { tokenA: { type: 'string', id: 1 }, tokenB: { type: 'string', id: 2 } } } } });
+  const args = await serializer.deserialize(call.args, 'Pair');
+  if (args.tokenA !== 'koin' || args.tokenB !== state.addresses.base) throw new Error('KoinDX bootstrap pair differs from the native rehearsal');
 }
 export class RpcRejection extends Error {}
 export function providerFor(endpoint, fetcher = fetch) {
@@ -114,8 +134,10 @@ export async function reconcileResourceRejection({ provider, state, persist, lab
   persist();
   return entry;
 }
-export async function executeTransaction({ provider, state, persist, keys, label, operations, actors = [], expectedError, timeout = 90000 }) {
-  for (const op of operations) assertOperation(op, state);
+export async function executeTransaction({ provider, state, persist, keys, label, operations, actors = [], expectedError, timeout = 90000, rcLimitCap = TRANSACTION_RC_LIMIT }) {
+  if (typeof rcLimitCap !== 'bigint' || rcLimitCap <= 0n || rcLimitCap > TRANSACTION_RC_LIMIT) throw new Error('Invalid rehearsal resource cap');
+  await assertTransactionOperations(operations, state);
+  if (state.addresses.pool && operations.some(op => op.upload_contract?.contract_id === state.addresses.pool) && !actors.includes('pool')) throw new Error('KoinDX bootstrap requires the pool account signer');
   const fingerprint = digest(JSON.stringify({ operations, actors, expectedError: expectedError || null }));
   let entry = state.journal[label];
   if (entry && entry.fingerprint !== fingerprint) throw new Error(`Saved operation differs for ${label}; refusing to reuse its journal`);
@@ -128,7 +150,7 @@ export async function executeTransaction({ provider, state, persist, keys, label
     const available = BigInt(await provider.getAccountRc(state.addresses.payer));
     if (available < 100000000n) throw new Error('Less than 1 tKOIN of Mana remains; fund the rehearsal payer');
     if (replacement && await provider.getNextNonce(state.addresses.payer) !== replacement.transaction.header.nonce) throw new Error('Payer nonce changed after reconciliation; replacement is forbidden');
-    const rcLimit = available < TRANSACTION_RC_LIMIT ? available : TRANSACTION_RC_LIMIT;
+    const rcLimit = available < rcLimitCap ? available : rcLimitCap;
     const transaction = await Transaction.prepareTransaction({ operations, header: { payer: state.addresses.payer,
       chain_id: state.chainId, rc_limit: rcLimit.toString(), ...(replacement && { nonce: replacement.transaction.header.nonce }) } }, provider, state.addresses.payer);
     if (replacement && transaction.id === replacement.id) throw new Error('Replacement must change the rejected resource limit');

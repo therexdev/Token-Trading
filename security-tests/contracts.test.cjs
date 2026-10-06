@@ -69,7 +69,7 @@ class Host {
       if (id === sid.get_block_field) return reply(chain.get_block_field_result, { value: { uint64_value: String(this.now) } });
       if (id === sid.get_transaction_field) return reply(chain.get_transaction_field_result, { value: { bytes_value: owner } });
       if (id === sid.check_authority) {
-        this.onAuthority?.();
+        this.onAuthority?.(chain.check_authority_arguments.decode(bytes));
         return reply(chain.check_authority_result, { value: this.authorized });
       }
       if (id === sid.event || id === sid.log) { new Uint32Array(vm.memory.buffer, retBytes, 1)[0] = 0; return 0; }
@@ -87,9 +87,18 @@ class Host {
         const transfer = token.transfer_arguments.decode(call.args);
         const amount = BigInt(transfer.value.toString());
         assert.ok(this.balance(call.contract_id, transfer.from) >= amount, 'External token overdraft');
+        const fromBalance = this.balance(call.contract_id, transfer.from), toBalance = this.balance(call.contract_id, transfer.to);
         this.mint(call.contract_id, transfer.from, this.balance(call.contract_id, transfer.from) - amount);
         this.mint(call.contract_id, transfer.to, this.balance(call.contract_id, transfer.to) + amount);
-        this.onCall?.({ kind: 'transfer', token: call.contract_id, ...transfer });
+        const response = this.onCall?.({ kind: 'transfer', token: call.contract_id, ...transfer });
+        if (response?.code) {
+          // Token.transfer reports the nested call status, not a bool payload.
+          // A failed nested call does not retain that call's balance changes.
+          this.mint(call.contract_id, transfer.from, fromBalance);
+          this.mint(call.contract_id, transfer.to, toBalance);
+          reply(chain.error_data, { message: 'test token call returned failure' });
+          return response.code;
+        }
         return reply(chain.call_result, { value: token.transfer_result.encode({ value: true }).finish() });
       }
       return vm.invokeSystemCall(id, ret, size, arg, len, retBytes);
@@ -202,9 +211,177 @@ test('launchpad: failed token return restores ACTIVE state and creator payout, t
   assert.equal(h.balance(koin, owner), 100n);
 });
 
+// Exercise the production seven-day constant without modifying the WASM or
+// pretending a simulated timestamp is evidence of seven elapsed testnet days.
+const RECLAIM_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+const SALE_END = 2000;
+function pendingLiquidity({ completed = false, finalized = true, amount = 100, liquidityBps = 5000 } = {}) {
+  const h = new Host('launchpad');
+  h.mint(base, owner, 400); h.mint(koin, buyer, amount);
+  h.invoke('create_launch', { creator: owner, token: base, price: '100000000',
+    for_sale_amount: '200', locked_amount: '50', unlock_time: String(SALE_END + RECLAIM_GRACE_MS + 1),
+    start_time: '1', end_time: String(SALE_END), liquidity_bps: liquidityBps,
+    liquidity_tokens: '100', lp_unlock_time: String(SALE_END + RECLAIM_GRACE_MS + 1) });
+  h.invoke('contribute', { launch_id: 1, buyer, amount: String(amount) });
+  if (finalized) {
+    h.now = SALE_END + 1;
+    h.invoke('finalize', { launch_id: 1 });
+  }
+  if (completed) h.invoke('process', { launch_id: 1 });
+  return h;
+}
+function reclaimSnapshot(h) {
+  return { storage: structuredClone([...h.db.db]), balances: new Map(h.balances) };
+}
+function assertReclaimPreserved(h, before) {
+  assert.deepEqual(reclaimSnapshot(h), before);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+}
+
+for (const completed of [false, true]) test(`launchpad: liquidity reclaim opens at exactly seven days for a ${completed ? 'completed' : 'distributing'} sale and preserves other obligations`, () => {
+  const h = pendingLiquidity({ completed });
+  const before = reclaimSnapshot(h);
+  let transfers = 0, authorityChecks = 0;
+  h.onCall = call => { if (call.kind === 'transfer') transfers++; };
+  h.onAuthority = () => authorityChecks++;
+  h.now = SALE_END + RECLAIM_GRACE_MS - 1;
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /7-day grace/);
+  assertReclaimPreserved(h, before);
+  assert.equal(transfers, 0); assert.equal(authorityChecks, 0);
+  const creatorKoin = h.balance(koin, owner), creatorTokens = h.balance(base, owner);
+  h.now++;
+  h.invoke('reclaim_liquidity', { launch_id: 1 });
+  assert.equal(transfers, 2); assert.equal(authorityChecks, 1);
+  assert.equal(h.balance(koin, owner), creatorKoin + 50n);
+  assert.equal(h.balance(base, owner), creatorTokens + 100n);
+  assert.equal(h.balance(koin, h.id), 0n);
+  assert.equal(h.balance(base, h.id), completed ? 50n : 150n);
+  const reclaimed = h.invoke('get_launch', { launch_id: 1 }).value;
+  assert.equal(reclaimed.liquidity_state, 3);
+  assert.equal(reclaimed.status, completed ? 2 : 1);
+  assert.equal(reclaimed.locked_claimed, false);
+  assert.equal(reclaimed.lp_claimed, false);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+  const after = reclaimSnapshot(h);
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /liquidity is not stuck/);
+  assert.throws(() => h.invoke('provide_liquidity', { launch_id: 1 }), /no liquidity pending/);
+  assert.throws(() => h.invoke('claim_liquidity', { launch_id: 1 }), /no locked liquidity/);
+  assert.throws(() => h.invoke('claim_locked', { launch_id: 1 }), completed ? /still locked/ : /not completed/);
+  assertReclaimPreserved(h, after);
+  if (!completed) h.invoke('process', { launch_id: 1 });
+  assert.equal(h.balance(base, buyer), 100n);
+  h.now++;
+  h.invoke('claim_locked', { launch_id: 1 });
+  assert.equal(h.balance(base, h.id), 0n);
+  assert.equal(h.balance(base, owner), creatorTokens + 150n);
+});
+
+test('launchpad: reclaim checks the creator contract-call authority and a denied request leaves all escrow available for retry', () => {
+  const h = pendingLiquidity(); h.now = SALE_END + RECLAIM_GRACE_MS;
+  const before = reclaimSnapshot(h), checks = [];
+  h.onAuthority = request => checks.push(request);
+  h.authorized = false;
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /authority|authoriz/);
+  assertReclaimPreserved(h, before);
+  assert.equal(checks.length, 1);
+  assert.ok(same(checks[0].account, owner), 'must authorize the creator, not the caller or buyer');
+  assert.equal(checks[0].type, chain.authorization_type.contract_call);
+  h.authorized = true;
+  h.invoke('reclaim_liquidity', { launch_id: 1 });
+  assert.equal(h.invoke('get_launch', { launch_id: 1 }).value.liquidity_state, 3);
+});
+
+for (const [failedToken, label] of [[koin, 'KOIN'], [base, 'sale token']]) {
+  for (const failure of ['call error', 'throw']) test(`launchpad: ${label} reclaim transfer ${failure} restores both payments and pending state before a successful retry`, () => {
+    const h = pendingLiquidity(); h.now = SALE_END + RECLAIM_GRACE_MS;
+    const before = reclaimSnapshot(h); let transfers = 0;
+    h.onCall = call => {
+      if (call.kind !== 'transfer') return;
+      transfers++;
+      if (same(call.token, failedToken)) {
+        if (failure === 'call error') return { code: 1 };
+        throw new Error('test reclaim transfer failure');
+      }
+    };
+    assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), failure === 'call error' ? /reclaim failed/ : /test reclaim transfer failure/);
+    assert.equal(transfers, same(failedToken, koin) ? 1 : 2);
+    assertReclaimPreserved(h, before);
+    h.onCall = null;
+    h.invoke('reclaim_liquidity', { launch_id: 1 });
+    assert.equal(h.balance(koin, owner), 100n);
+    assert.equal(h.balance(base, owner), 250n);
+    assert.equal(h.balance(base, h.id), 150n);
+    const after = reclaimSnapshot(h);
+    assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /liquidity is not stuck/);
+    assertReclaimPreserved(h, after);
+  });
+}
+
+test('launchpad: authority and transfer callbacks cannot reclaim or redirect pending liquidity twice', () => {
+  const h = pendingLiquidity(); h.now = SALE_END + RECLAIM_GRACE_MS;
+  let authorityCallbacks = 0, transferCallbacks = 0;
+  const attack = () => {
+    for (const method of ['reclaim_liquidity', 'provide_liquidity', 'process', 'claim_locked', 'claim_liquidity']) {
+      assert.throws(() => h.invoke(method, { launch_id: 1 }), /reentrant mutation/);
+    }
+  };
+  h.onAuthority = () => { authorityCallbacks++; attack(); };
+  h.onCall = call => { if (call.kind === 'transfer') { transferCallbacks++; attack(); } };
+  h.invoke('reclaim_liquidity', { launch_id: 1 });
+  assert.equal(authorityCallbacks, 1); assert.equal(transferCallbacks, 2);
+  assert.equal(h.balance(koin, owner), 100n); assert.equal(h.balance(base, owner), 250n);
+  assert.equal(h.balance(base, h.id), 150n); assert.equal(h.balance(koin, h.id), 0n);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+});
+
+test('launchpad: an uncaught sale-token callback reverts the earlier KOIN reclaim payment and permits retry', () => {
+  const h = pendingLiquidity(); h.now = SALE_END + RECLAIM_GRACE_MS;
+  const before = reclaimSnapshot(h);
+  h.onCall = call => {
+    if (call.kind === 'transfer' && same(call.token, base)) h.invoke('reclaim_liquidity', { launch_id: 1 });
+  };
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /reentrant mutation/);
+  assertReclaimPreserved(h, before);
+  h.onCall = null;
+  h.invoke('reclaim_liquidity', { launch_id: 1 });
+  assert.equal(h.balance(koin, owner), 100n); assert.equal(h.balance(base, owner), 250n);
+});
+
+test('launchpad: passing seven days does not permit reclaim before successful settlement or after cancellation', () => {
+  const h = pendingLiquidity({ finalized: false }); h.now = SALE_END + RECLAIM_GRACE_MS;
+  const before = reclaimSnapshot(h);
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /not settled successfully/);
+  assertReclaimPreserved(h, before);
+  const canceledHost = pendingLiquidity({ finalized: false });
+  canceledHost.now = SALE_END - 1;
+  canceledHost.invoke('cancel_launch', { launch_id: 1 });
+  canceledHost.now = SALE_END + RECLAIM_GRACE_MS;
+  const canceled = reclaimSnapshot(canceledHost);
+  assert.throws(() => canceledHost.invoke('reclaim_liquidity', { launch_id: 1 }), /liquidity is not stuck/);
+  assertReclaimPreserved(canceledHost, canceled);
+  canceledHost.invoke('process', { launch_id: 1 });
+  assert.equal(canceledHost.balance(koin, buyer), 100n); assert.equal(canceledHost.balance(base, owner), 400n);
+});
+
+test('launchpad: zero KOIN from percentage rounding still allows the pending sale tokens to be reclaimed once', () => {
+  const h = pendingLiquidity({ amount: 1, liquidityBps: 1 }); h.now = SALE_END + RECLAIM_GRACE_MS;
+  assert.equal(h.invoke('get_launch', { launch_id: 1 }).value.liquidity_koin, '0');
+  const creatorTokens = h.balance(base, owner), transfers = [];
+  h.onCall = call => { if (call.kind === 'transfer') transfers.push(call); };
+  h.invoke('reclaim_liquidity', { launch_id: 1 });
+  assert.equal(transfers.length, 1); assert.ok(same(transfers[0].token, base));
+  assert.equal(h.balance(koin, owner), 1n); assert.equal(h.balance(base, owner), creatorTokens + 100n);
+  assert.equal(h.balance(base, h.id), 51n);
+  const after = reclaimSnapshot(h);
+  assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /liquidity is not stuck/);
+  assertReclaimPreserved(h, after);
+});
+
 // Actual mainnet storage and historical WASM, captured read-only. The host
 // still models rollback/token transfers; this is not a real-node rehearsal.
-const live = require('../docs/release-evidence/mainnet-2026-09-25-node.json');
+const live = JSON.parse(fs.readFileSync(process.env.REHEARSAL_INVENTORY
+  ? path.resolve(process.env.REHEARSAL_INVENTORY)
+  : path.join(root, 'docs/release-evidence/mainnet-2026-09-25-node.json')));
 const release = require('../scripts/security-release.json');
 const decodeAddress = value => Buffer.from(fromContract('@koinos/mock-vm/src/util').decodeBase58(value));
 function liveHost(name, legacy = false) {
