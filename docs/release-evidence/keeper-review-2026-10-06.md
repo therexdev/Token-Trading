@@ -31,14 +31,16 @@ Run these regressions against the gateway changes, then exercise its keeper agai
 
 No gateway code was edited, no gateway deployment was performed, and no live transaction was sent by this source-review work.
 
-## Subsequent local fix and regression status
+## Subsequent fixes and regression status
 
 After the as-found review above, a separate gateway checkout and branch,
-`security/keeper-receipt-mana`, implemented the two source fixes at commit
-`de38225f7896abeac17b0114d84caa51219c3fd8`, based on default-branch commit
-`d44a80ebcd19cc8ecdd3929c88620312b95c6c60`. The authentication branch/PR was
-not changed. The keeper and helper blobs reviewed above are identical at
-that default base.
+`security/keeper-receipt-mana`, implemented the two source fixes and then
+closed a shared-nonce gap identified during follow-up review. The changes
+are published in [draft PR #17](https://github.com/therexdev/discover-koinos/pull/17)
+at commit `7623d31f642410ee27657a0c4318423114e4a8c5`, based on default-branch
+commit `d44a80ebcd19cc8ecdd3929c88620312b95c6c60`. The authentication branch/PR
+was not changed. The keeper and helper blobs reviewed above are identical
+at that default base.
 
 The fix adds a live mana guard inside the signing queue before each keeper
 submit, including nested market creation and every pool candidate. The
@@ -46,16 +48,24 @@ shared helper verifies canonical block membership and a matching
 nonreverted receipt. A durable, chain/account-bound pending-ID journal
 pauses all keeper submissions after an ambiguous outcome, survives
 restart, and reconciles before reading fresh launch state. It does not
-automatically rebroadcast or replace an unresolved transaction.
+automatically rebroadcast or replace an unresolved transaction. All queued
+`devTx` callers, including interactive market creation, also consult the
+durable journal before preparing a nonce. This check runs even before the
+keeper starts or when its loop is disabled. Malformed, mismatched or
+unreadable journals fail closed. User/contract payees keep their own nonces.
 
-**Offline validation passed:** all existing gift and SMTP checks and 54
-Node tests via `npm test`, including 41 keeper/receipt tests. Cases cover
+**Validation passed locally and in GitHub Actions:** all existing gift and
+SMTP checks and 60 Node tests via `npm test`, including 47 keeper/receipt
+tests. Cases cover
 first and subsequent mana checks, queue placement, pool-candidate retries,
 orphaned/missing/reverted receipts, transient reads, lost replies,
 restart persistence, and an unresolved launch blocking another launch
-even when the original is absent from enumeration. Independent review
-found no blocking issue within the documented keeper-only, single-process
-scope. `git diff --check` passed.
+even when the original is absent from enumeration. Additional cases cover
+interactive market creation after restart, an unstarted/disabled keeper,
+permission failures, canonical recovery and separate payees. Code review
+found no additional blocking issue within the documented single-process
+scope. `git diff --check` passed. The successful workflow run is
+[37499126587](https://github.com/therexdev/discover-koinos/actions/runs/37499126587).
 
 **Live read-only compatibility check passed:** the new
 `transactionOutcome` helper, using the pinned Harbinger provider, returned
@@ -67,13 +77,13 @@ This checks real RPC response shapes against existing irreversible
 rehearsal evidence; it sent no transaction and is not a keeper end-to-end
 pass.
 
-**Remaining limits and gate:** a nonce-wide no-replacement guarantee
-requires one keeper process with exclusive use of its payer. Concurrent
-processes and other gateway/wallet actions are not coordinated by this
-keeper journal. Preserve the journal across deployments. A crash after
+**Remaining limits and gate:** preserve the journal across deployments.
+Concurrent processes and external payer users still require separate
+coordination. Gateway `devTx` calls respect keeper reservations, but
+interactive-origin transactions do not gain their own durable records.
+A crash after
 journaling but before broadcast deliberately requires operator
 reconciliation; elapsed time alone cannot establish rejection. Canonical
 confirmation is not irreversibility. The production router is unchanged.
-The patch was committed locally without pushing or deploying during this
-work; a deployed isolated keeper run with finality and balance/state
-evidence remains open.
+The patch is published for review and has not been deployed. A deployed
+isolated keeper run with finality and balance/state evidence remains open.

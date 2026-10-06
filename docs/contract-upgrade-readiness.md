@@ -42,10 +42,13 @@ attestation or deployed keeper coverage.
 
 The [keeper source review](release-evidence/keeper-review-2026-10-06.md)
 reproduced a missing pre-submit Mana check and inadequate receipt confirmation.
-A separate, unpublished gateway commit fixes both and adds durable pending-ID
-handling. Its full local suite passes, including 41 new keeper/receipt cases;
-the new receipt helper also matches an existing real Harbinger receipt. A
-deployed keeper rehearsal and payer coordination remain open.
+[Gateway draft PR #17](https://github.com/therexdev/discover-koinos/pull/17)
+fixes both, adds durable pending-ID handling, and blocks interactive market
+creation while a keeper nonce is unresolved. Its full suite passes locally
+and in GitHub Actions: 60 Node tests, including 47 keeper/receipt cases, plus
+gift and SMTP checks. The receipt helper also matches an existing real
+Harbinger receipt. A deployed keeper rehearsal and coordination with external
+payer users remain open.
 
 Historical source provenance is closed. Atomic production-state replay,
 production-router attestation, deployed keeper and wallet integration, the live seven-day result, independent
