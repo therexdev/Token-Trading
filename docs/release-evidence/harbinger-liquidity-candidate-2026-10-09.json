@@ -1,0 +1,1926 @@
+{
+  "testOnly": true,
+  "capturedAt": "2026-10-09T04:43:14.457Z",
+  "chainId": "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
+  "addresses": {
+    "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+    "owner": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+    "buyer": "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS",
+    "orderbook": "1FnQm3fzcvTjofx5376GBzZjgSYDj5hby5",
+    "launchpad": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+    "base": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+    "quote": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+    "router": "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY",
+    "pool": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb"
+  },
+  "checks": {
+    "deploy isolated candidate": {
+      "status": "passed",
+      "at": "2026-10-09T04:33:04.798Z"
+    },
+    "bounded existing-wallet allowances": {
+      "status": "passed",
+      "at": "2026-10-09T04:33:25.021Z"
+    },
+    "case-1 sold-out settlement": {
+      "status": "passed",
+      "at": "2026-10-09T04:33:46.386Z"
+    },
+    "case-1 remainder refund and approval reset": {
+      "status": "passed",
+      "at": "2026-10-09T04:34:15.367Z"
+    },
+    "case-1 early LP rejection": {
+      "status": "skipped",
+      "detail": "Less than 60 seconds before the actual LP unlock",
+      "at": "2026-10-09T04:34:15.691Z"
+    },
+    "case-1 LP delivered once": {
+      "status": "passed",
+      "at": "2026-10-09T04:36:13.298Z"
+    },
+    "case-2 sold-out settlement": {
+      "status": "passed",
+      "at": "2026-10-09T04:36:36.307Z"
+    },
+    "case-2 remainder refund and approval reset": {
+      "status": "passed",
+      "at": "2026-10-09T04:37:05.696Z"
+    },
+    "case-2 early LP rejection": {
+      "status": "skipped",
+      "detail": "Less than 60 seconds before the actual LP unlock",
+      "at": "2026-10-09T04:37:05.835Z"
+    },
+    "case-2 LP delivered once": {
+      "status": "passed",
+      "at": "2026-10-09T04:39:24.167Z"
+    }
+  },
+  "snapshots": {
+    "original": {
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "balances": {
+        "native": "50000000",
+        "base": "100000000",
+        "pool": "0"
+      }
+    },
+    "case-1-before-settlement": {
+      "balances": {
+        "native": {
+          "buyer": "90000000",
+          "owner": "405000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "55000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "410000000",
+          "owner": "1380000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "110000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "reserves": {
+        "kLast": "6050000000000000",
+        "reserveA": "55000000",
+        "reserveB": "110000000",
+        "blockTime": "1791519460980"
+      },
+      "supply": "77781745",
+      "allowance": "0"
+    },
+    "case-1-after-settlement": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "5000000",
+          "router": "0",
+          "pool": "55000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1359900000",
+          "launchpad": "10100000",
+          "router": "0",
+          "pool": "110000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 1,
+            "pair": "",
+            "lpAmount": "0",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "6050000000000000",
+        "reserveA": "55000000",
+        "reserveB": "110000000",
+        "blockTime": "1791519460980"
+      },
+      "supply": "77781745",
+      "allowance": "0"
+    },
+    "case-1-before-liquidity": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "5000000",
+          "router": "0",
+          "pool": "55000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1359900000",
+          "launchpad": "10100000",
+          "router": "0",
+          "pool": "110000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 1,
+            "pair": "",
+            "lpAmount": "0",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "6050000000000000",
+        "reserveA": "55000000",
+        "reserveB": "110000000",
+        "blockTime": "1791519460980"
+      },
+      "supply": "77781745",
+      "allowance": "0"
+    },
+    "case-1-after-liquidity": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1360000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "7071067",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-1-before-claim": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1360000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "7071067",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-1-after-claim": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1360000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-2-before-settlement": {
+      "balances": {
+        "native": {
+          "buyer": "80000000",
+          "owner": "410000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "420000000",
+          "owner": "1360000000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-2-after-settlement": {
+      "balances": {
+        "native": {
+          "buyer": "70000000",
+          "owner": "415000000",
+          "launchpad": "5000000",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "430000000",
+          "owner": "1340100000",
+          "launchpad": "9900000",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          },
+          {
+            "id": 2,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520583060",
+            "endTime": "1791520674060",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520591350",
+            "liquidityBps": 5000,
+            "liquidityTokens": "9900000",
+            "lpUnlockTime": "1791520674060",
+            "liquidityState": 1,
+            "pair": "",
+            "lpAmount": "0",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-2-before-liquidity": {
+      "balances": {
+        "native": {
+          "buyer": "70000000",
+          "owner": "415000000",
+          "launchpad": "5000000",
+          "router": "0",
+          "pool": "60000000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "430000000",
+          "owner": "1340100000",
+          "launchpad": "9900000",
+          "router": "0",
+          "pool": "120000000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          },
+          {
+            "id": 2,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520583060",
+            "endTime": "1791520674060",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520591350",
+            "liquidityBps": 5000,
+            "liquidityTokens": "9900000",
+            "lpUnlockTime": "1791520674060",
+            "liquidityState": 1,
+            "pair": "",
+            "lpAmount": "0",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "7200000000000000",
+        "reserveA": "60000000",
+        "reserveB": "120000000",
+        "blockTime": "1791520448370"
+      },
+      "supply": "84852812",
+      "allowance": "0"
+    },
+    "case-2-after-liquidity": {
+      "balances": {
+        "native": {
+          "buyer": "70000000",
+          "owner": "415050000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "64950000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "430000000",
+          "owner": "1340100000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "129900000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "7000356",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          },
+          {
+            "id": 2,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520583060",
+            "endTime": "1791520674060",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520591350",
+            "liquidityBps": 5000,
+            "liquidityTokens": "9900000",
+            "lpUnlockTime": "1791520674060",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7000356",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "8437005000000000",
+        "reserveA": "64950000",
+        "reserveB": "129900000",
+        "blockTime": "1791520620530"
+      },
+      "supply": "91853168",
+      "allowance": "0"
+    },
+    "case-2-before-claim": {
+      "balances": {
+        "native": {
+          "buyer": "70000000",
+          "owner": "415050000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "64950000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "430000000",
+          "owner": "1340100000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "129900000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "84842812",
+          "launchpad": "7000356",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          },
+          {
+            "id": 2,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520583060",
+            "endTime": "1791520674060",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520591350",
+            "liquidityBps": 5000,
+            "liquidityTokens": "9900000",
+            "lpUnlockTime": "1791520674060",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7000356",
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "8437005000000000",
+        "reserveA": "64950000",
+        "reserveB": "129900000",
+        "blockTime": "1791520620530"
+      },
+      "supply": "91853168",
+      "allowance": "0"
+    },
+    "case-2-after-claim": {
+      "balances": {
+        "native": {
+          "buyer": "70000000",
+          "owner": "415050000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "64950000",
+          "original": "50000000"
+        },
+        "base": {
+          "buyer": "430000000",
+          "owner": "1340100000",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "129900000",
+          "original": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "91843168",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0",
+          "original": "0"
+        }
+      },
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launches": {
+        "launches": [
+          {
+            "id": 1,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520413940",
+            "endTime": "1791520504940",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520420120",
+            "liquidityBps": 5000,
+            "liquidityTokens": "10100000",
+            "lpUnlockTime": "1791520504940",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7071067",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          },
+          {
+            "id": 2,
+            "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+            "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+            "price": "100000000",
+            "forSaleAmount": "10000000",
+            "lockedAmount": "0",
+            "unlockTime": "0",
+            "startTime": "1791520583060",
+            "endTime": "1791520674060",
+            "softCap": "0",
+            "hardCap": "10000000",
+            "status": 2,
+            "raised": "10000000",
+            "sold": "10000000",
+            "buyerCount": 1,
+            "cursor": 1,
+            "distributed": "10000000",
+            "refunded": "0",
+            "createdAt": "1791520591350",
+            "liquidityBps": 5000,
+            "liquidityTokens": "9900000",
+            "lpUnlockTime": "1791520674060",
+            "liquidityState": 2,
+            "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+            "lpAmount": "7000356",
+            "lpClaimed": true,
+            "liquidityKoin": "5000000"
+          }
+        ]
+      },
+      "reserves": {
+        "kLast": "8437005000000000",
+        "reserveA": "64950000",
+        "reserveB": "129900000",
+        "blockTime": "1791520620530"
+      },
+      "supply": "91853168",
+      "allowance": "0"
+    }
+  },
+  "finality": {
+    "canonicalReceiptsVerified": 8,
+    "lastTransactionHeight": 9057877,
+    "lastIrreversibleBlock": "9057888",
+    "reached": true,
+    "includedManaUnits": "417293518",
+    "verifiedAt": "2026-10-09T04:43:14.456Z"
+  },
+  "transactions": [
+    {
+      "label": "upload-candidate",
+      "id": "0x1220140fedb96c53b71db3f4ad1b938049b56fbdfa52dec584b8039261936a5beb05",
+      "fingerprint": "e12c7d54a64643931f661a6d1ec75ae6535db59bfe7f283648d2428b8c8fabca",
+      "status": "passed",
+      "startHeight": 9057771,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220742ea2a3ad5b094b6ed08a7c195184aaf3fd90dc75095f769327d7b67df60b20",
+        "height": 9057773,
+        "receipt": {
+          "id": "0x1220140fedb96c53b71db3f4ad1b938049b56fbdfa52dec584b8039261936a5beb05",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19400000000",
+          "rc_limit": "500000000",
+          "rc_used": "312922244",
+          "disk_storage_used": "39388",
+          "network_bandwidth_used": "39606",
+          "compute_bandwidth_used": "498201"
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "bounded-allowances",
+      "id": "0x1220dfc4f20a79127291c26cf5deece320385ee12c0dd6c7d7101f703102e0eed1b2",
+      "fingerprint": "57950d355ada8f6193aff4f64cc9db3e3e47940a667aac87bf9d6988501e1c09",
+      "status": "passed",
+      "startHeight": 9057773,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220b4c1f6cbdb0c928643215672e33c78caa9962547402489e6bbea6de7650106d5",
+        "height": 9057776,
+        "receipt": {
+          "id": "0x1220dfc4f20a79127291c26cf5deece320385ee12c0dd6c7d7101f703102e0eed1b2",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19087920668",
+          "rc_limit": "500000000",
+          "rc_used": "7126818",
+          "disk_storage_used": "178",
+          "network_bandwidth_used": "544",
+          "compute_bandwidth_used": "891521",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkA7SEEpQ3x9NYa92kQJ30rbUTidMryGEWfEhkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWGIDaxAk=",
+              "impacted": [
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-1-settlement",
+      "id": "0x1220ad9b60d96b39efe41fe49064bebcbd972d708409896b07a42fca504f28abf7d0",
+      "fingerprint": "e16598a91af543336ad4737f889cbb092b33e2bfb711172f6b40a82d4bf3e3fd",
+      "status": "passed",
+      "startHeight": 9057779,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220b75e7614658bf1600dcf24c2bd87c0d0854cf6e60f9f4577f7ba975e464da7ff",
+        "height": 9057782,
+        "receipt": {
+          "id": "0x1220ad9b60d96b39efe41fe49064bebcbd972d708409896b07a42fca504f28abf7d0",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19081423002",
+          "rc_limit": "500000000",
+          "rc_used": "17017613",
+          "disk_storage_used": "523",
+          "network_bandwidth_used": "639",
+          "compute_bandwidth_used": "2130906",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_created",
+              "data": "CnUIARIZAK3rvZ3hoSEHC-NgKPuvAaW6qDGRKajfyRoZAFXUDVG81lNVZWUVJ6pXDJadABq0b3xvFSiAwtcvMICt4gRI9LHA95E0UOz4xfeRNGCAreIEsAGY4sD3kTS4AYgnwAGguugEyAHs-MX3kTTQAQHaAQA=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkA7SEEpQ3x9NYa92kQJ30rbUTidMryGEWfEhkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWGICt4gQ=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.contribution",
+              "data": "CAESGQDtIQSlDfH01hr3aRAnfSttROJ0yvIYRZ8YgK3iBCCAreIEKICt4gQ=",
+              "impacted": [
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 6,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGMCWsQI=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 7,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_finalized",
+              "data": "CAEQARiAreIEIICt4gQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 8,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_settled",
+              "data": "CAEQAg==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-1-liquidity",
+      "id": "0x12205425842571783cb3baa403983a2392b79fddcf95d8b11ec857f4f6712fdd4f5c",
+      "fingerprint": "6a877827da092deec08cc327b6eb3af11feab49424d68162608651cb61c0e3ce",
+      "status": "passed",
+      "startHeight": 9057791,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x122068abc02f0e386c788612769fd58784c2daccbab574c1ad23a5193b965f9d6240",
+        "height": 9057794,
+        "receipt": {
+          "id": "0x12205425842571783cb3baa403983a2392b79fddcf95d8b11ec857f4f6712fdd4f5c",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19065674023",
+          "rc_limit": "500000000",
+          "rc_used": "28101813",
+          "disk_storage_used": "162",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "4455323",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAc-xnuEFb7IYP4c1RKD6baFjXR9M0ETDFGMCWsQI=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAqXWSYue9VoltzWUXfsNveKoHIsEWG5iWGMCWsQI=",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.mint_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWENvKrwM=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 6,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.sync_event",
+              "data": "CICOzhwQgJycOQ==",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb"
+              ]
+            },
+            {
+              "sequence": 7,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.mint_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEMCWsQIYgK3iBA==",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 8,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAc-xnuEFb7IYP4c1RKD6baFjXR9M0ETDF",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY"
+              ]
+            },
+            {
+              "sequence": 9,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.liquidity_provided",
+              "data": "CAESGQCpdZJi571WiW3NZRd-w294qgciwRYbmJYY28qvAyDAlrECKICt4gQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-1-claim",
+      "id": "0x1220cac5ec8e350b6853ab552e79978f0f4b545cb13d60e6c48416fa161f5c57f0a2",
+      "fingerprint": "b8b588b34be0c9e8e73534b39b1ffcfb2e927435d7928757262627435ed48e4b",
+      "status": "passed",
+      "startHeight": 9057821,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220531b885119562c12ccbcf0a5a6ee439a370b0847d7e13cb29725ef3a2ab959e5",
+        "height": 9057824,
+        "receipt": {
+          "id": "0x1220cac5ec8e350b6853ab552e79978f0f4b545cb13d60e6c48416fa161f5c57f0a2",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19042567710",
+          "rc_limit": "500000000",
+          "rc_used": "4187208",
+          "network_bandwidth_used": "322",
+          "compute_bandwidth_used": "644707",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGNvKrwM=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.lp_claimed",
+              "data": "CAESGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kY28qvAw==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-1-duplicate-claim",
+      "id": "0x1220db73a1abb3421d7b53709351c6dd037ff6ea0c0bc44c40259c369f532ec45d56",
+      "fingerprint": "177c6ae6b7e47b41923afc0efab2d8c6a3e170721be28e87e8e015e364f51fe1",
+      "status": "passed",
+      "startHeight": 9057824,
+      "expectedError": "no locked liquidity to claim",
+      "outcome": "node-rejected",
+      "reason": "{\"code\":-32603,\"message\":\"launchpad: no locked liquidity to claim\",\"data\":\"{\\\"code\\\":1,\\\"logs\\\":[\\\"transaction reverted: launchpad: no locked liquidity to claim\\\"]}\"}"
+    },
+    {
+      "label": "case-2-settlement",
+      "id": "0x122072279e03f63d759811c7e3520f72e1b111bfdcf5f56542d3af9a9690c8478ee7",
+      "fingerprint": "d8d83d45233d31046e97976e118bd7b68d3e0b9e1d8682a79811ade241cc99b8",
+      "status": "passed",
+      "startHeight": 9057830,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220dfed40eb15a8cbd4bf8762e7bee287cf688bdfeb2b1ab934f0119e3eacc768bf",
+        "height": 9057832,
+        "receipt": {
+          "id": "0x122072279e03f63d759811c7e3520f72e1b111bfdcf5f56542d3af9a9690c8478ee7",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19039805863",
+          "rc_limit": "500000000",
+          "rc_used": "15391071",
+          "disk_storage_used": "279",
+          "network_bandwidth_used": "639",
+          "compute_bandwidth_used": "2137569",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_created",
+              "data": "CnUIAhIZAK3rvZ3hoSEHC-NgKPuvAaW6qDGRKajfyRoZAFXUDVG81lNVZWUVJ6pXDJadABq0b3xvFSiAwtcvMICt4gRIlNvK95E0UIyi0PeRNGCAreIEsAH2m8v3kTS4AYgnwAHgn9wEyAGMotD3kTTQAQHaAQA=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkA7SEEpQ3x9NYa92kQJ30rbUTidMryGEWfEhkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWGICt4gQ=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.contribution",
+              "data": "CAISGQDtIQSlDfH01hr3aRAnfSttROJ0yvIYRZ8YgK3iBCCAreIEKICt4gQ=",
+              "impacted": [
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 6,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGMCWsQI=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 7,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_finalized",
+              "data": "CAIQARiAreIEIICt4gQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 8,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.launch_settled",
+              "data": "CAIQAg==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-2-liquidity",
+      "id": "0x122023d6bbc71a2ed47322516f484e3a3624cf72153c40ccde3c28fe42da551886bb",
+      "fingerprint": "1206769bebd5796a538690e8ba6fe50b0e75ad186ae0b2a9dcf5e93c831731cd",
+      "status": "passed",
+      "startHeight": 9057834,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220734d80a32a3f6f38d86ff1d0ede58f25473be31be9613d69c0046d1325c9463a",
+        "height": 9057836,
+        "receipt": {
+          "id": "0x122023d6bbc71a2ed47322516f484e3a3624cf72153c40ccde3c28fe42da551886bb",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19025725190",
+          "rc_limit": "500000000",
+          "rc_used": "28359543",
+          "disk_storage_used": "21",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "4658783",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAc-xnuEFb7IYP4c1RKD6baFjXR9M0ETDFGMCWsQI=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAqXWSYue9VoltzWUXfsNveKoHIsEWG5iWGPCPrgI=",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.mint_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEKSiqwM=",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 6,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.sync_event",
+              "data": "CPCd_B4Q4Lv4PQ==",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb"
+              ]
+            },
+            {
+              "sequence": 7,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.mint_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEPCPrgIY4J_cBA==",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 8,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAc-xnuEFb7IYP4c1RKD6baFjXR9M0ETDF",
+              "impacted": [
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+                "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY"
+              ]
+            },
+            {
+              "sequence": 9,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGNCGAw==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 10,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.liquidity_provided",
+              "data": "CAISGQCpdZJi571WiW3NZRd-w294qgciwRYbmJYYpKKrAyDwj64CKOCf3AQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-2-claim",
+      "id": "0x1220f45b0b8e00289e981a152fe50f429b645015c02b0b995494564a0e242be540b1",
+      "fingerprint": "109ed490a40f9bf4f1da0b06ac49755e1f8dc3d7f2dbb9bf3d71c045679b176d",
+      "status": "passed",
+      "startHeight": 9057875,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x12205d4c34f3c805cf472d2294c8d5f5f186ccde8604c9b9415a0de6ebf5e65ad6b7",
+        "height": 9057877,
+        "receipt": {
+          "id": "0x1220f45b0b8e00289e981a152fe50f429b645015c02b0b995494564a0e242be540b1",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19003212591",
+          "rc_limit": "500000000",
+          "rc_used": "4187208",
+          "network_bandwidth_used": "322",
+          "compute_bandwidth_used": "644707",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.transfer_event",
+              "data": "ChkAh3TIomh_DcIviwP4uyhbcsQo3nz7WFFWEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGKSiqwM=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1DME8B2Gh6jGuRit9C2s3DxogsAs8cWSD3",
+              "name": "launchpad.lp_claimed",
+              "data": "CAISGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kYpKKrAw==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    },
+    {
+      "label": "case-2-duplicate-claim",
+      "id": "0x12204fd4126da2e4f2265d5290b30ed06ce6f0d8e844f079a0f3bc63eb4ef1dc4a4b",
+      "fingerprint": "9f391416cc4a134172498238eda0bef5aa43934e97c3cb2c30ba69682088a082",
+      "status": "passed",
+      "startHeight": 9057880,
+      "expectedError": "no locked liquidity to claim",
+      "outcome": "node-rejected",
+      "reason": "{\"code\":-32603,\"message\":\"launchpad: no locked liquidity to claim\",\"data\":\"{\\\"code\\\":1,\\\"logs\\\":[\\\"transaction reverted: launchpad: no locked liquidity to claim\\\"]}\"}"
+    }
+  ],
+  "artifacts": {
+    "productionCheck": {
+      "sha256": "d6bcf48764ff2fa2ab42050af600a881ed5fe363843ed4c9ba53d148c6a3309d",
+      "bytes": 39286
+    },
+    "candidate": {
+      "sha256": "56d8607eae28f12975db5ef8d8d1bc1069ef8ac9a88d9230cfe7392f405ba26b",
+      "bytes": 39286
+    }
+  },
+  "limitations": [
+    "Unapproved launchpad candidate, with only native-token/router address substitutions for Harbinger.",
+    "Uses real native KOIN and official-source pre-existing pool; fixture sale token has no allowance reader.",
+    "Original launch 3 and original launchpad balances must remain unchanged.",
+    "Does not replace independent security review or full atomic production-state replay.",
+    "Does not change the original candidate seven-day reclaim test or establish this candidate elapsed seven-day evidence."
+  ],
+  "mainnetReady": false,
+  "candidateManifestSha256": "898531925fc9d7a13323423da282606372941089c6fc52bcb9832f528cc178bc",
+  "productionCandidateSha256": "d6bcf48764ff2fa2ab42050af600a881ed5fe363843ed4c9ba53d148c6a3309d",
+  "originalLaunchpad": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+  "nativeToken": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+  "schedules": {
+    "1": {
+      "start": "1791520413940",
+      "end": "1791520504940"
+    },
+    "2": {
+      "start": "1791520583060",
+      "end": "1791520674060"
+    }
+  },
+  "originalPreserved": true
+}

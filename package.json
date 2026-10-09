@@ -25,7 +25,8 @@
     "testnet:keeper:setup": "node scripts/testnet-keeper.js setup",
     "testnet:keeper:inspect": "node scripts/testnet-keeper.js inspect",
     "testnet:keeper:verify": "node scripts/testnet-keeper.js verify",
-    "test:integration-guards": "node --test scripts/testnet-keeper.test.js scripts/router-attestation.test.js"
+    "test:integration-guards": "node --test scripts/testnet-keeper.test.js scripts/router-attestation.test.js",
+    "test:candidate-runner": "node --test scripts/testnet-liquidity-candidate.test.js"
   },
   "engines": {
     "node": ">=18"

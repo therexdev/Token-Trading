@@ -1,0 +1,77 @@
+{
+  "id": "launchpad-liquidity-remainder-2026-10-09",
+  "status": "unapproved-candidate",
+  "readyToBroadcast": false,
+  "finding": "CR-01",
+  "baseCommit": "5adaf7e7c9090881a01d830510fe0557a39e8eff",
+  "supersedesSourceCommit": "d0298016557a4a3f9de01b3058ff3e4d5b6673bc",
+  "releasePinsUnchanged": true,
+  "contract": "launchpad",
+  "wasm": "launchpad/build/release/contract.wasm",
+  "bytes": 39286,
+  "sha256": "d6bcf48764ff2fa2ab42050af600a881ed5fe363843ed4c9ba53d148c6a3309d",
+  "previousCandidateSha256": "822c9203b85b5b37405092ec9b7ea3263e59deb9b1213cfb56029e91a65f92c2",
+  "unchanged": {
+    "orderbookSha256": "5a947b3e6dd3dbbeea80c2cb2400ab2eabecea5d33f5424b48f31d03c9333ac4",
+    "storageLayout": true,
+    "abiSchema": true,
+    "entryPoints": true,
+    "reclaimGraceMs": 604800000
+  },
+  "sourceFiles": {
+    "launchpad/assembly/Launchpad.ts": "770e2c0e4fd814d735ef1ec0b31000a2f9f2553889e0bb067e33d2e06ffb7a7f",
+    "launchpad/assembly/index.ts": "77ccd499471f4c3a3dde54d9352fce2478b6c3cc7c911a9a509c86bb0b302279",
+    "launchpad/assembly/proto/launchpad.ts": "edfb836b3516b4d8ca35ff0109248b017ce6632422810156f6fb8fa414fe9bdb",
+    "launchpad/assembly/proto/launchpad.proto": "cb281356733e0b3693c9993b9b69dfc6adcd2f645c33603e57e22ca512342246",
+    "launchpad/asconfig.json": "26317ad4ec1893d45a58e9fa07e5c116b4759cbf54b0a4302a797019220b9282",
+    "launchpad/package-lock.json": "f9ed2a59425df4b64fc903c6ecf860f0bbc501d4cea67579d72a5867ec26904f",
+    "launchpad/build.js": "f2f11bc686b850d776900463e993513a15719806b4471dd7228d00bf8f41431e"
+  },
+  "build": {
+    "method": "Existing npm run build --prefix launchpad: regenerate ABI/protobuf/dispatcher, compile release AssemblyScript, lower and verify WebAssembly MVP. Direct compile of committed generated sources independently produced the same hash.",
+    "runtime": "node v24.19.0 (local); repository CI uses Node 22",
+    "compilerArguments": [
+      "assembly/index.ts",
+      "--config",
+      "asconfig.json",
+      "--target",
+      "release",
+      "--exportStart",
+      "_start",
+      "--use",
+      "abort=",
+      "--use",
+      "BUILD_FOR_TESTING=0",
+      "--disable",
+      "sign-extension,bulk-memory,nontrapping-f2i,multi-value"
+    ],
+    "loweringArguments": [
+      "-all",
+      "--llvm-memory-copy-fill-lowering",
+      "--signext-lowering",
+      "--llvm-nontrapping-fptoint-lowering",
+      "-O1",
+      "--mvp-features",
+      "--strip-debug",
+      "--strip-producers"
+    ],
+    "fullBuildVerified": true
+  },
+  "validation": {
+    "productionWasmTests": 40,
+    "host": "simulated atomic rollback; not a real-node proof",
+    "inventories": [
+      "docs/release-evidence/mainnet-2026-09-25-node.json",
+      "docs/release-evidence/mainnet-2026-10-06-node.json"
+    ],
+    "auditPreparationTests": 11
+  },
+  "openGates": [
+    "Candidate testnet integration with pre-existing pool ratios and real native KOIN",
+    "Independent external contract review",
+    "Atomic full production-state export and real-node replay",
+    "Deployed keeper and browser-wallet integration",
+    "Live seven-day reclaim result for original candidate; final-candidate evidence must be scoped explicitly",
+    "Explicit release authorization and fresh pre/post-deployment attestation"
+  ]
+}
