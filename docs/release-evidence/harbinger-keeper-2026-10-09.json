@@ -589,7 +589,8 @@
       "tools/keeper-pending.js": "8572d52f6d661016874c0ba5ce1a140395c788e013197005c7ca1f93aa364061",
       "tools/transaction-confirmation.js": "92c161a487e93f6c764bcfa2984e9b9ca800beb6c33b0fbf0b093f536123ffb4",
       "scripts/rehearse-keeper.js": "e190ee79c2132d84845012e3ce51b1d9e866d3ed769a1816949fffdfd51f1883"
-    }
+    },
+    "scope": "Final reviewed revision. Production keeper, transaction facade and confirmation modules remained unchanged during the run; harness-only path/report checks were finalized between cycles."
   },
   "idleCycle": {
     "startedAt": "2026-10-09T04:24:51.304Z",

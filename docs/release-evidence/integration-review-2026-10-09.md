@@ -9,7 +9,7 @@ The actual gateway modules completed finalize, buyer distribution, liquidity
 provision, creator-token unlock and LP unlock for new launch **5**. The
 gateway source is `889cc88bc84b19ae494914b516e6aecced32a672` on
 `security/keeper-receipt-mana` ([PR 17](https://github.com/therexdev/discover-koinos/pull/17)).
-Exact executed file hashes are in the [public evidence](harbinger-keeper-2026-10-09.json).
+Final reviewed file hashes are in the [public evidence](harbinger-keeper-2026-10-09.json).
 
 Setup plus all five keeper transactions have canonical, nonreverted,
 irreversible receipts. Verification at **04:28:15.464 UTC** observed head
