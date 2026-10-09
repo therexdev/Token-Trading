@@ -1,5 +1,29 @@
 # Contract upgrade readiness
 
+## October 9 continuation
+
+The [integration continuation](release-evidence/integration-review-2026-10-09.md)
+closes the production-router identity check and records a successful local
+run of the actual keeper against Harbinger. Its six transactions, including
+setup, are canonical, nonreverted and irreversible; exact token/LP balances
+and the protected launch-3 record match. Hosted keeper deployment and real
+browser approvals remain separate requirements. Live Vault transport and
+preflight checks pass, and the frontend now rejects malformed or stale
+receipt evidence while retaining the transaction ID for rechecking.
+
+**New release blocker: CR-01.** The original pinned launchpad can strand
+unused assets when KoinDX consumes a partial liquidity earmark. A separately
+identified correction is prepared on `security/liquidity-remainder-fix`,
+production SHA-256
+`d6bcf48764ff2fa2ab42050af600a881ed5fe363843ed4c9ba53d148c6a3309d`.
+It refunds exact remainders and clears approvals. Do not deploy the original
+candidate as if this finding were closed, or relabel its rehearsal evidence
+as testing the new binary. Final-candidate selection, independent external
+review and the remaining release gates are still required.
+
+The original full seven-day reclaim remains due **October 13, 2026 at
+15:45:51.590 UTC**. Its account, state and deadline are preserved.
+
 ## October 6 testing update
 
 The [fresh read-only inventory](release-evidence/mainnet-2026-10-06-node.json)

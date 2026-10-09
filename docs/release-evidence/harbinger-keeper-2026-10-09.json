@@ -1,0 +1,602 @@
+{
+  "testOnly": true,
+  "capturedAt": "2026-10-09T04:28:15.465Z",
+  "chainId": "EiAIKVvm6-V2qmsmUvPJy09vCCLbtn9lHFpwrJbcTIEWRQ==",
+  "addresses": {
+    "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+    "owner": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+    "buyer": "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS",
+    "orderbook": "1FnQm3fzcvTjofx5376GBzZjgSYDj5hby5",
+    "launchpad": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+    "base": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+    "quote": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+    "router": "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY",
+    "pool": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb"
+  },
+  "checks": {
+    "create sold-out keeper launch using existing buyer funds": {
+      "status": "passed",
+      "at": "2026-10-09T04:13:46.777Z"
+    },
+    "actual keeper settles, provides liquidity, and pays both locks once": {
+      "status": "passed",
+      "at": "2026-10-09T04:28:15.464Z"
+    }
+  },
+  "snapshots": {
+    "before": {
+      "balances": {
+        "native": {
+          "buyer": "100000000",
+          "owner": "400000000",
+          "launchpad": "50000000",
+          "router": "0",
+          "pool": "50000000"
+        },
+        "base": {
+          "buyer": "400000000",
+          "owner": "1400000000",
+          "launchpad": "100000000",
+          "router": "0",
+          "pool": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "70700678",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0"
+        }
+      },
+      "poolSupply": "70710678",
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      }
+    },
+    "afterSetup": {
+      "balances": {
+        "native": {
+          "buyer": "90000000",
+          "owner": "400000000",
+          "launchpad": "60000000",
+          "router": "0",
+          "pool": "50000000"
+        },
+        "base": {
+          "buyer": "400000000",
+          "owner": "1370000000",
+          "launchpad": "130000000",
+          "router": "0",
+          "pool": "100000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "70700678",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0"
+        }
+      },
+      "poolSupply": "70710678",
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launch5": {
+        "id": 5,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "10000000",
+        "lockedAmount": "10000000",
+        "unlockTime": "1791519805720",
+        "startTime": "1791519204720",
+        "endTime": "1791519805720",
+        "softCap": "0",
+        "hardCap": "10000000",
+        "raised": "10000000",
+        "sold": "10000000",
+        "buyerCount": 1,
+        "distributed": "0",
+        "refunded": "0",
+        "createdAt": "1791519222760",
+        "liquidityBps": 5000,
+        "liquidityTokens": "10000000",
+        "lpUnlockTime": "1791519805720",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "0"
+      }
+    },
+    "afterKeeper": {
+      "balances": {
+        "native": {
+          "buyer": "90000000",
+          "owner": "405000000",
+          "launchpad": "50000000",
+          "router": "0",
+          "pool": "55000000"
+        },
+        "base": {
+          "buyer": "410000000",
+          "owner": "1380000000",
+          "launchpad": "100000000",
+          "router": "0",
+          "pool": "110000000"
+        },
+        "pool": {
+          "buyer": "0",
+          "owner": "77771745",
+          "launchpad": "0",
+          "router": "0",
+          "pool": "0"
+        }
+      },
+      "poolSupply": "77781745",
+      "launch3": {
+        "id": 3,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "100000000",
+        "lockedAmount": "0",
+        "unlockTime": "0",
+        "startTime": "1791299750590",
+        "endTime": "1791301551590",
+        "softCap": "0",
+        "hardCap": "100000000",
+        "status": 2,
+        "raised": "100000000",
+        "sold": "100000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "100000000",
+        "refunded": "0",
+        "createdAt": "1791299754950",
+        "liquidityBps": 5000,
+        "liquidityTokens": "100000000",
+        "lpUnlockTime": "1791301551590",
+        "liquidityState": 1,
+        "pair": "",
+        "lpAmount": "0",
+        "liquidityKoin": "50000000"
+      },
+      "launch5": {
+        "id": 5,
+        "creator": "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+        "token": "18ppTwTCM7F6uEzHZdPxVZ6TEviPFY4Gfv",
+        "price": "100000000",
+        "forSaleAmount": "10000000",
+        "lockedAmount": "10000000",
+        "unlockTime": "1791519805720",
+        "startTime": "1791519204720",
+        "endTime": "1791519805720",
+        "softCap": "0",
+        "hardCap": "10000000",
+        "status": 2,
+        "raised": "10000000",
+        "sold": "10000000",
+        "buyerCount": 1,
+        "cursor": 1,
+        "distributed": "10000000",
+        "refunded": "0",
+        "lockedClaimed": true,
+        "createdAt": "1791519222760",
+        "liquidityBps": 5000,
+        "liquidityTokens": "10000000",
+        "lpUnlockTime": "1791519805720",
+        "liquidityState": 2,
+        "pair": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+        "lpAmount": "7071067",
+        "lpClaimed": true,
+        "liquidityKoin": "5000000"
+      }
+    }
+  },
+  "finality": {
+    "at": "2026-10-09T04:28:15.464Z",
+    "head": {
+      "id": "0x1220fab0c517f7b00676bb5c8175db19cf32551b379a6128994741c1b6d1e165e9a6",
+      "height": "9057672",
+      "previous": "0x1220893bf7ab0be7d6e9f6ad235f28ddcdfad17a841d858562c0e4604326c781fd42"
+    },
+    "lastIrreversibleBlock": "9057612",
+    "transactions": [
+      {
+        "txId": "0x1220e4694d1076dfadb23d2104a5eed2d84d2336f25c315ce1f22546aef4ac35899c",
+        "action": "setup",
+        "blockId": "0x1220b0516abacfa78b3298e6b152072fa97518fc1fb797dff256a283a27ddb4af975",
+        "blockNumber": 9057419,
+        "receipt": {
+          "id": "0x1220e4694d1076dfadb23d2104a5eed2d84d2336f25c315ce1f22546aef4ac35899c",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19400000000",
+          "rc_limit": "500000000",
+          "rc_used": "11250601",
+          "disk_storage_used": "347",
+          "network_bandwidth_used": "567",
+          "compute_bandwidth_used": "1382480",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.launch_created",
+              "data": "CoEBCAUSGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kaGQBV1A1RvNZTVWVlFSeqVwyWnQAatG98bxUogMLXLzCAreIEOICt4gRAmKKb95E0SPDK9vaRNFCYopv3kTRggK3iBLAB6Nf39pE0uAGIJ8ABgK3iBMgBmKKb95E00AEB2gEA",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkA7SEEpQ3x9NYa92kQJ30rbUTidMryGEWfEhkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOGICt4gQ=",
+              "impacted": [
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.contribution",
+              "data": "CAUSGQDtIQSlDfH01hr3aRAnfSttROJ0yvIYRZ8YgK3iBCCAreIEKICt4gQ=",
+              "impacted": [
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "txId": "0x122002e31ca670a36337131371ed52ff96e2bf446eff2c14599b8fda5551ff44155a",
+        "action": "finalize",
+        "preparedAt": "2026-10-09T04:16:24.600Z",
+        "status": "confirmed",
+        "blockId": "0x1220dd481676ad6bba13ab2a68d1ebafc5d8c1d85e8818cac9a4bf74d8a6ae291813",
+        "blockNumber": 9057466,
+        "receipt": {
+          "id": "0x122002e31ca670a36337131371ed52ff96e2bf446eff2c14599b8fda5551ff44155a",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19396697561",
+          "rc_limit": "500000000",
+          "rc_used": "4774105",
+          "disk_storage_used": "8",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "742675",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGMCWsQI=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.launch_finalized",
+              "data": "CAUQARiAreIEIICt4gQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "txId": "0x12205d745058e4e4dc3c6968698072fe6811e8201f4060b2f3eddc30d32d621b15c2",
+        "action": "process",
+        "preparedAt": "2026-10-09T04:17:08.123Z",
+        "status": "confirmed",
+        "blockId": "0x1220e813665cffc5f038f11dffcf9d8ff566e4a53ab4765d061877fd5bfc690fbec4",
+        "blockNumber": 9057482,
+        "receipt": {
+          "id": "0x12205d745058e4e4dc3c6968698072fe6811e8201f4060b2f3eddc30d32d621b15c2",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19393580539",
+          "rc_limit": "500000000",
+          "rc_used": "3819477",
+          "disk_storage_used": "11",
+          "network_bandwidth_used": "257",
+          "compute_bandwidth_used": "579811",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.launch_settled",
+              "data": "CAUQAg==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "txId": "0x1220281aa8454955875c7839f5234d9ddc9acd21cad37f7095991f8c07851e0ce181",
+        "action": "provide_liquidity",
+        "preparedAt": "2026-10-09T04:17:24.110Z",
+        "status": "confirmed",
+        "blockId": "0x1220cd4ba770f6995981cf874a7be9d2482ba2ff14a6bc3f21a128698755c8b44e4f",
+        "blockNumber": 9057488,
+        "receipt": {
+          "id": "0x1220281aa8454955875c7839f5234d9ddc9acd21cad37f7095991f8c07851e0ce181",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19390853659",
+          "rc_limit": "500000000",
+          "rc_used": "23854803",
+          "disk_storage_used": "36",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "3890918",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.approve_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOEhkAc-xnuEFb7IYP4c1RKD6baFjXR9M0ETDFGMCWsQI=",
+              "impacted": [
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+                "1BZwunANbBd57rYrDMPybNAscyDV7fw8rY"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOEhkAqXWSYue9VoltzWUXfsNveKoHIsEWG5iWGMCWsQI=",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.mint_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOENvKrwM=",
+              "impacted": [
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR"
+              ]
+            },
+            {
+              "sequence": 6,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.sync_event",
+              "data": "CMD3nBoQgO-5NA==",
+              "impacted": [
+                "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb"
+              ]
+            },
+            {
+              "sequence": 7,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "core.mint_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOEMCWsQIYgK3iBA==",
+              "impacted": [
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR"
+              ]
+            },
+            {
+              "sequence": 8,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.liquidity_provided",
+              "data": "CAUSGQCpdZJi571WiW3NZRd-w294qgciwRYbmJYY28qvAyDAlrECKICt4gQ=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "txId": "0x1220d2d812ec2f063e5b1a8fb72e7f7673c63b42af632f53d4fe0d502ebd75e9ebd0",
+        "action": "claim_locked",
+        "preparedAt": "2026-10-09T04:23:46.145Z",
+        "status": "confirmed",
+        "blockId": "0x1220d40d0ca8242c03875b4be4ab37b9f2a66adcf5f4de56a721bd83b586a1d6ba60",
+        "blockNumber": 9057593,
+        "receipt": {
+          "id": "0x1220d2d812ec2f063e5b1a8fb72e7f7673c63b42af632f53d4fe0d502ebd75e9ebd0",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19383800064",
+          "rc_limit": "500000000",
+          "rc_used": "3598179",
+          "disk_storage_used": "3",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "552379",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.locked_claimed",
+              "data": "CAUSGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kYgK3iBA==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "txId": "0x122034586e210d3999ca20a21cfc899719e91caf2ba36c01ad2aa33385d668078b07",
+        "action": "claim_liquidity",
+        "preparedAt": "2026-10-09T04:24:01.578Z",
+        "status": "confirmed",
+        "blockId": "0x12207c1d382bc08dfde87e00a8ed967ed26e4b42c4591029e0a9f0bb94201b73574b",
+        "blockNumber": 9057600,
+        "receipt": {
+          "id": "0x122034586e210d3999ca20a21cfc899719e91caf2ba36c01ad2aa33385d668078b07",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19380944653",
+          "rc_limit": "500000000",
+          "rc_used": "4121027",
+          "network_bandwidth_used": "255",
+          "compute_bandwidth_used": "645212",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1GT23TFxouvxHhAPBU63Xm36urJ9QrcnDb",
+              "name": "token.transfer_event",
+              "data": "ChkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOEhkAreu9neGhIQcL42Ao-68BpbqoMZEpqN_JGNvKrwM=",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz",
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.lp_claimed",
+              "data": "CAUSGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kY28qvAw==",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "allCanonicalNonrevertedIrreversible": true
+  },
+  "transactions": [
+    {
+      "label": "keeper-create-and-fund-launch-5",
+      "id": "0x1220e4694d1076dfadb23d2104a5eed2d84d2336f25c315ce1f22546aef4ac35899c",
+      "fingerprint": "af24f4746e9090f788c87dae49b7e1613a2b95bb7a9ba4f64b776b6e1d6987bc",
+      "status": "passed",
+      "startHeight": 9057417,
+      "expectedError": null,
+      "evidence": {
+        "blockId": "0x1220b0516abacfa78b3298e6b152072fa97518fc1fb797dff256a283a27ddb4af975",
+        "height": 9057419,
+        "receipt": {
+          "id": "0x1220e4694d1076dfadb23d2104a5eed2d84d2336f25c315ce1f22546aef4ac35899c",
+          "payer": "14V1baBquUvN2jdRXaJdnAPXjDiFFjpWJL",
+          "max_payer_rc": "19400000000",
+          "rc_limit": "500000000",
+          "rc_used": "11250601",
+          "disk_storage_used": "347",
+          "network_bandwidth_used": "567",
+          "compute_bandwidth_used": "1382480",
+          "events": [
+            {
+              "sequence": 3,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.launch_created",
+              "data": "CoEBCAUSGQCt672d4aEhBwvjYCj7rwGluqgxkSmo38kaGQBV1A1RvNZTVWVlFSeqVwyWnQAatG98bxUogMLXLzCAreIEOICt4gRAmKKb95E0SPDK9vaRNFCYopv3kTRggK3iBLAB6Nf39pE0uAGIJ8ABgK3iBMgBmKKb95E00AEB2gEA",
+              "impacted": [
+                "1GrcJjkCXhTrFHjy8PqdDjgyNZFtweReXz"
+              ]
+            },
+            {
+              "sequence": 4,
+              "source": "1FaSvLjQJsCJKq5ybmGsMMQs8RQYyVv8ju",
+              "name": "token.transfer_event",
+              "data": "ChkA7SEEpQ3x9NYa92kQJ30rbUTidMryGEWfEhkAjqW9E6Zoeyfus2Ly3hB5XYLishHLUfQOGICt4gQ=",
+              "impacted": [
+                "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            },
+            {
+              "sequence": 5,
+              "source": "1E1FVxb7m8TaeNzZnKFB1HdtZwFUs2FFkR",
+              "name": "launchpad.contribution",
+              "data": "CAUSGQDtIQSlDfH01hr3aRAnfSttROJ0yvIYRZ8YgK3iBCCAreIEKICt4gQ=",
+              "impacted": [
+                "1Ncphc51iWvXDeqHMXLRi7iV1M4JQXeMcS"
+              ]
+            }
+          ]
+        }
+      },
+      "outcome": "included"
+    }
+  ],
+  "limitations": [
+    "Locally executed gateway keeper against isolated Harbinger contracts; hosted deployment and browser wallet approval remain separate.",
+    "One buyer and existing official-source pool; multi-batch and pool-creation failure coverage remains offline.",
+    "Native launch 3 and its original seven-day deadline are preserved. No mainnet transaction or readiness approval."
+  ],
+  "mainnetReady": false,
+  "schedule": {
+    "start": 1791519204720,
+    "end": 1791519805720
+  },
+  "originalStateSha256": "9ac350d45a39436834be3633a2db88c1959e708be8f06cfd173a0755a6f99c2e",
+  "keeperImplementation": {
+    "repository": "therexdev/discover-koinos",
+    "branch": "security/keeper-receipt-mana",
+    "commit": "889cc88bc84b19ae494914b516e6aecced32a672",
+    "files": {
+      "tools/launchpad-keeper.js": "d1dcc1b57f116f2ff7b1097426a97baad4943e968887da4a8f4e353a2d0e51eb",
+      "tools/koinos.js": "a3e7b53ca2ae77d97fefba77a68d17c3fd132480cdef72521decdcc07ed36d1c",
+      "tools/koindx.js": "0cf59d6a3a1374888a74a2c3b097d559905fe0d3daf5b10234d1037b61ca7ef5",
+      "tools/keeper-pending.js": "8572d52f6d661016874c0ba5ce1a140395c788e013197005c7ca1f93aa364061",
+      "tools/transaction-confirmation.js": "92c161a487e93f6c764bcfa2984e9b9ca800beb6c33b0fbf0b093f536123ffb4",
+      "scripts/rehearse-keeper.js": "e190ee79c2132d84845012e3ce51b1d9e866d3ed769a1816949fffdfd51f1883"
+    }
+  },
+  "idleCycle": {
+    "startedAt": "2026-10-09T04:24:51.304Z",
+    "finishedAt": "2026-10-09T04:24:54.562Z",
+    "newTransactions": 0,
+    "pendingTransactions": 0,
+    "protectedLaunchUnchanged": true
+  },
+  "manaUsedUnits": "51418192"
+}

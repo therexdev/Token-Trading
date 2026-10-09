@@ -28,6 +28,27 @@ async function checkWalletTransport({
     if (!response.ok || data?.ok !== true) throw new Error('Wallet rejected compatibility request: ' + route);
     return { data, cors: response.headers.get('access-control-allow-origin') };
   }
+  // Node can POST JSON even when a browser's mandatory CORS preflight would
+  // block it. Check every route the paired-wallet client needs before creating
+  // a session; OPTIONS never asks the wallet to approve or sign anything.
+  for (const route of ['create', 'status', 'request', 'request-status', 'disconnect']) {
+    let response;
+    try {
+      response = await fetchImpl(walletOrigin + '/api/dapp/' + route, {
+        method: 'OPTIONS', redirect: 'error', cache: 'no-store',
+        headers: { Origin: tradeOrigin, 'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'content-type' },
+        signal: AbortSignal.timeout(20000),
+      });
+    } catch (_) { throw new Error('Wallet compatibility preflight failed: ' + route); }
+    const has = (header, value) => (response.headers.get(header) || '')
+      .split(',').map(item => item.trim().toLowerCase()).includes(value);
+    if (!response.ok || response.headers.get('access-control-allow-origin') !== tradeOrigin
+        || !has('access-control-allow-methods', 'post')
+        || !has('access-control-allow-headers', 'content-type')) {
+      throw new Error('Wallet browser CORS preflight is incompatible: ' + route);
+    }
+  }
   let credentials;
   try {
     const { data: pair, cors } = await post('create', {
@@ -61,6 +82,6 @@ module.exports = { checkWalletTransport };
 if (require.main === module) {
   checkWalletTransport({ walletOrigin: process.env.BIO_WALLET_API || undefined,
     tradeOrigin: process.env.TRADE_ORIGIN || undefined })
-    .then(() => console.log('Wallet protocol 2 pairing, POST polling, CORS, and disconnect passed.'))
+    .then(() => console.log('Wallet protocol 2 pairing, browser CORS preflights, POST polling, and disconnect passed.'))
     .catch(error => { console.error(error.message); process.exitCode = 1; });
 }

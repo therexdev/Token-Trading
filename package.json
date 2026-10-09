@@ -21,7 +21,11 @@
     "testnet:koindx:resume": "node scripts/testnet-koindx.js resume",
     "testnet:koindx:report": "node scripts/testnet-koindx.js report",
     "test:native-runner": "node --test scripts/testnet-native.test.js scripts/koindx-bootstrap.test.js scripts/testnet-koindx.test.js",
-    "verify:launchpad-provenance": "node scripts/verify-launchpad-provenance.js"
+    "verify:launchpad-provenance": "node scripts/verify-launchpad-provenance.js",
+    "testnet:keeper:setup": "node scripts/testnet-keeper.js setup",
+    "testnet:keeper:inspect": "node scripts/testnet-keeper.js inspect",
+    "testnet:keeper:verify": "node scripts/testnet-keeper.js verify",
+    "test:integration-guards": "node --test scripts/testnet-keeper.test.js scripts/router-attestation.test.js"
   },
   "engines": {
     "node": ">=18"
