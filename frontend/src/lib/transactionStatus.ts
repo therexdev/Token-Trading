@@ -1,8 +1,12 @@
 interface ConfirmationProvider {
   wait: (id: string, type: "byTransactionId", timeout: number) => Promise<{ blockNumber?: number; blockId?: string }>;
-  getBlocksById: (ids: string[], options: { returnBlock: boolean; returnReceipt: boolean }) => Promise<{
-    block_items: { block_id: string; receipt?: { transaction_receipts?: { id?: string; reverted?: boolean; logs?: string[] }[] } }[];
-  }>;
+  getHeadInfo: () => Promise<{ head_topology?: { id?: string } }>;
+  getBlocks: (height: number, count: number, headId: string, options: { returnBlock: boolean; returnReceipt: boolean }) => Promise<{
+    block_id?: string;
+    block_height?: string;
+    block?: { id?: string; header?: { height?: string }; transactions?: { id?: string }[] };
+    receipt?: { id?: string; transaction_receipts?: { id?: string; reverted?: boolean; logs?: string[] }[] };
+  }[]>;
 }
 
 export class TransactionRevertedError extends Error {
@@ -27,10 +31,28 @@ export async function waitForInclusion(provider: ConfirmationProvider, id: strin
     if (!result?.blockId || !Number.isSafeInteger(result.blockNumber) || result.blockNumber! <= 0) {
       throw new Error("Missing inclusion evidence");
     }
-    const blocks = await provider.getBlocksById([result.blockId], { returnBlock: false, returnReceipt: true });
-    const receipt = blocks.block_items.find((block) => block.block_id === result.blockId)
-      ?.receipt?.transaction_receipts?.find((transaction) => transaction.id === id);
-    if (!receipt) throw new Error("Transaction receipt is unavailable");
+    // koilib's wait checks canonical inclusion, but the chain can reorganize
+    // before receipt lookup. Read the block and receipt together on a fresh
+    // head's branch instead of accepting a retained receipt by block ID.
+    const head = (await provider.getHeadInfo())?.head_topology;
+    if (typeof head?.id !== "string" || !head.id) throw new Error("Head is unavailable");
+    const blocks = await provider.getBlocks(result.blockNumber!, 1, head.id,
+      { returnBlock: true, returnReceipt: true });
+    const block = blocks.find((item) => item.block_id === result.blockId);
+    if (!block || block.block?.id !== result.blockId || block.receipt?.id !== result.blockId
+        || Number(block.block_height) !== result.blockNumber
+        || Number(block.block.header?.height) !== result.blockNumber
+        || block.block.transactions?.filter((transaction) => transaction.id === id).length !== 1) {
+      throw new Error("Canonical inclusion evidence is unavailable");
+    }
+    const receipts = block.receipt.transaction_receipts?.filter((transaction) => transaction.id === id);
+    if (receipts?.length !== 1) throw new Error("Transaction receipt is unavailable");
+    const receipt = receipts[0];
+    // Protobuf JSON may omit false. Other non-boolean values cannot establish
+    // either success or a canonical revert, so keep the transaction pending.
+    if (receipt.reverted !== undefined && typeof receipt.reverted !== "boolean") {
+      throw new Error("Transaction receipt is malformed");
+    }
     if (receipt.reverted) throw new TransactionRevertedError(id, receipt.logs?.slice(-1)[0]);
     return { blockNumber: result.blockNumber! };
   } catch (error) {

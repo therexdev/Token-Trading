@@ -12,11 +12,23 @@ function load(file, requireModule = () => ({})) {
   return context.exports;
 }
 const status = load('lib/transactionStatus.ts');
+function canonicalBlock(txId = 'submitted-id') {
+  return {
+    block_id: 'block-id', block_height: '42',
+    block: { id: 'block-id', header: { height: '42' }, transactions: [{ id: txId }] },
+    receipt: { id: 'block-id', transaction_receipts: [{ id: txId, reverted: false }] },
+  };
+}
 function setup(receipt = {}, txId = 'submitted-id') {
   let sends = 0, waits = 0, confirmed = false;
   const provider = {
     getAccountRc: async () => '1000000000',
-    getBlocksById: async () => ({ block_items: [{ block_id: 'block-id', receipt: { transaction_receipts: [{ id: txId, reverted: false }] } }] }),
+    getHeadInfo: async () => ({ head_topology: { id: 'fresh-head' } }),
+    getBlocks: async (height, count, headId, options) => {
+      assert.equal(height, 42); assert.equal(count, 1); assert.equal(headId, 'fresh-head');
+      assert.equal(options.returnBlock, true); assert.equal(options.returnReceipt, true);
+      return [canonicalBlock(txId)];
+    },
     wait: async (id, mode) => {
       waits++; assert.equal(id, txId); assert.equal(mode, 'byTransactionId');
       if (!confirmed) throw new Error('RPC unavailable');
@@ -88,7 +100,9 @@ test('project links accept web URLs and reject executable, relative and credenti
 test('block inclusion with a reverted receipt is failure; an unavailable receipt remains pending', async () => {
   for (const reverted of [true, false]) {
     const c = setup(); c.confirm();
-    c.provider.getBlocksById = async () => ({ block_items: [{ block_id: 'block-id', receipt: { transaction_receipts: reverted ? [{ id: 'submitted-id', reverted: true }] : [] } }] });
+    const block = canonicalBlock();
+    block.receipt.transaction_receipts = reverted ? [{ id: 'submitted-id', reverted: true }] : [];
+    c.provider.getBlocks = async () => [block];
     const handle = await c.koinos.sendOperations('owner', []);
     await assert.rejects(handle.wait(), error => {
       const toast = status.transactionErrorToast(error, 'Order failed');
@@ -96,5 +110,54 @@ test('block inclusion with a reverted receipt is failure; an unavailable receipt
       assert.equal(toast.txId, 'submitted-id');
       return true;
     });
+  }
+});
+
+for (const [name, mutate] of [
+  ['orphaned candidate after wait', block => { block.block_id = 'new-canonical-block'; }],
+  ['mismatched block body', block => { block.block.id = 'other-block'; }],
+  ['mismatched block height', block => { block.block_height = '43'; }],
+  ['mismatched header height', block => { block.block.header.height = '43'; }],
+  ['mismatched block receipt', block => { block.receipt.id = 'other-block'; }],
+  ['receipt without transaction', block => { block.block.transactions = []; }],
+  ['duplicate transactions', block => { block.block.transactions.push({ id: 'submitted-id' }); }],
+  ['another transaction receipt', block => { block.receipt.transaction_receipts[0].id = 'other-tx'; }],
+  ['duplicate receipts', block => { block.receipt.transaction_receipts.push({ id: 'submitted-id', reverted: true }); }],
+  ...[null, 0, 1, '', 'false', 'true', {}].map(value => [
+    `malformed reverted flag ${JSON.stringify(value)}`,
+    block => { block.receipt.transaction_receipts[0].reverted = value; },
+  ]),
+]) test(name + ' retains the transaction ID and never broadcasts again', async () => {
+  const c = setup(); c.confirm();
+  const block = canonicalBlock(); mutate(block);
+  c.provider.getBlocks = async () => [block];
+  const handle = await c.koinos.sendOperations('owner', []);
+  let pending;
+  await assert.rejects(handle.wait(), error => {
+    pending = error;
+    return error instanceof status.ConfirmationPendingError && error.txId === 'submitted-id';
+  });
+  c.provider.getBlocks = async () => [canonicalBlock()];
+  assert.equal((await pending.checkStatus()).blockNumber, 42);
+  assert.equal(c.sends(), 1);
+});
+
+test('protobuf omitted false succeeds only with a matching canonical transaction and receipt', async () => {
+  const c = setup(); c.confirm();
+  const block = canonicalBlock(); delete block.receipt.transaction_receipts[0].reverted;
+  c.provider.getBlocks = async () => [block];
+  const handle = await c.koinos.sendOperations('owner', []);
+  assert.equal((await handle.wait()).blockNumber, 42);
+});
+
+test('unavailable head and canonical RPC failures stay pending without falling back to block ID lookup', async () => {
+  for (const failure of ['head', 'rpc']) {
+    const c = setup(); c.confirm();
+    if (failure === 'head') c.provider.getHeadInfo = async () => ({ head_topology: {} });
+    else c.provider.getBlocks = async () => { throw new Error('RPC unavailable'); };
+    c.provider.getBlocksById = async () => { assert.fail('must not accept retained orphan receipt'); };
+    const handle = await c.koinos.sendOperations('owner', []);
+    await assert.rejects(handle.wait(), error => error instanceof status.ConfirmationPendingError && error.txId === handle.id);
+    assert.equal(c.sends(), 1);
   }
 });
