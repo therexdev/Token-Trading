@@ -972,15 +972,25 @@ export class Launchpad {
       addRes.code == 0,
       "launchpad: KoinDX add_liquidity failed - retry later"
     );
-    let lpAmount: u64 = 0;
     const addBuffer = addRes.res.object;
-    if (addBuffer) {
-      lpAmount = Protobuf.decode<launchpad.dex_add_liquidity_answer>(
-        addBuffer,
-        launchpad.dex_add_liquidity_answer.decode
-      ).liquidity;
-    }
+    System.require(addBuffer != null, "launchpad: KoinDX returned no deposit amounts");
+    const deposited = Protobuf.decode<launchpad.dex_add_liquidity_answer>(
+      addBuffer!,
+      launchpad.dex_add_liquidity_answer.decode
+    );
+    const lpAmount = deposited.liquidity;
     System.require(lpAmount > 0, "launchpad: KoinDX returned no liquidity");
+    System.require(
+      deposited.amount_a > 0 &&
+        deposited.amount_a <= launch.liquidity_koin &&
+        deposited.amount_a >= addArgs.amount_a_min &&
+        deposited.amount_b > 0 &&
+        deposited.amount_b <= launch.liquidity_tokens &&
+        deposited.amount_b >= addArgs.amount_b_min,
+      "launchpad: KoinDX returned invalid deposit amounts"
+    );
+    const unusedKoin = launch.liquidity_koin - deposited.amount_a;
+    const unusedTokens = launch.liquidity_tokens - deposited.amount_b;
 
     // remember the pair (= the LP token contract) for the lock + claim
     const getRes = System.call(periphery, DEX_GET_PAIR_ENTRY, pairArgsBytes);
@@ -1001,12 +1011,38 @@ export class Launchpad {
     launch.liquidity_state = LIQ_PROVIDED;
     this.saveLaunch(launch);
 
+    // An existing pool can use less than the earmark within the slippage
+    // bounds. Remove both approvals and return only this launch's unused
+    // amounts, never the pooled contract balance. The mutation lock covers
+    // every callback; any failure atomically restores the pending launch,
+    // router/pool changes, approvals, and transfers for a safe retry.
+    System.require(
+      this.koin().approve(this.contractId, periphery, 0),
+      "launchpad: KOIN approval reset failed"
+    );
+    System.require(
+      token.approve(this.contractId, periphery, 0),
+      "launchpad: token approval reset failed"
+    );
+    if (unusedKoin > 0) {
+      System.require(
+        this.koin().transfer(this.contractId, launch.creator!, unusedKoin),
+        "launchpad: unused KOIN return failed"
+      );
+    }
+    if (unusedTokens > 0) {
+      System.require(
+        token.transfer(this.contractId, launch.creator!, unusedTokens),
+        "launchpad: unused token return failed"
+      );
+    }
+
     const event = new launchpad.liquidity_provided_event();
     event.launch_id = launch.id;
     event.pair = pair;
     event.lp_amount = lpAmount;
-    event.koin = launch.liquidity_koin;
-    event.tokens = launch.liquidity_tokens;
+    event.koin = deposited.amount_a;
+    event.tokens = deposited.amount_b;
     const impacted: Uint8Array[] = [launch.creator!];
     System.event(
       "launchpad.liquidity_provided",
