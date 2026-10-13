@@ -37,20 +37,22 @@ const contracts = { orderbook: compile('contract', 'orderbook'), launchpad: comp
 const addr = n => Buffer.alloc(25, n);
 const owner = addr(1), buyer = addr(2), base = addr(3), quote = addr(4);
 const same = (a, b) => Buffer.from(a).equals(Buffer.from(b));
+const approvalType = protobuf.parse('syntax = "proto3"; message Approve { bytes owner = 1; bytes spender = 2; uint64 value = 3; }').root.lookupType('Approve');
 
 class Host {
   constructor(name) {
     this.contract = { ...contracts[name] }; this.id = addr(9);
-    this.db = new MockVM(true).db; this.balances = new Map();
+    this.db = new MockVM(true).db; this.balances = new Map(); this.allowances = new Map(); this.events = [];
     this.now = 1000; this.onCall = null; this.onAuthority = null; this.authorized = true;
   }
   balance(tokenId, account) { return this.balances.get(Buffer.from(tokenId).toString('hex') + ':' + Buffer.from(account).toString('hex')) || 0n; }
   mint(tokenId, account, value) { this.balances.set(Buffer.from(tokenId).toString('hex') + ':' + Buffer.from(account).toString('hex'), BigInt(value)); }
+  allowance(tokenId, account, spender) { return this.allowances.get([tokenId, account, spender].map(b => Buffer.from(b).toString('hex')).join(':')) || 0n; }
   encode(name, value) { const t = this.contract.proto.lookupType(this.contract.namespace + '.' + name); return t.encode(t.fromObject(value)).finish(); }
   decode(name, bytes) { const t = this.contract.proto.lookupType(this.contract.namespace + '.' + name); return t.toObject(t.decode(bytes), { longs: String, defaults: true }); }
   lockSpace() { return { system: false, zone: this.id, id: this.contract.namespace === 'orderbook' ? 6 : 4 }; }
   invoke(name, args = {}) {
-    const snapshot = [...this.db.db], balances = new Map(this.balances);
+    const snapshot = [...this.db.db], balances = new Map(this.balances), allowances = new Map(this.allowances), eventCount = this.events.length;
     const vm = new MockVM(true); vm.db = this.db;
     const input = this.encode(name + '_arguments', args);
     const entry = this.contract.abi.methods[name].entryPoint ?? this.contract.abi.methods[name].entry_point;
@@ -72,13 +74,28 @@ class Host {
         this.onAuthority?.(chain.check_authority_arguments.decode(bytes));
         return reply(chain.check_authority_result, { value: this.authorized });
       }
-      if (id === sid.event || id === sid.log) { new Uint32Array(vm.memory.buffer, retBytes, 1)[0] = 0; return 0; }
+      if (id === sid.event || id === sid.log) { if (id === sid.event) this.events.push(chain.event_arguments.decode(bytes)); new Uint32Array(vm.memory.buffer, retBytes, 1)[0] = 0; return 0; }
       if (id === sid.exit) {
         const exit = chain.exit_arguments.decode(bytes);
         throw Object.assign(new Error(exit.res?.error?.message || ''), { contractExit: true, code: exit.code, value: exit.res?.object });
       }
       if (id === sid.call) {
         const call = chain.call_arguments.decode(bytes);
+        const externalResponse = this.onExternal?.(call, reply);
+        if (externalResponse !== undefined) return externalResponse;
+        if (call.entry_point === 0x74e21680) {
+          const approval = approvalType.decode(call.args), amount = BigInt(approval.value.toString());
+          const key = [call.contract_id, approval.owner, approval.spender].map(b => Buffer.from(b).toString('hex')).join(':');
+          const previous = this.allowances.get(key);
+          this.allowances.set(key, amount);
+          const response = this.onCall?.({ kind: 'approve', token: call.contract_id, ...approval, value: amount });
+          if (response?.code) {
+            if (previous === undefined) this.allowances.delete(key); else this.allowances.set(key, previous);
+            reply(chain.error_data, { message: 'test approve returned failure' });
+            return response.code;
+          }
+          return reply(chain.call_result, {});
+        }
         if (call.entry_point === 0xee80fd2f) {
           this.onCall?.({ kind: 'decimals', token: call.contract_id });
           return reply(chain.call_result, { value: token.decimals_result.encode({ value: 8 }).finish() });
@@ -107,7 +124,7 @@ class Host {
     try { instance.exports._start(); throw new Error('Contract did not exit'); }
     catch (error) {
       if (error.contractExit && error.code === 0) return this.decode(name + '_result', error.value || new Uint8Array());
-      this.db.initDb(snapshot); this.balances = balances;
+      this.db.initDb(snapshot); this.balances = balances; this.allowances = allowances; this.events.length = eventCount;
       throw error;
     }
   }
@@ -237,6 +254,139 @@ function assertReclaimPreserved(h, before) {
   assert.deepEqual(reclaimSnapshot(h), before);
   assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
 }
+
+const router = Buffer.from(fromContract('@koinos/mock-vm/src/util').decodeBase58('17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s'));
+const liquidityPair = addr(8);
+function installLiquidityRouter(h, { amountA = 50n, amountB = 100n, answer = null, rawAnswer = undefined } = {}) {
+  h.onExternal = (call, reply) => {
+    if (!same(call.contract_id, router)) return;
+    if (call.entry_point === 4024190401) return reply(chain.call_result, { value: h.encode('dex_address', { value: liquidityPair }) });
+    assert.equal(call.entry_point, 117856717);
+    const request = h.decode('dex_add_liquidity_call', call.args);
+    assert.ok(same(request.from, h.id)); assert.ok(same(request.receiver, h.id));
+    assert.equal(request.amount_a_desired, '50'); assert.equal(request.amount_b_desired, '100');
+    assert.equal(request.amount_a_min, '49'); assert.equal(request.amount_b_min, '98');
+    for (const [asset, amount] of [[koin, amountA], [base, amountB]]) {
+      const allowance = h.allowance(asset, h.id, router);
+      assert.ok(allowance >= amount); assert.ok(h.balance(asset, h.id) >= amount);
+      const key = [asset, h.id, router].map(b => Buffer.from(b).toString('hex')).join(':');
+      h.allowances.set(key, allowance - amount);
+      h.mint(asset, h.id, h.balance(asset, h.id) - amount);
+      h.mint(asset, liquidityPair, h.balance(asset, liquidityPair) + amount);
+    }
+    h.mint(liquidityPair, h.id, h.balance(liquidityPair, h.id) + 10n);
+    h.onCall?.({ kind: 'router', request });
+    const response = rawAnswer === undefined
+      ? h.encode('dex_add_liquidity_answer', answer || { liquidity: '10', amount_a: String(amountA), amount_b: String(amountB) })
+      : rawAnswer;
+    return reply(chain.call_result, response === null ? {} : { value: response });
+  };
+}
+
+function liquiditySnapshot(h) {
+  return { ...reclaimSnapshot(h), allowances: new Map(h.allowances), events: [...h.events] };
+}
+
+for (const [label, amountA, amountB] of [['exact', 50n, 100n], ['unused KOIN', 49n, 100n], ['unused sale tokens', 50n, 99n]]) {
+  test(`launchpad: ${label} liquidity deposits clear approvals and return only this launch's remainder`, () => {
+    const h = pendingLiquidity();
+    // Include unrelated pooled escrow and retain this launch's buyer and
+    // locked-token claims. No remainder refund may sweep those obligations.
+    h.mint(koin, h.id, h.balance(koin, h.id) + 900n);
+    h.mint(base, h.id, h.balance(base, h.id) + 800n);
+    const creatorKoin = h.balance(koin, owner), creatorTokens = h.balance(base, owner);
+    installLiquidityRouter(h, { amountA, amountB });
+    assert.equal(h.invoke('provide_liquidity', { launch_id: 1 }).liquidity_state, 2);
+    assert.equal(h.allowance(koin, h.id, router), 0n); assert.equal(h.allowance(base, h.id, router), 0n);
+    assert.equal(h.balance(koin, owner), creatorKoin + 50n - amountA);
+    assert.equal(h.balance(base, owner), creatorTokens + 100n - amountB);
+    assert.equal(h.balance(koin, h.id), 900n); assert.equal(h.balance(base, h.id), 950n);
+    assert.equal(h.balance(koin, liquidityPair), amountA); assert.equal(h.balance(base, liquidityPair), amountB);
+    const event = h.events.findLast(event => event.name === 'launchpad.liquidity_provided');
+    const deposited = h.decode('liquidity_provided_event', event.data);
+    assert.equal(deposited.koin, String(amountA)); assert.equal(deposited.tokens, String(amountB));
+    // Earmarks remain the original published launch terms; the event records
+    // actual consumption. Existing buyer, locked-token, and LP paths survive.
+    const launch = h.invoke('get_launch', { launch_id: 1 }).value;
+    assert.equal(launch.liquidity_koin, '50'); assert.equal(launch.liquidity_tokens, '100');
+    h.invoke('process', { launch_id: 1 });
+    h.now = SALE_END + RECLAIM_GRACE_MS + 1;
+    h.invoke('claim_locked', { launch_id: 1 }); h.invoke('claim_liquidity', { launch_id: 1 });
+    assert.equal(h.balance(base, buyer), 100n); assert.equal(h.balance(liquidityPair, owner), 10n);
+    assert.equal(h.balance(koin, h.id), 900n); assert.equal(h.balance(base, h.id), 800n);
+    const after = liquiditySnapshot(h);
+    assert.throws(() => h.invoke('provide_liquidity', { launch_id: 1 }), /no liquidity pending/);
+    assert.throws(() => h.invoke('reclaim_liquidity', { launch_id: 1 }), /liquidity is not stuck/);
+    assert.deepEqual(liquiditySnapshot(h), after);
+  });
+}
+
+for (const [label, configuration] of [
+  ['missing response', { rawAnswer: null }],
+  ['malformed protobuf', { rawAnswer: Buffer.from([0xff]) }],
+  ['omitted consumed amounts', { answer: { liquidity: '10' } }],
+  ['excessive KOIN consumption', { answer: { liquidity: '10', amount_a: '51', amount_b: '100' } }],
+  ['KOIN below minimum', { answer: { liquidity: '10', amount_a: '48', amount_b: '100' } }],
+  ['excessive sale-token consumption', { answer: { liquidity: '10', amount_a: '50', amount_b: '101' } }],
+  ['sale tokens below minimum', { answer: { liquidity: '10', amount_a: '50', amount_b: '97' } }],
+  ['zero consumption', { answer: { liquidity: '10', amount_a: '0', amount_b: '100' } }],
+  ['zero LP', { answer: { liquidity: '0', amount_a: '50', amount_b: '100' } }],
+]) test(`launchpad: ${label} rolls back the entire liquidity provision`, () => {
+  const h = pendingLiquidity(), before = liquiditySnapshot(h);
+  installLiquidityRouter(h, configuration);
+  assert.throws(() => h.invoke('provide_liquidity', { launch_id: 1 }));
+  assert.deepEqual(liquiditySnapshot(h), before);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+  installLiquidityRouter(h);
+  assert.equal(h.invoke('provide_liquidity', { launch_id: 1 }).liquidity_state, 2);
+});
+
+for (const [label, kind, asset, configuration] of [
+  ['KOIN approval reset', 'approve', koin, {}],
+  ['sale-token approval reset', 'approve', base, {}],
+  ['unused KOIN refund', 'transfer', koin, { amountA: 49n }],
+  ['unused sale-token refund', 'transfer', base, { amountB: 99n }],
+]) test(`launchpad: failed ${label} restores pending state, pool assets, approvals, and claims before retry`, () => {
+  const h = pendingLiquidity(), before = liquiditySnapshot(h);
+  installLiquidityRouter(h, configuration);
+  h.onCall = call => {
+    if (call.kind === kind && same(call.token, asset) &&
+        (kind === 'approve' ? call.value.toString() === '0' : same(call.from, h.id))) return { code: 1 };
+  };
+  assert.throws(() => h.invoke('provide_liquidity', { launch_id: 1 }), /reset failed|return failed/);
+  assert.deepEqual(liquiditySnapshot(h), before);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+  h.onCall = null;
+  assert.equal(h.invoke('provide_liquidity', { launch_id: 1 }).liquidity_state, 2);
+  assert.equal(h.allowance(koin, h.id, router), 0n); assert.equal(h.allowance(base, h.id, router), 0n);
+});
+
+test('launchpad: approval resets and remainder refunds reject all nested mutations and retain the creator destination', () => {
+  const h = pendingLiquidity(); installLiquidityRouter(h, { amountA: 49n });
+  let callbacks = 0;
+  h.onCall = call => {
+    if (call.kind === 'approve' && call.value.toString() === '0' || call.kind === 'transfer') {
+      callbacks++;
+      if (call.kind === 'transfer') assert.ok(same(call.to, owner));
+      for (const [method, entry] of Object.entries(h.contract.abi.methods)) {
+        if (!(entry.readOnly ?? entry.read_only)) assert.throws(() => h.invoke(method, { launch_id: 1 }), /reentrant mutation/, method);
+      }
+    }
+  };
+  h.invoke('provide_liquidity', { launch_id: 1 });
+  assert.equal(callbacks, 3); assert.equal(h.balance(koin, owner), 51n);
+  assert.equal(h.db.getObject(h.lockSpace(), Buffer.alloc(0)), null);
+});
+
+test('launchpad: an uncaught remainder callback rolls back pool minting and all earlier resets before retry', () => {
+  const h = pendingLiquidity(), before = liquiditySnapshot(h);
+  installLiquidityRouter(h, { amountB: 99n });
+  h.onCall = call => { if (call.kind === 'transfer') h.invoke('provide_liquidity', { launch_id: 1 }); };
+  assert.throws(() => h.invoke('provide_liquidity', { launch_id: 1 }), /reentrant mutation/);
+  assert.deepEqual(liquiditySnapshot(h), before);
+  h.onCall = null; h.invoke('provide_liquidity', { launch_id: 1 });
+  assert.equal(h.allowance(koin, h.id, router), 0n); assert.equal(h.allowance(base, h.id, router), 0n);
+});
 
 for (const completed of [false, true]) test(`launchpad: liquidity reclaim opens at exactly seven days for a ${completed ? 'completed' : 'distributing'} sale and preserves other obligations`, () => {
   const h = pendingLiquidity({ completed });

@@ -21,3 +21,4 @@ build/
 /.testnet-rehearsal/
 /.testnet-native/
 /.testnet-keeper/
+/.testnet-liquidity/

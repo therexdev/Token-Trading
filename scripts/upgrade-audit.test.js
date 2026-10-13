@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { Serializer } from 'koilib';
 import { readOnlyProvider, collectSpace, obligations, decodeState, prepareOperation, inspectRelease, release, hash } from './upgrade-audit.js';
 const fixture = JSON.parse(fs.readFileSync(new URL('../docs/release-evidence/mainnet-2026-09-25-node.json', import.meta.url)));
+const liquidityCandidate = JSON.parse(fs.readFileSync(new URL('../docs/release-evidence/launchpad-liquidity-candidate-2026-10-09.json', import.meta.url)));
 const clone = value => JSON.parse(JSON.stringify(value));
 
 test('RPC wrapper rejects transaction submission and non-read system calls before any network request', async () => {
@@ -90,9 +91,28 @@ test('captured live obligations reconcile with every recorded required-token bal
   }
 });
 
-test('preparation produces only pinned-address uploads with preserved authorization flags', () => {
+test('the liquidity candidate matches its source and binary manifest while the original release pins stay unchanged', () => {
+  assert.equal(liquidityCandidate.status, 'unapproved-candidate');
+  assert.equal(liquidityCandidate.readyToBroadcast, false);
+  assert.equal(liquidityCandidate.releasePinsUnchanged, true);
+  assert.equal(release.contracts.launchpad.sha256, liquidityCandidate.previousCandidateSha256);
+  const binary = fs.readFileSync(new URL('../' + liquidityCandidate.wasm, import.meta.url));
+  assert.equal(hash(binary), liquidityCandidate.sha256);
+  assert.equal(binary.length, liquidityCandidate.bytes);
+  assert.notEqual(liquidityCandidate.sha256, release.contracts.launchpad.sha256);
+  for (const [file, expected] of Object.entries(liquidityCandidate.sourceFiles)) {
+    assert.equal(hash(fs.readFileSync(new URL('../' + file, import.meta.url))), expected, file);
+  }
+});
+
+test('preparation preserves pinned-address uploads and rejects the separately identified unapproved launchpad candidate', () => {
   for (const [name, spec] of Object.entries(release.contracts)) {
     const binary = fs.readFileSync(new URL('../' + spec.wasm, import.meta.url));
+    if (name === 'launchpad') {
+      assert.equal(hash(binary), liquidityCandidate.sha256);
+      assert.throws(() => prepareOperation(name, fixture, binary, Date.parse(fixture.capturedAt)), /artifact/);
+      continue;
+    }
     const operation = prepareOperation(name, fixture, binary, Date.parse(fixture.capturedAt));
     assert.deepEqual(Object.keys(operation), ['upload_contract']);
     const upload = operation.upload_contract;

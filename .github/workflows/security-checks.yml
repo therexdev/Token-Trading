@@ -51,6 +51,7 @@ jobs:
           REHEARSAL_INVENTORY: docs/release-evidence/mainnet-2026-10-06-node.json
       - run: npm run test:native-runner
       - run: npm run test:integration-guards
+      - run: npm run test:candidate-runner
       - run: npm run verify:launchpad-provenance
       - run: npm run build
         working-directory: contract
