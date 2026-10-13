@@ -1,5 +1,20 @@
 # Contract upgrade readiness
 
+## October 13 reclaim completed
+
+The original [native seven-day reclaim](release-evidence/harbinger-native-reclaim-2026-10-13.md)
+passed after its full deadline. The creator received exactly **0.5 tKOIN and
+one fixture token**; wrong-owner and duplicate claims were rejected, and
+native/sale-token escrow is zero. The reclaim in block **9,185,575** was
+verified canonical, nonreverted and irreversible with LIB **9,185,587**.
+All 24 included native/KoinDX journal transactions were reverified.
+
+This closes the original artifact's waiting gate. It does not relabel the
+separate CR-01 correction as having this same seven-day run. External review,
+atomic production-state replay, hosted keeper/browser-wallet validation,
+final-candidate approval and authorized release remain open. Dated waiting
+statements below are historical and superseded by this completion evidence.
+
 ## October 9 continuation
 
 The [integration continuation](release-evidence/integration-review-2026-10-09.md)
