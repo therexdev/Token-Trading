@@ -17,7 +17,8 @@
     "show-state": "node show-state.js",
     "audit-upgrade": "node upgrade-audit.js inspect",
     "prepare-upgrade": "node upgrade-audit.js prepare",
-    "test": "node --test upgrade-audit.test.js"
+    "test": "node --test upgrade-audit.test.js",
+    "test:rehearsal": "node --test rehearsal-core.test.js"
   },
   "overrides": {
     "protobufjs": "^7.6.5"

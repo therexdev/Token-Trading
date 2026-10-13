@@ -16,3 +16,8 @@ build/
 /favicon.svg
 /.htaccess
 /koindx/
+
+# Disposable testnet keys, transaction journal, and generated test binaries
+/.testnet-rehearsal/
+/.testnet-native/
+/.testnet-keeper/

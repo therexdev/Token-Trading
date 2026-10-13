@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-09T04:16:11.923Z",
+  "endpoint": "https://api.koinos.io",
+  "chainId": "EiBZK_GGVP0H_fXVAM3j6EAuz3-B-l3ejxRSewi7qIBfSA==",
+  "heads": {
+    "start": {
+      "head_topology": {
+        "id": "0x122089d1913e4515972c16e26774f0e7540adda22401310985ec8d93efa93485bd1c",
+        "height": "40051094",
+        "previous": "0x12205ed76b2bd29b4121da7527e48dc2c0f157f8375ce93707b60577dcdd8d7b61ea"
+      },
+      "last_irreversible_block": "40051034",
+      "head_state_merkle_root": "EiADv4s6vY2EHz-R0-anzO-iYg8HS2_KpyWqRU8YqenZPw==",
+      "head_block_time": "1791519371130"
+    },
+    "end": {
+      "head_topology": {
+        "id": "0x122028353accb3ecb6b2030bd56cb1b4007f0201167c8f25a439ed8c38d13f563d4f",
+        "height": "40051096",
+        "previous": "0x12202f6f17da828b71f5c9b8e80a5be09051b4f820ee87a715ebc50fcf7eb33e7807"
+      },
+      "last_irreversible_block": "40051036",
+      "head_state_merkle_root": "EiDpMO0SZcFXup3KV2BlhmwtRCWDz2in3892Vq0xrS6p9Q==",
+      "head_block_time": "1791519374040"
+    }
+  },
+  "consistency": "Current-head RPC observations, not an atomic state export or historical state proof. Recheck at the release boundary.",
+  "sourceBuild": {
+    "file": "docs/release-evidence/koindx-source-build-2026-10-06.json",
+    "sha256": "d61e723c7918440fb9acdb38c0664684c766702404fc2eeb2c01be0b0ff18a6c",
+    "core": "2ac84216015dc54e007766787d57a06dbe3140b6",
+    "periphery": "b4a73401bcf0aed293ec46ed6fba295b1830c507"
+  },
+  "router": {
+    "address": "17e1q6Fh5RgnuA8K7v4KvXXH4k9qHgsT5s",
+    "bytecode": {
+      "bytes": 63615,
+      "sha256": "a835153f9259c73bc35cc4fd22027402fb2e3891d450f22d1719b4419c875fdf"
+    },
+    "metadata": {
+      "hash": "EiCoNRU_klnHO8NcxP0iAnQC-y44kdRQ8i0XGbRBnIdf3w==",
+      "system": false,
+      "authorizesCall": false,
+      "authorizesTransaction": false,
+      "authorizesUpload": false
+    },
+    "sourceBuildMatches": true,
+    "metadataStableDuringCapture": true,
+    "config": {
+      "feeOn": true,
+      "feeTo": "186Y4Y7naHg7HKNQiddq1DhLgJyzsTEime"
+    }
+  },
+  "existingPool": {
+    "address": "1Bgb4hw9DrdRqEWGS9gFfo9E6Uw8qVzyhT",
+    "metadata": {
+      "hash": "EiCjynGtXKgBCAJlrux4QqHVHB0iDmRhxyqYNE9JuOWlMg==",
+      "system": false,
+      "authorizesCall": true,
+      "authorizesTransaction": true,
+      "authorizesUpload": true
+    },
+    "metadataMatchesSourceBuild": true,
+    "bytecode": null,
+    "bytecodeReadError": "return buffer is not large enough for the return value",
+    "directBytecodeVerified": false,
+    "metadataStableDuringCapture": true,
+    "pair": {
+      "value": "1Bgb4hw9DrdRqEWGS9gFfo9E6Uw8qVzyhT"
+    },
+    "reversePair": {
+      "value": "1Bgb4hw9DrdRqEWGS9gFfo9E6Uw8qVzyhT"
+    },
+    "tokens": {
+      "tokenA": "19GYjDBVXU7keLbYvMLazsGQn3GTWHjHkK",
+      "tokenB": "1GwXTEUJ2ftBnosp4Q5RLAf5XEmaLfxW21"
+    },
+    "reserves": {
+      "kLast": "10000000000000000",
+      "reserveA": "100000000",
+      "reserveB": "100000000",
+      "blockTime": "1787969151210"
+    },
+    "lpBalance": "99990000"
+  },
+  "preservedClaim": {
+    "launchId": 4,
+    "pair": "1Bgb4hw9DrdRqEWGS9gFfo9E6Uw8qVzyhT",
+    "creator": "12Kw58PnaGUemfWy5Hf8qp7YftaoTBATYA",
+    "lpAmount": "99990000",
+    "lpUnlockTime": "1803508620000",
+    "lpClaimed": false,
+    "covered": true
+  },
+  "productionRouterIdentityVerified": true,
+  "atomicReplayComplete": false,
+  "readyToBroadcast": false,
+  "limitations": [
+    "Router source and flags match the isolated official-source rehearsal; this is identity verification, not an independent security audit.",
+    "The existing pool matches the pinned build through its on-chain metadata hash; direct pool-bytecode retrieval exceeded this RPC result buffer.",
+    "This covers the existing launch 4 pair and current router configuration, not every KoinDX pool or future upgrades.",
+    "Router upload authority remains under its account authority; refresh code and flags at the upgrade boundary.",
+    "Atomic production-state replay and deployed keeper/wallet integration require separate evidence."
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-10-06T15:07:54.941Z",
+  "command": "node scripts/verify-launchpad-provenance.js",
+  "result": "passed",
+  "byteForByteMatch": true,
+  "sourceCommit": "165d311f7065d45177be5289110e3a3e3d2e5d1a",
+  "rehearsalBaseline": "9b3fdbfed4ac348c8ea8e2e34b82623f719b3975",
+  "baselineInputsIdentical": true,
+  "contractAddress": "13akLV3xQZdRjdQ2ANYo7cvSsD8qfBZReV",
+  "historicalSha256": "2aa1b55a81eede98a55bffe5a7b9ff0c4908fef01a5b523ced3ab893d6ccf117",
+  "rebuiltSha256": "2aa1b55a81eede98a55bffe5a7b9ff0c4908fef01a5b523ced3ab893d6ccf117",
+  "bytes": 37890,
+  "nodeVersion": "v24.19.0",
+  "historicalLockfileSha256": "f9ed2a59425df4b64fc903c6ecf860f0bbc501d4cea67579d72a5867ec26904f",
+  "sourceHashes": {
+    "launchpad/assembly/index.ts": "77ccd499471f4c3a3dde54d9352fce2478b6c3cc7c911a9a509c86bb0b302279",
+    "launchpad/assembly/Launchpad.ts": "1f126c20feef93bd7601632fbee8064ac722131d2f75feb4d87f46b6ed6a34d6",
+    "launchpad/assembly/proto/launchpad.ts": "edfb836b3516b4d8ca35ff0109248b017ce6632422810156f6fb8fa414fe9bdb",
+    "launchpad/assembly/proto/launchpad.proto": "cb281356733e0b3693c9993b9b69dfc6adcd2f645c33603e57e22ca512342246",
+    "launchpad/asconfig.json": "26317ad4ec1893d45a58e9fa07e5c116b4759cbf54b0a4302a797019220b9282",
+    "launchpad/build.js": "f2f11bc686b850d776900463e993513a15719806b4471dd7228d00bf8f41431e",
+    "launchpad/package-lock.json": "f9ed2a59425df4b64fc903c6ecf860f0bbc501d4cea67579d72a5867ec26904f"
+  },
+  "toolchain": {
+    "assemblyscript": {
+      "version": "0.27.37",
+      "lockfileIntegrity": "sha512-YtY5k3PiV3SyUQ6gRlR2OCn8dcVRwkpiG/k2T5buoL2ymH/Z/YbaYWbk/f9mO2HTgEtGWjPiAQrIuvA7G/63Gg=="
+    },
+    "assemblyscript/node_modules/binaryen": {
+      "version": "116.0.0-nightly.20240114",
+      "lockfileIntegrity": "sha512-0GZrojJnuhoe+hiwji7QFaL3tBlJoA+KFUN7ouYSDGZLSo9CKM8swQX8n/UcbR0d1VuZKU+nhogNzv423JEu5A=="
+    },
+    "long": {
+      "version": "5.3.2",
+      "lockfileIntegrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="
+    },
+    "binaryen": {
+      "version": "131.0.0",
+      "lockfileIntegrity": "sha512-anblNezmBjfWGfOMvZq1j5MwhVnMs+gezqbDz4FBFwx6twDwOsQSed+E8i4UKmLYXb3r+f3HWmz7Lx5sx5qOyQ=="
+    },
+    "@koinos/sdk-as": {
+      "version": "1.4.0",
+      "lockfileIntegrity": "sha512-W3NBeICu+ZEkSlvOjW1FHQ07KiOpv8Gk5OwcUYdxkAdPgkJkdBepzcPfZ98Py9M0Q83+NKkYbBwBp0A3ylRhqQ=="
+    },
+    "@koinos/proto-as": {
+      "version": "2.2.0",
+      "lockfileIntegrity": "sha512-1Dei3ql9P2GklG5qBWv/rPUKiEiyfsTqeQ1P/nsN0/kPdKhjMNuZhuBfUk1jAC6qi6q506gR30Uv/jlGxSsRPQ=="
+    },
+    "as-proto": {
+      "version": "1.0.1",
+      "lockfileIntegrity": "sha512-2igTvIO36eALA70xGTSPobLsaxGcGuXS/DfmnjskPVGwXkWKKa01QdWf7L45IRLmgZRuqFxLD7Doo0o/44vCDA=="
+    },
+    "as-bignum": {
+      "version": "0.2.40",
+      "lockfileIntegrity": "sha512-fql9j63qUCmWwgWB3qW7+S8vp1DUrqSgFnpn/L3O2bjHMW52GZ0H/DfwLCQUAgQS15gsMsjwzMT14A2KCxu0cA=="
+    }
+  },
+  "buildMethod": "Compile unchanged committed TypeScript using historical asconfig release target and build.js compiler/MVP lowering flags; output paths and dependency search path only are redirected.",
+  "limits": [
+    "Generated dispatcher and protobuf TypeScript are taken verbatim from Git; protoc/ABI generation is not rerun.",
+    "The matching binary is the captured pre-security mainnet fixture, not the patched release.",
+    "This establishes reproducible source provenance, not an independent security review or mainnet release approval.",
+    "No RPC calls, signatures, transactions, or contract uploads are performed."
+  ]
+}

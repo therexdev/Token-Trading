@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -44,9 +46,17 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: scripts
       - run: npm run test:contracts
+      - run: npm run test:contracts
+        env:
+          REHEARSAL_INVENTORY: docs/release-evidence/mainnet-2026-10-06-node.json
+      - run: npm run test:native-runner
+      - run: npm run test:integration-guards
+      - run: npm run verify:launchpad-provenance
       - run: npm run build
         working-directory: contract
       - run: npm run build
         working-directory: launchpad
       - run: npm test
+        working-directory: scripts
+      - run: npm run test:rehearsal
         working-directory: scripts

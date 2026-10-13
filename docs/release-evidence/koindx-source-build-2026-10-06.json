@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "testOnly": true,
+  "mainnetReady": false,
+  "createdAt": "2026-10-06T15:29:49.314Z",
+  "purpose": "Isolated official-source KoinDX router and pool integration on current Harbinger",
+  "sources": {
+    "core": {
+      "repository": "https://github.com/koindx/v2-core.git",
+      "commit": "2ac84216015dc54e007766787d57a06dbe3140b6",
+      "proto": "core",
+      "hashes": {
+        ".eslintignore": "e818409c72defe6ccbd7a045b045f63c76c67c5699d61b5b0c20e5ccdace62d0",
+        ".eslintrc.js": "060bf9939d7e7d92284c39ca8a66370d361d7ca549c7f81454613d77592700e2",
+        ".gitignore": "f6c7e98dadab435fa6e5ae45f83b6d2e4845f17daf4b7f7f0537bf24c19ae127",
+        "LICENSE": "7c00e954abfbe48cedbe5b9051ae3311cbae96564c7e1dc913688fa24c699950",
+        "README.md": "9901c3d2bb23aad174149b13fd89fbf44ab537a08a9139df9956c5f344e19b73",
+        "abi/.gitignore": "e1f6cb56844dfb267d9d6a774197cb946ab1f3f30a05c9d2c930f6eb4f3f50de",
+        "as-pect.config.js": "3ca636755427efb8bd142d11c9213b56f2f63a02df63b4f6153b22c5af88a0d2",
+        "asconfig.json": "52edcda757ac539017cb13a34de60de271cae63cb490a44ee8a3cae9340f12da",
+        "assembly/Constants.ts": "7c583142e4276dc4d3a7804b27c4768d70bfa751bf82325ec82d263d99d38f99",
+        "assembly/Core.ts": "82d02d27de096288041d050d282a774a213fa98fb9c6849d2699ae744b458ae5",
+        "assembly/Spaces.ts": "d17ccf7f6343334f0da1dd11ca5b5e3fee08e6a8740be0ba574c356cd0801d3c",
+        "assembly/Token.ts": "83d46d907562df03bb8eade694fcaad93d8d434773b4c087e5d4003b23020a3b",
+        "assembly/Utils.ts": "51e1c51869bc22e707b6e3fbe6b9b1a9941fb505ae641cccaaf6522911143110",
+        "assembly/__tests__/Core.spec.ts": "37232615ee6feec36181ecf78850c9237f81905f98f6a34493f438e9c05f32c6",
+        "assembly/__tests__/as-pect.d.ts": "ad2fad25cc3b8292cdee83a198be4c4703b018260e1c8b98385427e0fb4cb7e9",
+        "assembly/index.ts": "5e7de4303490431be25c121f8297ae3a11e7827c75201331078c3222a4709d1f",
+        "assembly/proto/core.proto": "5f64491d1ff676009b4b7d08e751cd470852942c865ec7b89ec36b9517c28e4e",
+        "assembly/tsconfig.json": "18fb3b9fcd7b61e527a3821ddf0eb31a1f20f4ad58fabd66366732cb79d799cc",
+        "google/protobuf/any.proto": "8117baaadcf0bc96200c0922bacab92f669808a3419bfef3779f80b9f2a267a0",
+        "google/protobuf/descriptor.proto": "f11882353f3c2a357094012ec6ff525895a7c5a6b436c83336d186eb2259d165",
+        "koinos/block_store/block_store.proto": "7a813bfa32b7bb8e67cea1c278a8d5206fd20fa9308245bded7f5d2610e7222d",
+        "koinos/broadcast/broadcast.proto": "a0e0fe99e2e42c79585d9f89895452dcf7ce06128dd42da73c46d90388989670",
+        "koinos/chain/authority.proto": "803bd2eb9b953f8e758a0d82d1c542fe34356a661f5d706beaa79d3f2c668a49",
+        "koinos/chain/chain.proto": "d3c5b72ddab94b6703d86255d8949efea5e0c3888148b79d4d941786772a8d31",
+        "koinos/chain/events.proto": "337ac41c3da22a29c0381223f928e0109fd7fc0209bd43c55049c81ac4b87223",
+        "koinos/chain/object_spaces.proto": "6ec110f9771c81134dbb1afe736b6ee0cc946bb28aaee4d1af2fc0ad7263317f",
+        "koinos/chain/system_call_ids.proto": "bee0b160bd1e5ee218f3094d59aa8173727d58297f9413ebb1b4188919fb73c6",
+        "koinos/chain/system_calls.proto": "170415d8aab5b32f2642fbdc4c1fc0a90abda40edefc27defc5b63ed243f81c8",
+        "koinos/chain/value.proto": "1b6d4ab83b901c2be879c54494cb32baff1c39889d59f9fe91b704b5ae1391eb",
+        "koinos/common.proto": "b36b46cd46a5dce0b5fe3afca711677352ce4470e14774342b0b125f6ae30f62",
+        "koinos/contract_meta_store/contract_meta_store.proto": "ced653cf4be3f46f94aa9a4dd3289dc789aa32cef6dbc3f9b4d09a864aeaefdc",
+        "koinos/contracts/governance/governance.proto": "05e95002bacc7845dd353e4ba5d111bf37a3b3eb46cc10dbf01266b7de4ce46e",
+        "koinos/contracts/pow/pow.proto": "bdfb49278206bf16cba14d8ce4d487ac2f5790dab5165b50d3d96c8e26d99fd7",
+        "koinos/contracts/resources/resources.proto": "e718f12d537f19d448c77264a6bc6870b412d248cac47a36af11fc7a28b2dda3",
+        "koinos/contracts/token/token.proto": "4c275a4e60171cfe2923f61ea45a04f41c260bd79e6d519e2d345907d8773e82",
+        "koinos/options.proto": "65b4acb46325a1075de7933efa00e04cccf9f717b9f44a63380cb33b9c89b57b",
+        "koinos/protocol/protocol.proto": "aec2ab7d1867daafc96458cdbd532a00dc0ab35e79b38e465e9738bffc315e99",
+        "koinos/rpc/block_store/block_store_rpc.proto": "0edfeea889b54b8e941c138b1e82832fa1d6180509a988b1bb99f00052b0978b",
+        "koinos/rpc/chain/chain_rpc.proto": "87ae1119f4650a913a7b091a0a96a0a6b9b49b389bb3b8d2c83a6b18eee527d3",
+        "koinos/rpc/contract_meta_store/contract_meta_store_rpc.proto": "b60e553b3e2c015e639a3efa9d939990748b9e93c111ef3c918ea7fe03fb97f5",
+        "koinos/rpc/mempool/mempool_rpc.proto": "51caf61be6515a985f7717939aa35cf88006cbd6d40d9635a3c2469104d7d9c5",
+        "koinos/rpc/p2p/p2p_rpc.proto": "d425c02de12c5ac252b12b6966238468b82bc66cfe4bf318c4f3a7e693bbada6",
+        "koinos/rpc/rpc.proto": "46909c602b1f105aba59e18ba7786d252812b397d1187d15341a7fbbadb7c868",
+        "koinos/rpc/transaction_store/transaction_store_rpc.proto": "da8b45075b90910a8696033d2a2747a2a217d560ef04fe706ac21e7271891118",
+        "koinos/transaction_store/transaction_store.proto": "15004934361908bd0d781dbc5ff5c4251ca715bbdad3b47633574cc856520319",
+        "package.json": "6ab163d3a30f5cd67c79ba57a4251e5df01171f94bfdd2580eb4949834a0e2a4",
+        "scripts/deploy.js": "f0c6303b70ccf94ecd0fe1aeaadd4cd6b71b08649df5992e2dd472dec5ace897",
+        "scripts/hash.js": "dae97a484ed9ebec1769fc7ff8efdc197ed66eb495a2fa2a972ce7227d0e35eb",
+        "yarn.lock": "f1f1d9c0109fcb90d573c8ffe2a4393356449d5be45fa6f84033118cfd712264"
+      },
+      "upstreamLockSha256": "f1f1d9c0109fcb90d573c8ffe2a4393356449d5be45fa6f84033118cfd712264"
+    },
+    "periphery": {
+      "repository": "https://github.com/koindx/v2-periphery.git",
+      "commit": "b4a73401bcf0aed293ec46ed6fba295b1830c507",
+      "proto": "periphery",
+      "hashes": {
+        ".eslintignore": "e818409c72defe6ccbd7a045b045f63c76c67c5699d61b5b0c20e5ccdace62d0",
+        ".eslintrc.js": "060bf9939d7e7d92284c39ca8a66370d361d7ca549c7f81454613d77592700e2",
+        ".gitignore": "f6c7e98dadab435fa6e5ae45f83b6d2e4845f17daf4b7f7f0537bf24c19ae127",
+        "LICENSE": "7c00e954abfbe48cedbe5b9051ae3311cbae96564c7e1dc913688fa24c699950",
+        "README.md": "f7f18f114f9d5d63799f6ec848198e95aa595b8855f0481c6554ff81ca9a80ba",
+        "abi/.gitignore": "e1f6cb56844dfb267d9d6a774197cb946ab1f3f30a05c9d2c930f6eb4f3f50de",
+        "as-pect.config.js": "3ca636755427efb8bd142d11c9213b56f2f63a02df63b4f6153b22c5af88a0d2",
+        "asconfig.json": "52edcda757ac539017cb13a34de60de271cae63cb490a44ee8a3cae9340f12da",
+        "assembly/Contants.ts": "ac6e7b6b859ff2fdb9ada448dd3e79fa37a9df8e4a0e97258007b9d3c2b07a92",
+        "assembly/Periphery.ts": "85f3764fca9682d3baa90f8a27b44b18294cb2909730db7f070b478a3ebbab99",
+        "assembly/Spaces.ts": "d59ebd209ea4869a0177f0bced0cb5ae510f5f0efe38ff0e5b8b3243f54295b3",
+        "assembly/__tests__/Periphery.spec.ts": "3c9dcebc58f1d0e1efab7631522f01139980d7d7f18fa825201b22d0326be822",
+        "assembly/__tests__/as-pect.d.ts": "ad2fad25cc3b8292cdee83a198be4c4703b018260e1c8b98385427e0fb4cb7e9",
+        "assembly/index.ts": "3ad2b7c3bb724b95a1e6728f894aa9188888120c8a8e8dbc32c4ddaa3a157b0c",
+        "assembly/libraries/Interfaces.ts": "feefab79af4cc239c2dfb1a79326c1eab7f141556091145ad5acaef1281b5f77",
+        "assembly/libraries/Lib.ts": "ec424dd037fff0b72b3e0b5a0546ec4337e9469f7b889a82f0ee2fc0f5e847be",
+        "assembly/libraries/V2Core.ts": "a516cf516e68687019a3d89d2aebd5c0d73ac14dd07ffd01c62ca0cb7ec47141",
+        "assembly/proto/periphery.proto": "ef361a75dc865ad50f8812072f0e1701a340053705547cdebd132456c47297e3",
+        "assembly/proto/v2core.proto": "c2260c40cf9e198c9666432173ab74853b78721604d7596565bfd71cffaf823f",
+        "assembly/tsconfig.json": "18fb3b9fcd7b61e527a3821ddf0eb31a1f20f4ad58fabd66366732cb79d799cc",
+        "google/protobuf/any.proto": "8117baaadcf0bc96200c0922bacab92f669808a3419bfef3779f80b9f2a267a0",
+        "google/protobuf/descriptor.proto": "f11882353f3c2a357094012ec6ff525895a7c5a6b436c83336d186eb2259d165",
+        "koinos/block_store/block_store.proto": "7a813bfa32b7bb8e67cea1c278a8d5206fd20fa9308245bded7f5d2610e7222d",
+        "koinos/broadcast/broadcast.proto": "a0e0fe99e2e42c79585d9f89895452dcf7ce06128dd42da73c46d90388989670",
+        "koinos/chain/authority.proto": "803bd2eb9b953f8e758a0d82d1c542fe34356a661f5d706beaa79d3f2c668a49",
+        "koinos/chain/chain.proto": "d3c5b72ddab94b6703d86255d8949efea5e0c3888148b79d4d941786772a8d31",
+        "koinos/chain/events.proto": "337ac41c3da22a29c0381223f928e0109fd7fc0209bd43c55049c81ac4b87223",
+        "koinos/chain/object_spaces.proto": "6ec110f9771c81134dbb1afe736b6ee0cc946bb28aaee4d1af2fc0ad7263317f",
+        "koinos/chain/system_call_ids.proto": "bee0b160bd1e5ee218f3094d59aa8173727d58297f9413ebb1b4188919fb73c6",
+        "koinos/chain/system_calls.proto": "170415d8aab5b32f2642fbdc4c1fc0a90abda40edefc27defc5b63ed243f81c8",
+        "koinos/chain/value.proto": "1b6d4ab83b901c2be879c54494cb32baff1c39889d59f9fe91b704b5ae1391eb",
+        "koinos/common.proto": "b36b46cd46a5dce0b5fe3afca711677352ce4470e14774342b0b125f6ae30f62",
+        "koinos/contract_meta_store/contract_meta_store.proto": "ced653cf4be3f46f94aa9a4dd3289dc789aa32cef6dbc3f9b4d09a864aeaefdc",
+        "koinos/contracts/governance/governance.proto": "05e95002bacc7845dd353e4ba5d111bf37a3b3eb46cc10dbf01266b7de4ce46e",
+        "koinos/contracts/pow/pow.proto": "bdfb49278206bf16cba14d8ce4d487ac2f5790dab5165b50d3d96c8e26d99fd7",
+        "koinos/contracts/resources/resources.proto": "e718f12d537f19d448c77264a6bc6870b412d248cac47a36af11fc7a28b2dda3",
+        "koinos/contracts/token/token.proto": "4c275a4e60171cfe2923f61ea45a04f41c260bd79e6d519e2d345907d8773e82",
+        "koinos/options.proto": "65b4acb46325a1075de7933efa00e04cccf9f717b9f44a63380cb33b9c89b57b",
+        "koinos/protocol/protocol.proto": "aec2ab7d1867daafc96458cdbd532a00dc0ab35e79b38e465e9738bffc315e99",
+        "koinos/rpc/block_store/block_store_rpc.proto": "0edfeea889b54b8e941c138b1e82832fa1d6180509a988b1bb99f00052b0978b",
+        "koinos/rpc/chain/chain_rpc.proto": "87ae1119f4650a913a7b091a0a96a0a6b9b49b389bb3b8d2c83a6b18eee527d3",
+        "koinos/rpc/contract_meta_store/contract_meta_store_rpc.proto": "b60e553b3e2c015e639a3efa9d939990748b9e93c111ef3c918ea7fe03fb97f5",
+        "koinos/rpc/mempool/mempool_rpc.proto": "51caf61be6515a985f7717939aa35cf88006cbd6d40d9635a3c2469104d7d9c5",
+        "koinos/rpc/p2p/p2p_rpc.proto": "d425c02de12c5ac252b12b6966238468b82bc66cfe4bf318c4f3a7e693bbada6",
+        "koinos/rpc/rpc.proto": "46909c602b1f105aba59e18ba7786d252812b397d1187d15341a7fbbadb7c868",
+        "koinos/rpc/transaction_store/transaction_store_rpc.proto": "da8b45075b90910a8696033d2a2747a2a217d560ef04fe706ac21e7271891118",
+        "koinos/transaction_store/transaction_store.proto": "15004934361908bd0d781dbc5ff5c4251ca715bbdad3b47633574cc856520319",
+        "package.json": "e7bfcd2bdb7f777b933b2bde51b8959abd4c63b48fc0e283d4b5f8463509e0e0",
+        "scripts/deploy.js": "e8b761263a23ce0187b0a7d066abc1dc0a4dfcce798c8b1e5f51c8e57d9b8840",
+        "scripts/parse.js": "870aa8ca836e13921428244531b8e951e09f9bf9dffe312459942ecdc6c4f61f",
+        "yarn.lock": "b717ccc336c802459c0f64041084a9993b13e7ab14a3cef9a8b3cb3534588936"
+      },
+      "upstreamLockSha256": "b717ccc336c802459c0f64041084a9993b13e7ab14a3cef9a8b3cb3534588936"
+    }
+  },
+  "artifacts": {
+    "pool": {
+      "file": ".testnet-native/koindx-build/pool.wasm",
+      "bytes": 65070,
+      "sha256": "a3ca71ad5ca801080265aeec7842a1d51c1d220e6461c72a98344f49b8e5a532",
+      "generatedSourceHashes": {
+        "assembly/Constants.ts": "7c583142e4276dc4d3a7804b27c4768d70bfa751bf82325ec82d263d99d38f99",
+        "assembly/Core.boilerplate.ts": "d764348cde84b9429f9e3dd81b3dd13da6e788c0c416eb8e71395c4ef347f4c7",
+        "assembly/Core.ts": "82d02d27de096288041d050d282a774a213fa98fb9c6849d2699ae744b458ae5",
+        "assembly/Spaces.ts": "d17ccf7f6343334f0da1dd11ca5b5e3fee08e6a8740be0ba574c356cd0801d3c",
+        "assembly/Token.ts": "83d46d907562df03bb8eade694fcaad93d8d434773b4c087e5d4003b23020a3b",
+        "assembly/Utils.ts": "51e1c51869bc22e707b6e3fbe6b9b1a9941fb505ae641cccaaf6522911143110",
+        "assembly/__tests__/Core.spec.ts": "37232615ee6feec36181ecf78850c9237f81905f98f6a34493f438e9c05f32c6",
+        "assembly/__tests__/as-pect.d.ts": "ad2fad25cc3b8292cdee83a198be4c4703b018260e1c8b98385427e0fb4cb7e9",
+        "assembly/index.ts": "5e7de4303490431be25c121f8297ae3a11e7827c75201331078c3222a4709d1f",
+        "assembly/proto/core.ts": "0c71c0bbe71298ea058db55272501debd82013e5bbb07ba1cbedcf7f9a47cd5a"
+      },
+      "protobufCliLockSha256": "6fe0e8dfe2332452f6fc7d12cb7b0b0da40b8bb9d94636ead8c39e36560a25c5",
+      "exports": [
+        {
+          "name": "main",
+          "kind": "function"
+        },
+        {
+          "name": "memory",
+          "kind": "memory"
+        },
+        {
+          "name": "_start",
+          "kind": "function"
+        }
+      ],
+      "imports": [
+        {
+          "module": "env",
+          "name": "invoke_system_call",
+          "kind": "function"
+        }
+      ],
+      "toolchain": {
+        "assemblyscript": "0.19.23",
+        "@koinos/sdk-as": "1.0.2",
+        "@koinos/sdk-as-cli": "1.0.0",
+        "@koinos/as-proto-gen": "1.0.3",
+        "@koinos/as-gen": "1.0.0",
+        "@koinos/abi-proto-gen": "1.0.0",
+        "protobufjs": "6.11.3"
+      },
+      "abi": {
+        "file": ".testnet-native/koindx-build/pool-abi.json",
+        "sha256": "1ea450de27743a0097186e727c222848a29676d698c5bc36ca7102860d80ff16"
+      }
+    },
+    "router": {
+      "file": ".testnet-native/koindx-build/router.wasm",
+      "bytes": 63615,
+      "sha256": "a835153f9259c73bc35cc4fd22027402fb2e3891d450f22d1719b4419c875fdf",
+      "generatedSourceHashes": {
+        "assembly/Contants.ts": "ac6e7b6b859ff2fdb9ada448dd3e79fa37a9df8e4a0e97258007b9d3c2b07a92",
+        "assembly/Periphery.boilerplate.ts": "ccef97a235f47a0fe5aa28ec0d8970e344eb51bc3637ae7b82dbfea11da479f9",
+        "assembly/Periphery.ts": "85f3764fca9682d3baa90f8a27b44b18294cb2909730db7f070b478a3ebbab99",
+        "assembly/Spaces.ts": "d59ebd209ea4869a0177f0bced0cb5ae510f5f0efe38ff0e5b8b3243f54295b3",
+        "assembly/__tests__/Periphery.spec.ts": "3c9dcebc58f1d0e1efab7631522f01139980d7d7f18fa825201b22d0326be822",
+        "assembly/__tests__/as-pect.d.ts": "ad2fad25cc3b8292cdee83a198be4c4703b018260e1c8b98385427e0fb4cb7e9",
+        "assembly/index.ts": "3ad2b7c3bb724b95a1e6728f894aa9188888120c8a8e8dbc32c4ddaa3a157b0c",
+        "assembly/libraries/Interfaces.ts": "feefab79af4cc239c2dfb1a79326c1eab7f141556091145ad5acaef1281b5f77",
+        "assembly/libraries/Lib.ts": "ec424dd037fff0b72b3e0b5a0546ec4337e9469f7b889a82f0ee2fc0f5e847be",
+        "assembly/libraries/V2Core.ts": "a516cf516e68687019a3d89d2aebd5c0d73ac14dd07ffd01c62ca0cb7ec47141",
+        "assembly/proto/periphery.ts": "d2c5e7492593753cc2d15a7932db48a5a09019978f4fbd4ba792e57726de7b22",
+        "assembly/proto/v2core.ts": "b154ad6f5e0d84c723ab1e84b61aec146a737a0bd38f0094942b05f91a52838f"
+      },
+      "protobufCliLockSha256": "6fe0e8dfe2332452f6fc7d12cb7b0b0da40b8bb9d94636ead8c39e36560a25c5",
+      "exports": [
+        {
+          "name": "main",
+          "kind": "function"
+        },
+        {
+          "name": "memory",
+          "kind": "memory"
+        },
+        {
+          "name": "_start",
+          "kind": "function"
+        }
+      ],
+      "imports": [
+        {
+          "module": "env",
+          "name": "invoke_system_call",
+          "kind": "function"
+        }
+      ],
+      "toolchain": {
+        "assemblyscript": "0.19.23",
+        "@koinos/sdk-as": "1.0.2",
+        "@koinos/sdk-as-cli": "1.0.0",
+        "@koinos/as-proto-gen": "1.0.3",
+        "@koinos/as-gen": "1.0.0",
+        "@koinos/abi-proto-gen": "1.0.0",
+        "protobufjs": "6.11.3"
+      },
+      "abi": {
+        "file": ".testnet-native/koindx-build/router-abi.json",
+        "sha256": "ceea6d826d388dbba7adbf1004d8103f36d2f079bae0049e0fda1a4a5ed8dd1c"
+      }
+    }
+  },
+  "substitutions": [],
+  "protoc": {
+    "version": "3.20.3",
+    "archiveSha256": "44a6b498e996b845edef83864734c0e52f42197e85c9d567af55f4e3ff09d755",
+    "url": "https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-linux-x86_64.zip"
+  },
+  "buildAdaptations": [
+    "Pinned protoc 3.20.3; upstream wrapper otherwise downloads an unpinned latest protoc.",
+    "Historical AssemblyScript --explicitStart exports _start for the current Koinos runtime."
+  ],
+  "limitations": [
+    "Source-derived upstream contracts; this is not proof of a byte-for-byte reproduction of the live mainnet KoinDX deployment.",
+    "The generated manifest states whether the compiled pool matches the original upstream router hash pin.",
+    "Successful compilation does not establish live pool creation, liquidity delivery, or security review."
+  ],
+  "poolHashPin": {
+    "upstream": "1220a3ca71ad5ca801080265aeec7842a1d51c1d220e6461c72a98344f49b8e5a532",
+    "compiled": "1220a3ca71ad5ca801080265aeec7842a1d51c1d220e6461c72a98344f49b8e5a532",
+    "matchesUpstream": true
+  }
+}
